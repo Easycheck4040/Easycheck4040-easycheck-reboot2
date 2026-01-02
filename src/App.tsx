@@ -1,6 +1,6 @@
 import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
 import { Toaster } from 'react-hot-toast';
-import Landing from './pages/Landing';
+import Home from './pages/Home'; // Agora importamos a Home original
 import Login from './pages/Login';
 import Dashboard from './pages/Dashboard';
 import Onboard from './pages/Onboard';
@@ -11,13 +11,13 @@ export default function App() {
     <BrowserRouter>
       <Toaster position="top-center" />
       <Routes>
-        {/* Rota Pública (Página Inicial) */}
-        <Route path="/" element={<Landing />} />
+        {/* Rota Pública - Agora aponta para a Home bonita */}
+        <Route path="/" element={<Home />} />
         
         {/* Rota de Login */}
         <Route path="/login" element={<Login />} />
 
-        {/* Rotas Protegidas (Só entra quem tem login) */}
+        {/* Rotas Protegidas */}
         <Route 
           path="/dashboard/*" 
           element={
@@ -27,7 +27,6 @@ export default function App() {
           } 
         />
 
-        {/* A Rota que faltava: Criar Empresa */}
         <Route 
           path="/onboard" 
           element={
@@ -37,7 +36,7 @@ export default function App() {
           } 
         />
         
-        {/* Se alguém tentar inventar um link, vai para a inicial */}
+        {/* Qualquer outro link vai para a Home */}
         <Route path="*" element={<Navigate to="/" replace />} />
       </Routes>
     </BrowserRouter>
