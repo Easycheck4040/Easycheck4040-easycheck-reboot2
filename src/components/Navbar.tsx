@@ -7,7 +7,7 @@ import { Button } from './ui/button';
 export default function Navbar() {
   const { t, i18n } = useTranslation();
   const [isDark, setIsDark] = useState(false);
-  const [isLangOpen, setIsLangOpen] = useState(false); // Novo estado para controlar o menu
+  const [isLangOpen, setIsLangOpen] = useState(false);
 
   useEffect(() => {
     if (isDark) document.documentElement.classList.add('dark');
@@ -16,7 +16,7 @@ export default function Navbar() {
 
   const changeLanguage = (lng: string) => {
     i18n.changeLanguage(lng);
-    setIsLangOpen(false); // Fecha o menu depois de escolher
+    setIsLangOpen(false);
   };
 
   return (
@@ -24,25 +24,20 @@ export default function Navbar() {
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         <div className="flex justify-between items-center h-20">
           
-          {/* LOGO: Certifica-te que o ficheiro 'logo.png' está na pasta 'public' */}
-          <Link to="/" className="flex items-center gap-3">
+          {/* CORREÇÃO: Logo e Texto sempre visíveis lado a lado */}
+          <Link to="/" className="flex items-center gap-3 group">
             <img 
-              src="/logopequena.PNG" 
+              src="/logo.png" 
               alt="Logo" 
               className="h-10 w-auto object-contain" 
-              onError={(e) => {
-                // Se a imagem falhar, esconde a imagem e mostra texto
-                e.currentTarget.style.display = 'none';
-                document.getElementById('fallback-logo-text')!.style.display = 'block';
-              }} 
+              onError={(e) => e.currentTarget.style.display = 'none'} 
             />
-            {/* Texto de reserva caso a imagem não carregue */}
-            <span id="fallback-logo-text" className="text-2xl font-bold tracking-tight hidden">EasyCheck</span>
+            <span className="text-2xl font-bold tracking-tight group-hover:text-blue-600 transition-colors">EasyCheck</span>
           </Link>
 
           <div className="flex items-center gap-3">
             
-            {/* SELETOR DE LÍNGUAS CORRIGIDO (Com ponte invisível) */}
+            {/* Seletor de Línguas */}
             <div 
               className="relative"
               onMouseEnter={() => setIsLangOpen(true)}
@@ -53,10 +48,8 @@ export default function Navbar() {
                 <span className="text-sm font-medium uppercase">{i18n.language}</span>
               </button>
 
-              {/* O Menu só aparece se isLangOpen for verdadeiro */}
               {isLangOpen && (
                 <div className="absolute right-0 pt-2 w-48 z-50">
-                  {/* pt-2 cria uma 'ponte' invisível para o rato não cair no vazio */}
                   <div className="bg-white dark:bg-gray-800 rounded-xl shadow-xl border dark:border-gray-700 overflow-hidden">
                     <button onClick={() => changeLanguage('pt')} className="block w-full text-left px-4 py-2 hover:bg-gray-50 dark:hover:bg-gray-700 text-sm dark:text-gray-200">🇵🇹 Português</button>
                     <button onClick={() => changeLanguage('en')} className="block w-full text-left px-4 py-2 hover:bg-gray-50 dark:hover:bg-gray-700 text-sm dark:text-gray-200">🇬🇧 English</button>
