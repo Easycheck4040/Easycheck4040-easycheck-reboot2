@@ -1,6 +1,6 @@
 import { useTranslation } from 'react-i18next';
 import { Link } from 'react-router-dom';
-// Ajustei os caminhos abaixo para ../ para garantir que funcionam no teu editor
+// CAMINHOS CORRIGIDOS (../ em vez de @/) para funcionar no teu projeto
 import { Button } from '../components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '../components/ui/card';
 import { 
@@ -62,19 +62,20 @@ export default function Home({ isAuthenticated = false }: HomeProps) {
   ];
 
   const benefits = [
-    'Reduz custos operacionais até 70%',
-    'Disponível 24/7 sem pausas ou feriados',
-    'Processa tarefas 10x mais rápido',
-    'Minimiza erro humano com precisão de IA',
-    'Escala instantaneamente com o teu negócio',
-    'Suporte multilingue em 4 línguas'
+    'Reduce operational costs by up to 70%',
+    'Available 24/7 without breaks or holidays',
+    'Process tasks 10x faster than manual work',
+    'Minimize human error with AI precision',
+    'Scale instantly as your business grows',
+    'Multilingual support in 4 languages'
   ];
 
   return (
     <div className="min-h-screen pt-16 bg-white">
       {/* Hero Section */}
       <section className="relative overflow-hidden">
-        <div className="absolute inset-0 bg-gradient-to-br from-blue-50 to-white opacity-50" />
+        {/* Gradiente de fundo original */}
+        <div className="absolute inset-0 bg-blue-50/50 opacity-50" />
         <div className="container mx-auto px-4 py-20 relative">
           <div className="max-w-4xl mx-auto text-center">
             <div className="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-blue-100 text-blue-700 text-sm font-medium mb-6">
@@ -113,7 +114,7 @@ export default function Home({ isAuthenticated = false }: HomeProps) {
       <section className="py-16 bg-gray-50">
         <div className="container mx-auto px-4">
           <div className="max-w-3xl mx-auto">
-            <h2 className="text-3xl font-bold text-center mb-12 text-gray-900">Porquê escolher o EasyCheck?</h2>
+            <h2 className="text-3xl font-bold text-center mb-12 text-gray-900">Why Choose EasyCheck?</h2>
             <div className="grid md:grid-cols-2 gap-4">
               {benefits.map((benefit, index) => (
                 <div key={index} className="flex items-start gap-3">
@@ -131,12 +132,12 @@ export default function Home({ isAuthenticated = false }: HomeProps) {
         <div className="container mx-auto px-4">
           <div className="text-center mb-12">
             <h2 className="text-3xl md:text-4xl font-bold mb-4 text-gray-900">
-              {isAuthenticated ? 'Os teus Serviços IA' : 'Serviços Disponíveis'}
+              {isAuthenticated ? 'Your AI Services' : 'Available Services'}
             </h2>
             <p className="text-lg text-gray-500 max-w-2xl mx-auto">
               {isAuthenticated
-                ? 'Clica em qualquer serviço para começar.'
-                : 'Explora como o EasyCheck pode transformar o teu negócio.'}
+                ? 'Click on any service to start using AI-powered automation'
+                : 'Explore all the ways EasyCheck can transform your business operations'}
             </p>
           </div>
 
@@ -157,7 +158,7 @@ export default function Home({ isAuthenticated = false }: HomeProps) {
                     </CardHeader>
                     <CardContent>
                       <div className="flex items-center text-blue-600 text-sm font-medium">
-                        {isAuthenticated ? 'Abrir Serviço' : t('nav.tryNow')}
+                        {isAuthenticated ? 'Open Service' : t('nav.tryNow')}
                         <ArrowRight className="ml-2 h-4 w-4 group-hover:translate-x-1 transition-transform" />
                       </div>
                     </CardContent>
@@ -185,9 +186,9 @@ export default function Home({ isAuthenticated = false }: HomeProps) {
           <div className="container mx-auto px-4">
             <div className="max-w-5xl mx-auto">
               <div className="text-center mb-8">
-                <h2 className="text-3xl font-bold mb-4">Assistente IA</h2>
+                <h2 className="text-3xl font-bold mb-4">AI Chat Assistant</h2>
                 <p className="text-gray-500 max-w-2xl mx-auto">
-                  O teu assistente inteligente com acesso a todos os dados.
+                  Your intelligent assistant with access to all your business data.
                 </p>
               </div>
               <div className="h-[700px]">
