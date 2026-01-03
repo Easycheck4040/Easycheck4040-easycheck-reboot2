@@ -1,107 +1,202 @@
+import { useTranslation } from 'react-i18next';
 import { Link } from 'react-router-dom';
-import { ArrowRight, CheckCircle, Shield, Zap } from 'lucide-react';
+// Ajustei os caminhos abaixo para ../ para garantir que funcionam no teu editor
+import { Button } from '../components/ui/button';
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '../components/ui/card';
+import { 
+  Calculator, 
+  Mail, 
+  FileText, 
+  Users, 
+  TrendingUp, 
+  Zap,
+  ArrowRight,
+  CheckCircle2
+} from 'lucide-react';
+import { EnhancedChatInterface } from '../components/EnhancedChatInterface';
+import { CostComparison } from '../components/CostComparison';
 
-export default function Home() {
+interface HomeProps {
+  isAuthenticated?: boolean;
+}
+
+export default function Home({ isAuthenticated = false }: HomeProps) {
+  const { t } = useTranslation();
+
+  const categories = [
+    {
+      icon: Calculator,
+      title: t('categories.accounting.title'),
+      description: t('categories.accounting.description'),
+      path: '/accounting',
+      gradient: 'from-blue-500 to-cyan-500'
+    },
+    {
+      icon: Mail,
+      title: t('categories.communication.title'),
+      description: t('categories.communication.description'),
+      path: '/communication',
+      gradient: 'from-cyan-500 to-teal-500'
+    },
+    {
+      icon: FileText,
+      title: t('categories.administrative.title'),
+      description: t('categories.administrative.description'),
+      path: '/administrative',
+      gradient: 'from-teal-500 to-green-500'
+    },
+    {
+      icon: Users,
+      title: t('categories.hr.title'),
+      description: t('categories.hr.description'),
+      path: '/hr',
+      gradient: 'from-green-500 to-emerald-500'
+    },
+    {
+      icon: TrendingUp,
+      title: t('categories.marketing.title'),
+      description: t('categories.marketing.description'),
+      path: '/marketing',
+      gradient: 'from-emerald-500 to-blue-500'
+    }
+  ];
+
+  const benefits = [
+    'Reduz custos operacionais até 70%',
+    'Disponível 24/7 sem pausas ou feriados',
+    'Processa tarefas 10x mais rápido',
+    'Minimiza erro humano com precisão de IA',
+    'Escala instantaneamente com o teu negócio',
+    'Suporte multilingue em 4 línguas'
+  ];
+
   return (
-    <div className="min-h-screen bg-white font-sans text-gray-900">
-      {/* Navbar Simples e Elegante */}
-      <nav className="border-b bg-white/80 backdrop-blur-md sticky top-0 z-50">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 h-16 flex items-center justify-between">
-          <div className="text-2xl font-bold text-blue-600 tracking-tight flex items-center gap-2">
-            EasyCheck <span className="text-gray-400 text-sm font-normal">v1.0</span>
-          </div>
-          <div className="flex gap-4">
-            <Link to="/login" className="text-gray-600 hover:text-blue-600 font-medium px-4 py-2 transition-colors">
-              Entrar
-            </Link>
-            <Link to="/login" className="bg-blue-600 text-white px-5 py-2 rounded-lg font-medium hover:bg-blue-700 transition-all shadow-md hover:shadow-lg">
-              Começar Grátis
-            </Link>
-          </div>
-        </div>
-      </nav>
-
-      {/* Hero Section (A "Cara" do Site) */}
-      <div className="relative pt-20 pb-32 overflow-hidden">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 text-center relative z-10">
-          <div className="inline-block px-4 py-1.5 mb-6 rounded-full bg-blue-50 text-blue-700 text-sm font-semibold tracking-wide uppercase">
-            🚀 A nova era da faturação
-          </div>
-          <h1 className="text-5xl md:text-7xl font-extrabold text-gray-900 mb-8 tracking-tight leading-tight">
-            Faturação automática para <br/>
-            <span className="bg-clip-text text-transparent bg-gradient-to-r from-blue-600 to-cyan-500">
-              quem não tem tempo a perder.
-            </span>
-          </h1>
-          <p className="text-xl md:text-2xl text-gray-600 mb-10 max-w-3xl mx-auto leading-relaxed">
-            Esquece as folhas de Excel e os contabilistas caros. Cria faturas, gere clientes e envia recibos em segundos.
-          </p>
-          
-          <div className="flex flex-col sm:flex-row justify-center gap-4 items-center">
-            <Link to="/login" className="w-full sm:w-auto flex items-center justify-center gap-2 bg-blue-600 text-white px-8 py-4 rounded-xl text-lg font-bold hover:bg-blue-700 transition-all shadow-xl hover:shadow-2xl transform hover:-translate-y-1">
-              Criar Conta Grátis <ArrowRight className="w-5 h-5" />
-            </Link>
-            <Link to="/login" className="w-full sm:w-auto flex items-center justify-center gap-2 bg-gray-100 text-gray-700 px-8 py-4 rounded-xl text-lg font-medium hover:bg-gray-200 transition-colors">
-              Ver Demonstração
-            </Link>
-          </div>
-        </div>
-        
-        {/* Elemento decorativo de fundo */}
-        <div className="absolute top-0 left-1/2 -translate-x-1/2 w-full h-full -z-10 opacity-30 pointer-events-none">
-          <div className="absolute top-20 left-10 w-72 h-72 bg-blue-400 rounded-full mix-blend-multiply filter blur-3xl animate-blob"></div>
-          <div className="absolute top-20 right-10 w-72 h-72 bg-cyan-400 rounded-full mix-blend-multiply filter blur-3xl animate-blob animation-delay-2000"></div>
-        </div>
-      </div>
-
-      {/* Features Grid (Benefícios) */}
-      <div className="bg-gray-50 py-24 border-t border-gray-100">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-12">
-            
-            {/* Card 1 */}
-            <div className="bg-white p-8 rounded-2xl shadow-sm border border-gray-100 hover:shadow-md transition-shadow">
-              <div className="w-14 h-14 bg-blue-100 rounded-xl flex items-center justify-center text-blue-600 mb-6">
-                <Zap className="w-7 h-7" />
-              </div>
-              <h3 className="text-xl font-bold mb-3 text-gray-900">Ultra Rápido</h3>
-              <p className="text-gray-600 leading-relaxed">
-                Preenchemos os dados da empresa automaticamente através do NIF. Faturas prontas em menos de 30 segundos.
-              </p>
+    <div className="min-h-screen pt-16 bg-white">
+      {/* Hero Section */}
+      <section className="relative overflow-hidden">
+        <div className="absolute inset-0 bg-gradient-to-br from-blue-50 to-white opacity-50" />
+        <div className="container mx-auto px-4 py-20 relative">
+          <div className="max-w-4xl mx-auto text-center">
+            <div className="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-blue-100 text-blue-700 text-sm font-medium mb-6">
+              <Zap className="h-4 w-4" />
+              {t('hero.savings')}
             </div>
-
-            {/* Card 2 */}
-            <div className="bg-white p-8 rounded-2xl shadow-sm border border-gray-100 hover:shadow-md transition-shadow">
-              <div className="w-14 h-14 bg-green-100 rounded-xl flex items-center justify-center text-green-600 mb-6">
-                <Shield className="w-7 h-7" />
-              </div>
-              <h3 className="text-xl font-bold mb-3 text-gray-900">100% Legal</h3>
-              <p className="text-gray-600 leading-relaxed">
-                Certificado pela Autoridade Tributária. Cumprimos todas as regras para que durmas descansado.
-              </p>
+            <h1 className="text-5xl md:text-6xl font-bold mb-6 leading-tight text-gray-900">
+              {t('hero.title')}
+            </h1>
+            <p className="text-xl text-gray-600 mb-4">
+              {t('hero.subtitle')}
+            </p>
+            <p className="text-lg text-gray-500 mb-8 max-w-2xl mx-auto">
+              {t('hero.description')}
+            </p>
+            <div className="flex flex-wrap gap-4 justify-center">
+              <Link to={isAuthenticated ? '/dashboard' : '/login'}>
+                <Button size="lg" className="shadow-lg hover:shadow-xl transition-all">
+                  {t('hero.cta')} <ArrowRight className="ml-2 h-5 w-5" />
+                </Button>
+              </Link>
+              <Link to="/pricing">
+                <Button size="lg" variant="outline">
+                  {t('nav.pricing')}
+                </Button>
+              </Link>
             </div>
-
-            {/* Card 3 */}
-            <div className="bg-white p-8 rounded-2xl shadow-sm border border-gray-100 hover:shadow-md transition-shadow">
-              <div className="w-14 h-14 bg-purple-100 rounded-xl flex items-center justify-center text-purple-600 mb-6">
-                <CheckCircle className="w-7 h-7" />
-              </div>
-              <h3 className="text-xl font-bold mb-3 text-gray-900">Tudo Organizado</h3>
-              <p className="text-gray-600 leading-relaxed">
-                Painel intuitivo que te mostra quem pagou, quem deve e quanto vais receber este mês.
-              </p>
-            </div>
-
           </div>
         </div>
-      </div>
+      </section>
 
-      {/* Footer Simples */}
-      <footer className="bg-white border-t py-12">
-        <div className="max-w-7xl mx-auto px-4 text-center">
-          <p className="text-gray-500">© 2024 EasyCheck Lda. Feito em Portugal 🇵🇹</p>
+      {/* Cost Comparison Section */}
+      <CostComparison />
+
+      {/* Benefits Section */}
+      <section className="py-16 bg-gray-50">
+        <div className="container mx-auto px-4">
+          <div className="max-w-3xl mx-auto">
+            <h2 className="text-3xl font-bold text-center mb-12 text-gray-900">Porquê escolher o EasyCheck?</h2>
+            <div className="grid md:grid-cols-2 gap-4">
+              {benefits.map((benefit, index) => (
+                <div key={index} className="flex items-start gap-3">
+                  <CheckCircle2 className="h-6 w-6 text-blue-600 flex-shrink-0 mt-0.5" />
+                  <p className="text-gray-700">{benefit}</p>
+                </div>
+              ))}
+            </div>
+          </div>
         </div>
-      </footer>
+      </section>
+
+      {/* Categories Grid */}
+      <section className="py-20">
+        <div className="container mx-auto px-4">
+          <div className="text-center mb-12">
+            <h2 className="text-3xl md:text-4xl font-bold mb-4 text-gray-900">
+              {isAuthenticated ? 'Os teus Serviços IA' : 'Serviços Disponíveis'}
+            </h2>
+            <p className="text-lg text-gray-500 max-w-2xl mx-auto">
+              {isAuthenticated
+                ? 'Clica em qualquer serviço para começar.'
+                : 'Explora como o EasyCheck pode transformar o teu negócio.'}
+            </p>
+          </div>
+
+          <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-6 max-w-6xl mx-auto">
+            {categories.map((category, index) => {
+              const Icon = category.icon;
+              return (
+                <Link key={index} to={isAuthenticated ? category.path : '/login'}>
+                  <Card className="h-full hover:shadow-lg transition-all cursor-pointer group border-gray-200">
+                    <CardHeader>
+                      <div className={`h-12 w-12 rounded-xl bg-gradient-to-br ${category.gradient} flex items-center justify-center mb-4 group-hover:scale-110 transition-transform`}>
+                        <Icon className="h-6 w-6 text-white" />
+                      </div>
+                      <CardTitle className="group-hover:text-blue-600 transition-colors">
+                        {category.title}
+                      </CardTitle>
+                      <CardDescription>{category.description}</CardDescription>
+                    </CardHeader>
+                    <CardContent>
+                      <div className="flex items-center text-blue-600 text-sm font-medium">
+                        {isAuthenticated ? 'Abrir Serviço' : t('nav.tryNow')}
+                        <ArrowRight className="ml-2 h-4 w-4 group-hover:translate-x-1 transition-transform" />
+                      </div>
+                    </CardContent>
+                  </Card>
+                </Link>
+              );
+            })}
+          </div>
+
+          {!isAuthenticated && (
+            <div className="text-center mt-12">
+              <Link to="/login">
+                <Button size="lg" className="px-8">
+                  {t('nav.login')} <ArrowRight className="ml-2 h-5 w-5" />
+                </Button>
+              </Link>
+            </div>
+          )}
+        </div>
+      </section>
+
+      {/* Enhanced Chat Section */}
+      {isAuthenticated && (
+        <section className="py-20 bg-gray-50">
+          <div className="container mx-auto px-4">
+            <div className="max-w-5xl mx-auto">
+              <div className="text-center mb-8">
+                <h2 className="text-3xl font-bold mb-4">Assistente IA</h2>
+                <p className="text-gray-500 max-w-2xl mx-auto">
+                  O teu assistente inteligente com acesso a todos os dados.
+                </p>
+              </div>
+              <div className="h-[700px]">
+                <EnhancedChatInterface />
+              </div>
+            </div>
+          </div>
+        </section>
+      )}
     </div>
   );
-}
+};
