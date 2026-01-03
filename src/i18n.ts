@@ -30,7 +30,7 @@ const resources = {
       "categories.marketing.description": "Scale your business faster. Create ad campaigns, schedule social media posts, and analyze market trends automatically.",
       "categories.chat.title": "EasyCheck AI Chat",
       "categories.chat.description": "Your personal 24/7 business advisor. Ask anything like 'Create an invoice for John' and get instant actions.",
-      "login.title": "Welcome Back", "login.email": "Email", "login.password": "Password", "login.button": "Sign In", "login.forgot": "Forgot password?", "login.noAccount": "No account?", "auth.createTitle": "Create Account", "auth.haveAccount": "Have account?"
+      "login.title": "Welcome Back", "login.email": "Email", "login.password": "Password", "login.button": "Sign In", "login.forgot": "Forgot password?", "login.noAccount": "No account?", "auth.createTitle": "Create Account", "auth.haveAccount": "Have account?", "auth.createSubtitle": "Start your free trial", "auth.loginSubtitle": "Access your dashboard"
     }
   },
 
@@ -62,7 +62,7 @@ const resources = {
       "categories.marketing.description": "Escala o negócio mais rápido. Cria campanhas de anúncios e agenda posts nas redes sociais automaticamente.",
       "categories.chat.title": "Chat EasyCheck IA",
       "categories.chat.description": "O teu consultor pessoal 24/7. Pede qualquer coisa como 'Cria uma fatura para o João' e obtém ações imediatas.",
-      "login.title": "Bem-vindo", "login.email": "Email", "login.password": "Palavra-passe", "login.button": "Entrar", "login.forgot": "Esqueceste a palavra-passe?", "login.noAccount": "Não tens conta?", "auth.createTitle": "Criar Conta", "auth.haveAccount": "Já tens conta?"
+      "login.title": "Bem-vindo", "login.email": "Email", "login.password": "Palavra-passe", "login.button": "Entrar", "login.forgot": "Esqueceste a palavra-passe?", "login.noAccount": "Não tens conta?", "auth.createTitle": "Criar Conta", "auth.haveAccount": "Já tens conta?", "auth.createSubtitle": "Começa o teu teste grátis", "auth.loginSubtitle": "Acede ao teu painel"
     }
   },
 
@@ -94,11 +94,11 @@ const resources = {
       "categories.marketing.description": "Développez votre entreprise. Créez des campagnes et planifiez des posts automatiquement.",
       "categories.chat.title": "Chat EasyCheck IA",
       "categories.chat.description": "Votre conseiller personnel 24/7. Demandez n'importe quoi et obtenez des actions immédiates.",
-      "login.title": "Bienvenue", "login.email": "Email", "login.password": "Mot de passe", "login.button": "Se connecter", "login.forgot": "Mot de passe oublié ?", "login.noAccount": "Pas de compte ?", "auth.createTitle": "Créer un Compte", "auth.haveAccount": "Déjà un compte ?"
+      "login.title": "Bienvenue", "login.email": "Email", "login.password": "Mot de passe", "login.button": "Se connecter", "login.forgot": "Mot de passe oublié ?", "login.noAccount": "Pas de compte ?", "auth.createTitle": "Créer un Compte", "auth.haveAccount": "Déjà un compte ?", "auth.createSubtitle": "Commencez votre essai gratuit", "auth.loginSubtitle": "Accédez à votre tableau de bord"
     }
   },
 
-  // --- ESPANHOL (COMPLETO) ---
+  // --- ESPANHOL ---
   es: {
     translation: {
       "nav.login": "Acceso", "nav.signup": "Registro", "nav.pricing": "Precios",
@@ -126,11 +126,11 @@ const resources = {
       "categories.marketing.description": "Escala tu negocio. Crea campañas y programa publicaciones automáticamente.",
       "categories.chat.title": "Chat EasyCheck IA",
       "categories.chat.description": "Tu asesor personal 24/7. Pide lo que sea y obtén acciones inmediatas.",
-      "login.title": "Bienvenido", "login.email": "Email", "login.password": "Contraseña", "login.button": "Entrar", "login.forgot": "¿Olvidaste la contraseña?", "login.noAccount": "¿No tienes cuenta?", "auth.createTitle": "Crear Cuenta", "auth.haveAccount": "¿Ya tienes cuenta?"
+      "login.title": "Bienvenido", "login.email": "Email", "login.password": "Contraseña", "login.button": "Entrar", "login.forgot": "¿Olvidaste la contraseña?", "login.noAccount": "¿No tienes cuenta?", "auth.createTitle": "Crear Cuenta", "auth.haveAccount": "¿Ya tienes cuenta?", "auth.createSubtitle": "Empieza tu prueba gratuita", "auth.loginSubtitle": "Accede a tu panel"
     }
   },
 
-  // --- ALEMÃO (COMPLETO) ---
+  // --- ALEMÃO ---
   de: {
     translation: {
       "nav.login": "Anmelden", "nav.signup": "Registrieren", "nav.pricing": "Preise",
@@ -158,11 +158,11 @@ const resources = {
       "categories.marketing.description": "Skalieren Sie Ihr Geschäft. Erstellen Sie Kampagnen und planen Sie Posts automatisch.",
       "categories.chat.title": "EasyCheck KI-Chat",
       "categories.chat.description": "Ihr persönlicher 24/7-Berater. Fragen Sie alles und erhalten Sie sofortige Aktionen.",
-      "login.title": "Willkommen", "login.email": "E-Mail", "login.password": "Passwort", "login.button": "Anmelden", "login.forgot": "Passwort vergessen?", "login.noAccount": "Kein Konto?", "auth.createTitle": "Konto Erstellen", "auth.haveAccount": "Haben Sie ein Konto?"
+      "login.title": "Willkommen", "login.email": "E-Mail", "login.password": "Passwort", "login.button": "Anmelden", "login.forgot": "Passwort vergessen?", "login.noAccount": "Kein Konto?", "auth.createTitle": "Konto Erstellen", "auth.haveAccount": "Haben Sie ein Konto?", "auth.createSubtitle": "Starten Sie Ihre kostenlose Testversion", "auth.loginSubtitle": "Zugriff auf Ihr Dashboard"
     }
   },
 
-  // --- ITALIANO (COMPLETO) ---
+  // --- ITALIANO ---
   it: {
     translation: {
       "nav.login": "Accedi", "nav.signup": "Registrati", "nav.pricing": "Prezzi",
@@ -190,7 +190,7 @@ const resources = {
       "categories.marketing.description": "Scala il tuo business. Crea campagne e pianifica post automaticamente.",
       "categories.chat.title": "Chat EasyCheck IA",
       "categories.chat.description": "Il tuo consulente personale 24/7. Chiedi qualsiasi cosa e ottieni azioni immediate.",
-      "login.title": "Benvenuto", "login.email": "Email", "login.password": "Password", "login.button": "Accedi", "login.forgot": "Password dimenticata?", "login.noAccount": "Non hai un account?", "auth.createTitle": "Crea Account", "auth.haveAccount": "Hai già un account?"
+      "login.title": "Benvenuto", "login.email": "Email", "login.password": "Password", "login.button": "Accedi", "login.forgot": "Password dimenticata?", "login.noAccount": "Non hai un account?", "auth.createTitle": "Crea Account", "auth.haveAccount": "Hai già un account?", "auth.createSubtitle": "Inizia la tua prova gratuita", "auth.loginSubtitle": "Accedi alla tua dashboard"
     }
   }
 };
