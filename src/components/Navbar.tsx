@@ -27,7 +27,7 @@ export default function Navbar() {
           {/* CORREÇÃO: Logo e Texto sempre visíveis lado a lado */}
           <Link to="/" className="flex items-center gap-3 group">
             <img 
-              src="/logogrande.PNG" 
+              src="/logopequena.PNG" 
               alt="Logo" 
               className="h-10 w-auto object-contain" 
               onError={(e) => e.currentTarget.style.display = 'none'} 
