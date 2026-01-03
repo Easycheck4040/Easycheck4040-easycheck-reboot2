@@ -1,194 +1,116 @@
+import { Check, X, TrendingDown, ShieldCheck } from 'lucide-react';
+import { Card, CardContent, CardHeader, CardTitle } from './ui/card';
 import { useTranslation } from 'react-i18next';
-import { Card, CardContent } from '@/components/ui/card';
-import { Users, Bot, TrendingDown, CheckCircle2, X } from 'lucide-react';
 
 export const CostComparison = () => {
   const { t } = useTranslation();
 
-  const traditionalEmployees = [
-    { role: 'Accountant', salary: '€3,500', icon: '👨‍💼' },
-    { role: 'Administrative Assistant', salary: '€2,200', icon: '👩‍💼' },
-    { role: 'HR Manager', salary: '€3,200', icon: '👨‍💼' },
-    { role: 'Marketing Specialist', salary: '€2,800', icon: '👩‍💼' },
-    { role: 'Customer Support', salary: '€2,000', icon: '👨‍💼' }
-  ];
-
-  const totalTraditional = 13700;
-  const easycheckCost = 99;
-  const savings = totalTraditional - easycheckCost;
-  const savingsPercentage = Math.round((savings / totalTraditional) * 100);
-
   return (
-    <section className="py-20 bg-gradient-hero">
+    <section className="py-24 bg-white dark:bg-gray-900 transition-colors duration-300">
       <div className="container mx-auto px-4">
-        <div className="text-center mb-12">
-          <h2 className="text-3xl md:text-4xl font-bold mb-4">
-            Traditional vs Easycheck: Cost Comparison
+        <div className="text-center mb-16">
+          <h2 className="text-3xl md:text-4xl font-bold mb-4 text-gray-900 dark:text-white">
+            {t('comparison.title')}
           </h2>
-          <p className="text-lg text-muted-foreground">
-            See how much you can save by switching to Easycheck
+          <p className="text-lg text-gray-600 dark:text-gray-400">
+            {t('comparison.subtitle')}
           </p>
         </div>
 
-        <div className="grid md:grid-cols-2 gap-8 max-w-6xl mx-auto">
+        <div className="grid md:grid-cols-2 gap-8 max-w-5xl mx-auto">
           {/* Traditional Way */}
-          <Card className="relative overflow-hidden">
-            <div className="absolute top-4 right-4 bg-destructive text-destructive-foreground px-3 py-1 rounded-full text-sm font-medium flex items-center gap-1">
-              <X className="h-4 w-4" />
-              Expensive
-            </div>
-            <CardContent className="p-8">
-              <div className="flex items-center gap-3 mb-6">
-                <div className="h-12 w-12 rounded-xl bg-muted flex items-center justify-center">
-                  <Users className="h-6 w-6 text-muted-foreground" />
+          <Card className="border-red-100 bg-red-50/50 dark:bg-red-950/10 dark:border-red-900/50">
+            <CardHeader>
+              <div className="flex justify-between items-center mb-2">
+                <div className="flex items-center gap-2">
+                  <div className="p-2 bg-red-100 dark:bg-red-900/50 rounded-lg">
+                    <X className="h-5 w-5 text-red-600 dark:text-red-400" />
+                  </div>
+                  <CardTitle className="text-xl text-gray-900 dark:text-white">{t('comparison.traditional')}</CardTitle>
                 </div>
-                <div>
-                  <h3 className="text-xl font-bold">Traditional Way</h3>
-                  <p className="text-sm text-muted-foreground">Multiple employees needed</p>
+                <span className="px-3 py-1 bg-red-100 text-red-700 text-xs font-bold uppercase rounded-full dark:bg-red-900/50 dark:text-red-300">
+                  $$$
+                </span>
+              </div>
+              <p className="text-sm text-gray-500 dark:text-gray-400">{t('comparison.traditional.sub')}</p>
+            </CardHeader>
+            <CardContent className="space-y-4">
+              {[
+                { role: t('comparison.accountant'), cost: '€2,500' },
+                { role: t('comparison.admin'), cost: '€1,800' },
+                { role: t('comparison.hr'), cost: '€3,200' },
+                { role: t('comparison.marketing'), cost: '€2,800' },
+                { role: t('comparison.support'), cost: '€2,000' },
+              ].map((item, index) => (
+                <div key={index} className="flex justify-between items-center p-3 bg-white dark:bg-gray-800 rounded-lg border border-red-100 dark:border-red-900/30">
+                  <span className="flex items-center gap-2 text-gray-700 dark:text-gray-300">
+                    <span className="text-xl">👤</span> {item.role}
+                  </span>
+                  <span className="font-semibold text-red-600 dark:text-red-400">{item.cost}/mo</span>
+                </div>
+              ))}
+              <div className="pt-6 border-t border-red-200 dark:border-red-900/30 mt-6">
+                <div className="flex justify-between items-end">
+                  <span className="text-gray-600 dark:text-gray-400 font-medium">{t('comparison.total')}</span>
+                  <span className="text-3xl font-bold text-red-600 dark:text-red-500">€12.300/mo</span>
+                </div>
+              </div>
+            </CardContent>
+          </Card>
+
+          {/* EasyCheck Way */}
+          <Card className="border-blue-500 bg-white dark:bg-gray-800 shadow-xl relative overflow-hidden transform hover:scale-105 transition-transform duration-300">
+            <div className="absolute top-0 right-0 bg-blue-600 text-white px-4 py-1 text-sm font-bold rounded-bl-xl">
+              RECOMMENDED
+            </div>
+            <CardHeader>
+              <div className="flex items-center gap-2 mb-2">
+                <div className="p-2 bg-blue-100 dark:bg-blue-900/50 rounded-lg">
+                  <ShieldCheck className="h-6 w-6 text-blue-600 dark:text-blue-400" />
+                </div>
+                <CardTitle className="text-xl text-gray-900 dark:text-white">{t('comparison.easycheck')}</CardTitle>
+              </div>
+              <p className="text-sm text-gray-500 dark:text-gray-400">{t('comparison.easycheck.sub')}</p>
+            </CardHeader>
+            <CardContent className="space-y-6">
+              <div className="p-6 bg-blue-50 dark:bg-blue-900/20 rounded-xl border border-blue-100 dark:border-blue-800">
+                <div className="flex items-center gap-4 mb-4">
+                  <div className="p-3 bg-blue-600 rounded-full text-white">
+                    <TrendingDown className="h-8 w-8" />
+                  </div>
+                  <div>
+                    <div className="text-sm text-blue-600 dark:text-blue-400 font-bold uppercase tracking-wider">
+                      {t('comparison.save')}
+                    </div>
+                    <div className="text-3xl font-bold text-gray-900 dark:text-white">€12.271/mo</div>
+                  </div>
+                </div>
+                <div className="text-sm text-center text-blue-700 dark:text-blue-300 bg-blue-100 dark:bg-blue-900/40 py-2 rounded-lg">
+                  €147.252 {t('comparison.perYear')}
                 </div>
               </div>
 
-              <div className="space-y-3 mb-6">
-                {traditionalEmployees.map((employee, index) => (
-                  <div
-                    key={index}
-                    className="flex items-center justify-between p-3 bg-muted/50 rounded-lg"
-                  >
-                    <div className="flex items-center gap-3">
-                      <span className="text-2xl">{employee.icon}</span>
-                      <span className="font-medium">{employee.role}</span>
+              <div className="space-y-3">
+                {[
+                  t('comparison.features.all'),
+                  t('comparison.features.247'),
+                  t('comparison.features.multi')
+                ].map((feature, index) => (
+                  <div key={index} className="flex items-center gap-3">
+                    <div className="h-6 w-6 rounded-full bg-green-100 dark:bg-green-900/50 flex items-center justify-center">
+                      <Check className="h-4 w-4 text-green-600 dark:text-green-400" />
                     </div>
-                    <span className="font-bold text-destructive">{employee.salary}/mo</span>
+                    <span className="text-gray-700 dark:text-gray-300 font-medium">{feature}</span>
                   </div>
                 ))}
               </div>
 
-              <div className="border-t pt-4">
-                <div className="flex items-center justify-between text-lg">
-                  <span className="font-semibold">Total Monthly Cost:</span>
-                  <span className="text-2xl font-bold text-destructive">
-                    €{totalTraditional.toLocaleString()}/mo
-                  </span>
-                </div>
-                <p className="text-xs text-muted-foreground mt-2">
-                  Plus benefits, training, office space, equipment...
-                </p>
-              </div>
-            </CardContent>
-          </Card>
-
-          {/* Easycheck Way */}
-          <Card className="relative overflow-hidden border-primary shadow-glow">
-            <div className="absolute top-4 right-4 bg-primary text-primary-foreground px-3 py-1 rounded-full text-sm font-medium flex items-center gap-1">
-              <CheckCircle2 className="h-4 w-4" />
-              Best Choice
-            </div>
-            <CardContent className="p-8">
-              <div className="flex items-center gap-3 mb-6">
-                <div className="h-12 w-12 rounded-xl bg-gradient-primary flex items-center justify-center shadow-glow">
-                  <Bot className="h-6 w-6 text-primary-foreground" />
-                </div>
-                <div>
-                  <h3 className="text-xl font-bold">Easycheck Way</h3>
-                  <p className="text-sm text-muted-foreground">One AI-powered solution</p>
+              <div className="pt-6 border-t border-gray-100 dark:border-gray-700">
+                <div className="flex justify-between items-end">
+                  <span className="text-gray-600 dark:text-gray-400 font-medium">{t('comparison.total')}</span>
+                  <span className="text-4xl font-bold text-blue-600 dark:text-blue-400">€29<span className="text-lg text-gray-500 dark:text-gray-500">/mo</span></span>
                 </div>
               </div>
-
-              <div className="space-y-3 mb-6">
-                <div className="p-4 bg-primary/10 rounded-lg border-2 border-primary/20">
-                  <div className="flex items-center gap-3 mb-3">
-                    <Bot className="h-8 w-8 text-primary" />
-                    <div>
-                      <h4 className="font-bold text-lg">Easycheck AI</h4>
-                      <p className="text-sm text-muted-foreground">
-                        Replaces all 5 employees
-                      </p>
-                    </div>
-                  </div>
-                  <div className="grid grid-cols-2 gap-2 text-sm">
-                    <div className="flex items-center gap-1">
-                      <CheckCircle2 className="h-4 w-4 text-primary" />
-                      <span>Accounting</span>
-                    </div>
-                    <div className="flex items-center gap-1">
-                      <CheckCircle2 className="h-4 w-4 text-primary" />
-                      <span>Admin</span>
-                    </div>
-                    <div className="flex items-center gap-1">
-                      <CheckCircle2 className="h-4 w-4 text-primary" />
-                      <span>HR</span>
-                    </div>
-                    <div className="flex items-center gap-1">
-                      <CheckCircle2 className="h-4 w-4 text-primary" />
-                      <span>Marketing</span>
-                    </div>
-                    <div className="flex items-center gap-1">
-                      <CheckCircle2 className="h-4 w-4 text-primary" />
-                      <span>24/7 Available</span>
-                    </div>
-                    <div className="flex items-center gap-1">
-                      <CheckCircle2 className="h-4 w-4 text-primary" />
-                      <span>Multilingual</span>
-                    </div>
-                  </div>
-                </div>
-
-                <div className="text-center py-6">
-                  <div className="inline-flex items-center justify-center gap-3 text-6xl font-bold gradient-text">
-                    <TrendingDown className="h-12 w-12 text-green-500" />
-                    {savingsPercentage}%
-                  </div>
-                  <p className="text-sm text-muted-foreground mt-2">Cost Reduction</p>
-                </div>
-              </div>
-
-              <div className="border-t border-primary/20 pt-4">
-                <div className="flex items-center justify-between text-lg mb-4">
-                  <span className="font-semibold">Total Monthly Cost:</span>
-                  <span className="text-2xl font-bold text-primary">
-                    €{easycheckCost}/mo
-                  </span>
-                </div>
-                <div className="bg-green-500/10 border border-green-500/20 rounded-lg p-4">
-                  <div className="text-center">
-                    <p className="text-sm text-muted-foreground mb-1">You Save</p>
-                    <p className="text-3xl font-bold text-green-600">
-                      €{savings.toLocaleString()}/mo
-                    </p>
-                    <p className="text-sm text-muted-foreground mt-1">
-                      That's €{(savings * 12).toLocaleString()} per year!
-                    </p>
-                  </div>
-                </div>
-              </div>
-            </CardContent>
-          </Card>
-        </div>
-
-        {/* Bottom Stats */}
-        <div className="grid md:grid-cols-4 gap-4 max-w-4xl mx-auto mt-12">
-          <Card>
-            <CardContent className="p-4 text-center">
-              <div className="text-2xl font-bold text-primary mb-1">10x</div>
-              <p className="text-sm text-muted-foreground">Faster Processing</p>
-            </CardContent>
-          </Card>
-          <Card>
-            <CardContent className="p-4 text-center">
-              <div className="text-2xl font-bold text-primary mb-1">24/7</div>
-              <p className="text-sm text-muted-foreground">Always Available</p>
-            </CardContent>
-          </Card>
-          <Card>
-            <CardContent className="p-4 text-center">
-              <div className="text-2xl font-bold text-primary mb-1">0</div>
-              <p className="text-sm text-muted-foreground">Sick Days</p>
-            </CardContent>
-          </Card>
-          <Card>
-            <CardContent className="p-4 text-center">
-              <div className="text-2xl font-bold text-primary mb-1">4</div>
-              <p className="text-sm text-muted-foreground">Languages</p>
             </CardContent>
           </Card>
         </div>

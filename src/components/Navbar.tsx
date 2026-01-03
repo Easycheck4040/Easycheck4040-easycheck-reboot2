@@ -12,7 +12,7 @@ export default function Navbar() {
           <Link to="/" className="flex items-center gap-2 hover:opacity-80 transition-opacity">
             {/* Tenta carregar o PNG primeiro, se usaste JPG avisa-me */}
             <img 
-              src="/logogrande.png" 
+              src="/logogrande.PNG" 
               alt="EasyCheck Logo" 
               className="h-10 w-auto object-contain" 
             />
