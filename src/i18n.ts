@@ -1,127 +1,41 @@
 import i18n from 'i18next';
 import { initReactI18next } from 'react-i18next';
 
-i18n.use(initReactI18next).init({
-  lng: 'pt', 
-  fallbackLng: 'en',
-  interpolation: { escapeValue: false },
-  resources: {
-    en: {
-      translation: {
-        "hero.title": "Automate Your Business",
-        "hero.subtitle": "AI-powered management.",
-        "hero.description": "Stop wasting time on paperwork. Generate invoices, manage clients, and track payments automatically.",
-        "hero.savings": "Guaranteed Savings",
-        "hero.cta": "Start Now",
-        "nav.pricing": "Pricing",
-        "nav.login": "Login",
-        "nav.signup": "Create Account",
-        "login.title": "Welcome Back",
-        "login.button": "Sign In",
-        "login.email": "Your Email",
-        "login.password": "Password",
-        "login.noAccount": "Don't have an account? Sign up",
-        "auth.createTitle": "Create Account",
-        "auth.createSubtitle": "Start your 14-day free trial",
-        "auth.loginSubtitle": "Access your dashboard",
-        "auth.haveAccount": "Already have an account? Login",
-        "comparison.title": "EasyCheck vs Traditional",
-        "comparison.traditional": "Traditional Way",
-        "comparison.recommended": "Recommended",
-        "comparison.item1_bad": "Expensive Accountant (€200/mo)",
-        "comparison.item2_bad": "Manual data entry errors",
-        "comparison.item3_bad": "Available only 9-5",
-        "comparison.item1_good": "Starting at €29/mo",
-        "comparison.item2_good": "100% Automated & Accurate",
-        "comparison.item3_good": "Available 24/7",
-        "categories.accounting.title": "AI Accounting",
-        "categories.accounting.description": "Instant invoice generation, tax calculation and expense tracking.",
-        "categories.communication.title": "Smart Communication",
-        "categories.communication.description": "Auto-reply emails and manage client chats from one place.",
-        "categories.administrative.title": "Admin Automation",
-        "categories.administrative.description": "Digitize paperwork and organize contracts automatically.",
-        "categories.hr.title": "HR Management",
-        "categories.hr.description": "Streamline payroll, leaves, and employee onboarding.",
-        "categories.marketing.title": "Growth Marketing",
-        "categories.marketing.description": "Launch campaigns and analyze social media performance."
-      }
-    },
-    pt: {
-      translation: {
-        "hero.title": "Automatiza o Teu Negócio",
-        "hero.subtitle": "Gestão com Inteligência Artificial.",
-        "hero.description": "Deixa de perder tempo com papelada. Cria faturas, gere clientes e envia recibos em segundos.",
-        "hero.savings": "Poupança Garantida",
-        "hero.cta": "Começar Agora",
-        "nav.pricing": "Preços",
-        "nav.login": "Entrar",
-        "nav.signup": "Criar Conta",
-        "login.title": "Bem-vindo",
-        "login.button": "Entrar",
-        "login.email": "O teu email",
-        "login.password": "Palavra-passe",
-        "login.noAccount": "Ainda não tens conta? Cria agora",
-        "auth.createTitle": "Criar Nova Conta",
-        "auth.createSubtitle": "Começa o teu teste grátis de 14 dias",
-        "auth.loginSubtitle": "Acede ao teu painel",
-        "auth.haveAccount": "Já tens conta? Entrar",
-        "comparison.title": "EasyCheck vs Tradicional",
-        "comparison.traditional": "Método Tradicional",
-        "comparison.recommended": "Recomendado",
-        "comparison.item1_bad": "Contabilista Caro (€200/mês)",
-        "comparison.item2_bad": "Erros manuais frequentes",
-        "comparison.item3_bad": "Disponível só das 9h às 18h",
-        "comparison.item1_good": "Desde €29/mês",
-        "comparison.item2_good": "100% Automático e Preciso",
-        "comparison.item3_good": "Disponível 24 horas/dia",
-        "categories.accounting.title": "Contabilidade IA",
-        "categories.accounting.description": "Geração instantânea de faturas, cálculo de impostos e despesas.",
-        "categories.communication.title": "Comunicação Inteligente",
-        "categories.communication.description": "Respostas automáticas de email e chat com clientes.",
-        "categories.administrative.title": "Automação Admin",
-        "categories.administrative.description": "Digitaliza papelada e organiza contratos automaticamente.",
-        "categories.hr.title": "Gestão de RH",
-        "categories.hr.description": "Processamento de salários, férias e novos funcionários.",
-        "categories.marketing.title": "Marketing de Crescimento",
-        "categories.marketing.description": "Lança campanhas e analisa a performance nas redes sociais."
-      }
-    },
-    fr: {
-      translation: {
-        "hero.title": "Automatisez Votre Entreprise",
-        "hero.description": "Arrêtez de perdre du temps avec la paperasse. Créez des factures et gérez vos clients automatiquement.",
-        "hero.savings": "Économies Garanties",
-        "hero.cta": "Commencer",
-        "nav.pricing": "Tarifs",
-        "nav.login": "Connexion",
-        "nav.signup": "Créer un compte",
-        "login.title": "Bienvenue",
-        "login.button": "Se connecter",
-        "login.email": "Votre Email",
-        "login.password": "Mot de passe",
-        "auth.createTitle": "Créer un Compte",
-        "comparison.title": "EasyCheck vs Traditionnel",
-        "comparison.traditional": "Méthode Traditionnelle",
-        "comparison.recommended": "Recommandé",
-        "comparison.item1_bad": "Comptable Cher (€200/mois)",
-        "comparison.item2_bad": "Erreurs manuelles",
-        "comparison.item3_bad": "Disponible 9h-17h",
-        "comparison.item1_good": "À partir de €29/mois",
-        "comparison.item2_good": "100% Automatisé",
-        "comparison.item3_good": "Disponible 24/7",
-        "categories.accounting.title": "Comptabilité IA",
-        "categories.accounting.description": "Factures instantanées et calcul des taxes.",
-        "categories.communication.title": "Communication Smart",
-        "categories.communication.description": "Emails automatiques et chat client.",
-        "categories.administrative.title": "Admin Automatisé",
-        "categories.administrative.description": "Numérisation et organisation des documents.",
-        "categories.hr.title": "Gestion RH",
-        "categories.hr.description": "Paie, congés et recrutement.",
-        "categories.marketing.title": "Marketing Croissance",
-        "categories.marketing.description": "Campagnes et analyse des réseaux sociaux."
-      }
+const resources = {
+  en: {
+    translation: {
+      "nav.login": "Login", "nav.signup": "Sign Up",
+      "hero.savings": "Guaranteed Savings", "hero.title": "Automate Your Business", "hero.description": "Stop wasting time on paperwork.", "hero.cta": "Start Now",
+      "comparison.title": "Traditional vs EasyCheck Cost", "comparison.traditional": "Traditional Way", "comparison.recommended": "Best Choice",
+      "categories.accounting.title": "Accounting", "categories.accounting.description": "Automated invoices",
+      "categories.communication.title": "Communication", "categories.communication.description": "Smart emails",
+      "categories.administrative.title": "Administrative", "categories.administrative.description": "Doc organization",
+      "categories.hr.title": "HR", "categories.hr.description": "Team management",
+      "categories.marketing.title": "Marketing", "categories.marketing.description": "Growth & Socials",
+      "login.title": "Welcome Back", "login.email": "Email", "login.password": "Password", "login.button": "Sign In", "login.forgot": "Forgot password?", "login.noAccount": "No account?", "auth.createTitle": "Create Account", "auth.haveAccount": "Have account?"
     }
-  }
+  },
+  pt: {
+    translation: {
+      "nav.login": "Entrar", "nav.signup": "Criar Conta",
+      "hero.savings": "Poupança Garantida", "hero.title": "Automatiza o Teu Negócio", "hero.description": "Deixa de perder tempo com papelada.", "hero.cta": "Começar Agora",
+      "comparison.title": "Custo: Tradicional vs EasyCheck", "comparison.traditional": "Método Tradicional", "comparison.recommended": "Melhor Escolha",
+      "categories.accounting.title": "Contabilidade", "categories.accounting.description": "Faturas automáticas",
+      "categories.communication.title": "Comunicação", "categories.communication.description": "Emails inteligentes",
+      "categories.administrative.title": "Administrativo", "categories.administrative.description": "Organização documental",
+      "categories.hr.title": "Recursos Humanos", "categories.hr.description": "Gestão de equipas",
+      "categories.marketing.title": "Marketing", "categories.marketing.description": "Crescimento",
+      "login.title": "Bem-vindo", "login.email": "Email", "login.password": "Palavra-passe", "login.button": "Entrar", "login.forgot": "Esqueceste a palavra-passe?", "login.noAccount": "Não tens conta?", "auth.createTitle": "Criar Conta", "auth.haveAccount": "Já tens conta?"
+    }
+  },
+  fr: { translation: { "hero.title": "Automatisez Votre Entreprise" } },
+  es: { translation: { "hero.title": "Automatiza Tu Negocio" } },
+  de: { translation: { "hero.title": "Automatisieren Sie Ihr Geschäft" } },
+  it: { translation: { "hero.title": "Automatizza Il Tuo Business" } }
+};
+
+i18n.use(initReactI18next).init({
+  resources, lng: "pt", fallbackLng: "en", interpolation: { escapeValue: false }
 });
 
 export default i18n;
