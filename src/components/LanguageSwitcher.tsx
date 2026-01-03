@@ -1,41 +1,27 @@
-import { Globe } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
-import {
-  DropdownMenu,
-  DropdownMenuContent,
-  DropdownMenuItem,
-  DropdownMenuTrigger,
-} from '@/components/ui/dropdown-menu';
-import { Button } from '@/components/ui/button';
+import { Languages } from 'lucide-react';
 
-const languages = [
-  { code: 'en', name: 'English' },
-  { code: 'fr', name: 'Français' },
-  { code: 'de', name: 'Deutsch' },
-  { code: 'pt', name: 'Português' }
-];
-
-export const LanguageSwitcher = () => {
+export function LanguageSwitcher() {
   const { i18n } = useTranslation();
 
+  const changeLanguage = (e: React.ChangeEvent<HTMLSelectElement>) => {
+    i18n.changeLanguage(e.target.value);
+  };
+
   return (
-    <DropdownMenu>
-      <DropdownMenuTrigger asChild>
-        <Button variant="ghost" size="icon" className="transition-smooth">
-          <Globe className="h-5 w-5" />
-        </Button>
-      </DropdownMenuTrigger>
-      <DropdownMenuContent align="end">
-        {languages.map((lang) => (
-          <DropdownMenuItem
-            key={lang.code}
-            onClick={() => i18n.changeLanguage(lang.code)}
-            className={i18n.language === lang.code ? 'bg-muted' : ''}
-          >
-            {lang.name}
-          </DropdownMenuItem>
-        ))}
-      </DropdownMenuContent>
-    </DropdownMenu>
+    <div className="flex items-center gap-2 px-3 py-1.5 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors border border-transparent hover:border-gray-200 dark:hover:border-gray-700">
+      <Languages className="h-4 w-4 text-gray-500 dark:text-gray-400" />
+      <select 
+        onChange={changeLanguage} 
+        value={i18n.language}
+        className="bg-transparent text-sm font-medium text-gray-700 dark:text-gray-200 focus:outline-none cursor-pointer appearance-none"
+      >
+        <option value="en">English</option>
+        <option value="pt">Português</option>
+        <option value="fr">Français</option>
+        <option value="es">Español</option>
+        <option value="de">Deutsch</option>
+      </select>
+    </div>
   );
-};
+}
