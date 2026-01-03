@@ -7,6 +7,7 @@ import { Button } from './ui/button';
 export default function Navbar() {
   const { t, i18n } = useTranslation();
   const [isDark, setIsDark] = useState(false);
+  const [isLangOpen, setIsLangOpen] = useState(false); // Novo estado para controlar o menu
 
   useEffect(() => {
     if (isDark) document.documentElement.classList.add('dark');
@@ -15,6 +16,7 @@ export default function Navbar() {
 
   const changeLanguage = (lng: string) => {
     i18n.changeLanguage(lng);
+    setIsLangOpen(false); // Fecha o menu depois de escolher
   };
 
   return (
@@ -22,28 +24,49 @@ export default function Navbar() {
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         <div className="flex justify-between items-center h-20">
           
-          {/* O TEU LOGO AQUI */}
+          {/* LOGO: Certifica-te que o ficheiro 'logo.png' está na pasta 'public' */}
           <Link to="/" className="flex items-center gap-3">
-            <img src="/logogrande.PNG" alt="Logo" className="h-10 w-auto object-contain" onError={(e) => e.currentTarget.style.display = 'none'} />
-            {/* Se a imagem falhar, mostra o texto */}
-            <span className="text-2xl font-bold tracking-tight">EasyCheck</span>
+            <img 
+              src="/logopequena.PNG" 
+              alt="Logo" 
+              className="h-10 w-auto object-contain" 
+              onError={(e) => {
+                // Se a imagem falhar, esconde a imagem e mostra texto
+                e.currentTarget.style.display = 'none';
+                document.getElementById('fallback-logo-text')!.style.display = 'block';
+              }} 
+            />
+            {/* Texto de reserva caso a imagem não carregue */}
+            <span id="fallback-logo-text" className="text-2xl font-bold tracking-tight hidden">EasyCheck</span>
           </Link>
 
           <div className="flex items-center gap-3">
-            {/* Seletor de Línguas Completo */}
-            <div className="relative group">
+            
+            {/* SELETOR DE LÍNGUAS CORRIGIDO (Com ponte invisível) */}
+            <div 
+              className="relative"
+              onMouseEnter={() => setIsLangOpen(true)}
+              onMouseLeave={() => setIsLangOpen(false)}
+            >
               <button className={`p-2 rounded-lg flex items-center gap-2 ${isDark ? 'hover:bg-gray-800' : 'hover:bg-gray-100'}`}>
                 <Globe className="w-5 h-5" />
                 <span className="text-sm font-medium uppercase">{i18n.language}</span>
               </button>
-              <div className="absolute right-0 mt-2 w-48 bg-white dark:bg-gray-800 rounded-xl shadow-xl border dark:border-gray-700 overflow-hidden hidden group-hover:block z-50">
-                <button onClick={() => changeLanguage('pt')} className="block w-full text-left px-4 py-2 hover:bg-gray-50 dark:hover:bg-gray-700 text-sm">🇵🇹 Português</button>
-                <button onClick={() => changeLanguage('en')} className="block w-full text-left px-4 py-2 hover:bg-gray-50 dark:hover:bg-gray-700 text-sm">🇬🇧 English</button>
-                <button onClick={() => changeLanguage('fr')} className="block w-full text-left px-4 py-2 hover:bg-gray-50 dark:hover:bg-gray-700 text-sm">🇫🇷 Français</button>
-                <button onClick={() => changeLanguage('es')} className="block w-full text-left px-4 py-2 hover:bg-gray-50 dark:hover:bg-gray-700 text-sm">🇪🇸 Español</button>
-                <button onClick={() => changeLanguage('de')} className="block w-full text-left px-4 py-2 hover:bg-gray-50 dark:hover:bg-gray-700 text-sm">🇩🇪 Deutsch</button>
-                <button onClick={() => changeLanguage('it')} className="block w-full text-left px-4 py-2 hover:bg-gray-50 dark:hover:bg-gray-700 text-sm">🇮🇹 Italiano</button>
-              </div>
+
+              {/* O Menu só aparece se isLangOpen for verdadeiro */}
+              {isLangOpen && (
+                <div className="absolute right-0 pt-2 w-48 z-50">
+                  {/* pt-2 cria uma 'ponte' invisível para o rato não cair no vazio */}
+                  <div className="bg-white dark:bg-gray-800 rounded-xl shadow-xl border dark:border-gray-700 overflow-hidden">
+                    <button onClick={() => changeLanguage('pt')} className="block w-full text-left px-4 py-2 hover:bg-gray-50 dark:hover:bg-gray-700 text-sm dark:text-gray-200">🇵🇹 Português</button>
+                    <button onClick={() => changeLanguage('en')} className="block w-full text-left px-4 py-2 hover:bg-gray-50 dark:hover:bg-gray-700 text-sm dark:text-gray-200">🇬🇧 English</button>
+                    <button onClick={() => changeLanguage('fr')} className="block w-full text-left px-4 py-2 hover:bg-gray-50 dark:hover:bg-gray-700 text-sm dark:text-gray-200">🇫🇷 Français</button>
+                    <button onClick={() => changeLanguage('es')} className="block w-full text-left px-4 py-2 hover:bg-gray-50 dark:hover:bg-gray-700 text-sm dark:text-gray-200">🇪🇸 Español</button>
+                    <button onClick={() => changeLanguage('de')} className="block w-full text-left px-4 py-2 hover:bg-gray-50 dark:hover:bg-gray-700 text-sm dark:text-gray-200">🇩🇪 Deutsch</button>
+                    <button onClick={() => changeLanguage('it')} className="block w-full text-left px-4 py-2 hover:bg-gray-50 dark:hover:bg-gray-700 text-sm dark:text-gray-200">🇮🇹 Italiano</button>
+                  </div>
+                </div>
+              )}
             </div>
 
             <button onClick={() => setIsDark(!isDark)} className={`p-2 rounded-lg ${isDark ? 'text-yellow-400' : 'text-gray-600'}`}>
