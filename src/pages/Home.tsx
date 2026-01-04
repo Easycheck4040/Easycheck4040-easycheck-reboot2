@@ -1,7 +1,6 @@
 import { useTranslation } from 'react-i18next';
 import { Link } from 'react-router-dom';
-import Navbar from '../components/Navbar';
-import Footer from '../components/Footer'; // <--- Importámos o Footer aqui
+import Footer from '../components/Footer'; 
 import { 
   ArrowRight, 
   Calculator, 
@@ -64,7 +63,7 @@ export default function Home() {
 
   return (
     <div className="min-h-screen bg-white dark:bg-gray-900 transition-colors duration-300 flex flex-col">
-      <Navbar />
+      {/* REMOVIDA A NAVBAR DAQUI - O App.tsx já trata disso */}
 
       <main className="flex-1">
         {/* HERO SECTION */}
@@ -206,7 +205,7 @@ export default function Home() {
         </section>
       </main>
 
-      {/* FOOTER NOVO */}
+      {/* FOOTER - Este mantemos! */}
       <Footer />
     </div>
   );
