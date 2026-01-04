@@ -2,7 +2,7 @@ import { useTranslation } from 'react-i18next';
 import { Link } from 'react-router-dom';
 import { Button } from '../components/ui/button';
 import { Card, CardHeader, CardTitle, CardDescription } from '../components/ui/card';
-import { Calculator, Mail, FileText, Users, TrendingUp, Zap, ArrowRight, CheckCircle2, X, MessageSquare } from 'lucide-react';
+import { Calculator, Mail, FileText, Users, TrendingUp, Zap, ArrowRight, CheckCircle2, MessageSquare } from 'lucide-react';
 
 export default function Home() {
   const { t } = useTranslation();
@@ -13,31 +13,43 @@ export default function Home() {
     { icon: FileText, title: t('categories.administrative.title'), description: t('categories.administrative.description'), path: '/administrative', gradient: 'from-teal-500 to-green-500' },
     { icon: Users, title: t('categories.hr.title'), description: t('categories.hr.description'), path: '/hr', gradient: 'from-green-500 to-emerald-500' },
     { icon: TrendingUp, title: t('categories.marketing.title'), description: t('categories.marketing.description'), path: '/marketing', gradient: 'from-emerald-500 to-blue-500' },
-    // NOVO: Adicionei o Chat IA aqui para ficar ao lado das funções
     { icon: MessageSquare, title: t('categories.chat.title'), description: t('categories.chat.description'), path: '/dashboard', gradient: 'from-purple-500 to-pink-500' }
   ];
 
   return (
     <div className="transition-colors duration-300 dark:bg-gray-900 dark:text-white bg-white text-gray-900">
       
-      {/* Hero Section - Atualizado para focar em Rapidez/Preço */}
+      {/* Hero Section */}
       <section className="pt-24 pb-20 text-center container mx-auto px-4">
         <div className="inline-flex items-center gap-2 px-4 py-2 rounded-full text-sm font-medium mb-8 bg-blue-100 text-blue-700 dark:bg-blue-900/30 dark:text-blue-400">
           <Zap className="h-4 w-4" /> {t('hero.savings')}
         </div>
         <h1 className="text-5xl md:text-7xl font-bold mb-6 max-w-5xl mx-auto leading-tight">{t('hero.title')}</h1>
         <p className="text-xl mb-10 max-w-3xl mx-auto text-gray-600 dark:text-gray-400">{t('hero.description')}</p>
+        
         <div className="flex flex-col sm:flex-row justify-center gap-4">
-          <Link to="/login?mode=signup"><Button size="lg" className="h-14 px-8 text-lg bg-blue-600 text-white w-full sm:w-auto">{t('hero.cta')} <ArrowRight className="ml-2" /></Button></Link>
-          <Button size="lg" variant="outline" className="h-14 px-8 text-lg w-full sm:w-auto dark:bg-transparent dark:border-gray-700">{t('nav.pricing')}</Button>
+          {/* Botão Principal (Começar) */}
+          <Link to="/login?mode=signup">
+            <Button size="lg" className="h-14 px-8 text-lg bg-blue-600 text-white w-full sm:w-auto hover:bg-blue-700 shadow-xl transition-all">
+              {t('hero.cta')} <ArrowRight className="ml-2" />
+            </Button>
+          </Link>
+          
+          {/* Botão de Preços (Agora a funcionar!) */}
+          <Link to="/pricing">
+            <Button size="lg" variant="outline" className="h-14 px-8 text-lg w-full sm:w-auto dark:bg-transparent dark:border-gray-700 dark:text-white dark:hover:bg-gray-800">
+              {t('nav.pricing')}
+            </Button>
+          </Link>
         </div>
       </section>
 
-      {/* Cost Comparison */}
+      {/* Cost Comparison Section */}
       <section className="py-20 bg-gray-50 dark:bg-gray-800/50">
          <div className="container mx-auto px-4">
              <h2 className="text-3xl font-bold text-center mb-12">{t('comparison.title')}</h2>
              <div className="grid md:grid-cols-2 gap-8 max-w-4xl mx-auto">
+                 {/* Lado Tradicional */}
                  <div className="p-8 border rounded-2xl bg-white dark:bg-gray-900 border-gray-200 dark:border-gray-700">
                      <h3 className="text-xl font-bold mb-6 text-red-500">{t('comparison.traditional')}</h3>
                      <ul className="space-y-4 mb-8">
@@ -53,6 +65,7 @@ export default function Home() {
                      </div>
                  </div>
 
+                 {/* Lado EasyCheck */}
                  <div className="p-8 border-2 border-blue-500 rounded-2xl bg-blue-50 dark:bg-blue-900/10 relative">
                      <div className="absolute -top-4 left-1/2 -translate-x-1/2 bg-blue-600 text-white px-4 py-1 rounded-full text-sm font-bold">{t('comparison.recommended')}</div>
                      <h3 className="text-xl font-bold mb-6 text-blue-500">EasyCheck AI</h3>
@@ -77,7 +90,7 @@ export default function Home() {
          </div>
       </section>
 
-      {/* Services Grid com descrições elaboradas */}
+      {/* Services Grid */}
       <section className="py-20 container mx-auto px-4">
           <h2 className="text-3xl font-bold text-center mb-12">{t('services.title')}</h2>
           <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-6 max-w-7xl mx-auto">
