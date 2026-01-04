@@ -6,6 +6,7 @@ import Login from './pages/Login';
 import Dashboard from './pages/Dashboard';
 import Onboard from './pages/Onboard';
 import Pricing from './pages/Pricing';
+import Contact from './pages/Contact'; // <--- Importação correta aqui
 import ProtectedRoute from './components/ProtectedRoute';
 
 // Componente auxiliar para esconder a Navbar no Dashboard
@@ -20,10 +21,13 @@ function MainContent() {
       {showPublicNavbar && <Navbar />}
       
       <Routes>
+        {/* Rotas Públicas */}
         <Route path="/" element={<Home />} />
         <Route path="/login" element={<Login />} />
         <Route path="/pricing" element={<Pricing />} />
+        <Route path="/contact" element={<Contact />} /> {/* <--- Rota nova aqui */}
         
+        {/* Rotas Protegidas (Dashboard) */}
         <Route path="/dashboard/*" element={
             <ProtectedRoute>
               <Dashboard />
@@ -38,6 +42,7 @@ function MainContent() {
           } 
         />
         
+        {/* Rota de Erro (Redireciona para Home) */}
         <Route path="*" element={<Navigate to="/" replace />} />
       </Routes>
     </>
