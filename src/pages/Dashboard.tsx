@@ -37,8 +37,9 @@ export default function Dashboard() {
 
   // --- ESTADOS DOS MODAIS ---
   const [isDeleteModalOpen, setIsDeleteModalOpen] = useState(false);
-  const [isProfileModalOpen, setIsProfileModalOpen] = useState(false); // Novo Modal de Perfil
+  const [isProfileModalOpen, setIsProfileModalOpen] = useState(false);
   const [deleteConfirmation, setDeleteConfirmation] = useState('');
+  const [isDeleting, setIsDeleting] = useState(false); // Novo estado de carregamento para apagar
 
   // --- ESTADOS DO FORMULÁRIO DE PERFIL ---
   const [editForm, setEditForm] = useState({
@@ -49,13 +50,12 @@ export default function Dashboard() {
   });
   const [savingProfile, setSavingProfile] = useState(false);
 
-  // 1. CARREGAR DADOS DO UTILIZADOR AO INICIAR
+  // 1. CARREGAR DADOS
   useEffect(() => {
     const fetchUser = async () => {
       const { data: { user } } = await supabase.auth.getUser();
       if (user) {
         setUserData(user);
-        // Preenche o formulário com os dados atuais
         setEditForm({
           fullName: user.user_metadata.full_name || '',
           jobTitle: user.user_metadata.job_title || '',
@@ -68,7 +68,7 @@ export default function Dashboard() {
     fetchUser();
   }, []);
 
-  // 2. FUNÇÃO PARA OBTER INICIAIS (Ex: Iuri Santos -> IS)
+  // 2. OBTER INICIAIS
   const getInitials = (name: string) => {
     if (!name) return 'EC';
     const names = name.split(' ');
@@ -76,13 +76,13 @@ export default function Dashboard() {
     return (names[0][0] + names[names.length - 1][0]).toUpperCase();
   };
 
-  // 3. FUNÇÃO DE LOGOUT
+  // 3. LOGOUT
   const handleLogout = async () => {
     await supabase.auth.signOut();
     navigate('/');
   };
 
-  // 4. FUNÇÃO PARA SALVAR PERFIL (ATUALIZAR SUPABASE)
+  // 4. SALVAR PERFIL
   const handleSaveProfile = async () => {
     setSavingProfile(true);
     try {
@@ -90,7 +90,7 @@ export default function Dashboard() {
         data: {
           full_name: editForm.fullName,
           job_title: editForm.jobTitle,
-          company_name: editForm.companyName // Só será alterado se o input não estiver disabled
+          company_name: editForm.companyName 
         }
       });
 
@@ -99,7 +99,6 @@ export default function Dashboard() {
       alert("Perfil atualizado com sucesso!");
       setIsProfileModalOpen(false);
       
-      // Atualizar dados locais para refletir a mudança imediatamente
       setUserData({
         ...userData,
         user_metadata: {
@@ -117,14 +116,31 @@ export default function Dashboard() {
     }
   };
 
-  // 5. FUNÇÃO DE ELIMINAR CONTA (SIMULADA)
+  // 5. ELIMINAR CONTA (REAL - COM RPC)
   const handleDeleteAccount = async () => {
-    if (deleteConfirmation === 'ELIMINAR') {
-      alert("Conta eliminada com sucesso. Até breve!");
-      await supabase.auth.signOut();
-      navigate('/');
-    } else {
+    if (deleteConfirmation !== 'ELIMINAR') {
       alert("Por favor escreve ELIMINAR para confirmar.");
+      return;
+    }
+
+    setIsDeleting(true);
+
+    try {
+      // Chama a função SQL 'delete_user' que criámos no Supabase
+      const { error } = await supabase.rpc('delete_user');
+
+      if (error) throw error;
+
+      // Se correu bem, faz logout e manda para a Home
+      await supabase.auth.signOut();
+      alert("A tua conta foi eliminada permanentemente.");
+      navigate('/');
+
+    } catch (error: any) {
+      console.error("Erro ao apagar:", error);
+      alert("Erro ao eliminar conta: " + error.message);
+    } finally {
+      setIsDeleting(false);
     }
   };
 
@@ -146,7 +162,7 @@ export default function Dashboard() {
   return (
     <div className="flex h-screen bg-gray-50 dark:bg-gray-900 transition-colors duration-300">
       
-      {/* --- SIDEBAR --- */}
+      {/* SIDEBAR */}
       <aside className={`fixed inset-y-0 left-0 z-50 w-64 bg-white dark:bg-gray-800 border-r dark:border-gray-700 transform transition-transform duration-200 ease-in-out md:translate-x-0 ${isMobileMenuOpen ? 'translate-x-0' : '-translate-x-full'}`}>
         <div className="h-full flex flex-col">
           <div className="h-20 flex items-center px-6 border-b dark:border-gray-700">
@@ -182,7 +198,7 @@ export default function Dashboard() {
         </div>
       </aside>
 
-      {/* --- ÁREA PRINCIPAL --- */}
+      {/* ÁREA PRINCIPAL */}
       <main className="flex-1 md:ml-64 flex flex-col h-screen overflow-hidden relative">
         
         {/* HEADER */}
@@ -219,13 +235,12 @@ export default function Dashboard() {
               )}
             </div>
 
-            {/* PERFIL (Dropdown com Iniciais Dinâmicas) */}
+            {/* PERFIL */}
             <div className="relative">
               <button 
                 onClick={() => setIsProfileDropdownOpen(!isProfileDropdownOpen)}
                 className="w-10 h-10 bg-gradient-to-tr from-blue-600 to-purple-600 rounded-full flex items-center justify-center text-white font-bold shadow-md cursor-pointer hover:opacity-90 transition-opacity"
               >
-                {/* AQUI ESTÁ A LÓGICA DAS INICIAIS */}
                 {getInitials(userData?.user_metadata?.full_name)}
               </button>
 
@@ -235,7 +250,7 @@ export default function Dashboard() {
                   <div className="absolute right-0 mt-2 w-64 bg-white dark:bg-gray-800 rounded-xl shadow-xl border dark:border-gray-700 overflow-hidden z-40">
                     <div className="px-4 py-4 border-b dark:border-gray-700 bg-gray-50 dark:bg-gray-800/50">
                       <p className="text-sm font-bold text-gray-900 dark:text-white truncate">{userData?.user_metadata?.full_name || 'Utilizador'}</p>
-                      <p className="text-xs text-gray-500 truncate">{userData?.user_metadata?.job_title || 'Cargo Indefinido'}</p>
+                      <p className="text-xs text-gray-500 truncate">{userData?.user_metadata?.job_title || 'Sem Cargo'}</p>
                       <span className="text-[10px] uppercase tracking-wider font-bold bg-blue-100 text-blue-700 px-2 py-0.5 rounded-full mt-1 inline-block">
                         {isOwner ? 'Patrão / Admin' : 'Funcionário'}
                       </span>
@@ -262,7 +277,7 @@ export default function Dashboard() {
           </div>
         </header>
 
-        {/* --- MODAL DE EDITAR PERFIL (NOVO) --- */}
+        {/* MODAL EDITAR PERFIL */}
         {isProfileModalOpen && (
           <div className="fixed inset-0 z-[100] flex items-center justify-center bg-black/50 backdrop-blur-sm p-4">
             <div className="bg-white dark:bg-gray-800 rounded-2xl p-6 w-full max-w-lg shadow-2xl border dark:border-gray-700 animate-in fade-in zoom-in-95 duration-200">
@@ -277,7 +292,6 @@ export default function Dashboard() {
               </div>
 
               <div className="space-y-4">
-                {/* Nome Completo (Editável por todos) */}
                 <div>
                   <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Nome Completo</label>
                   <input 
@@ -287,8 +301,6 @@ export default function Dashboard() {
                     className="w-full p-3 border rounded-lg dark:bg-gray-900 dark:text-white dark:border-gray-600 focus:ring-2 focus:ring-blue-500 outline-none"
                   />
                 </div>
-
-                {/* Cargo (Editável por todos) */}
                 <div>
                   <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Cargo</label>
                   <div className="relative">
@@ -301,9 +313,7 @@ export default function Dashboard() {
                     />
                   </div>
                 </div>
-
                 <div className="grid grid-cols-2 gap-4">
-                  {/* Nome da Empresa (SÓ PATRÃO PODE EDITAR) */}
                   <div>
                     <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1 flex justify-between">
                       Empresa
@@ -315,13 +325,11 @@ export default function Dashboard() {
                         type="text" 
                         value={editForm.companyName}
                         onChange={(e) => setEditForm({...editForm, companyName: e.target.value})}
-                        disabled={!isOwner} // <--- AQUI ESTÁ A SEGURANÇA VISUAL
+                        disabled={!isOwner}
                         className={`w-full pl-9 p-3 border rounded-lg outline-none ${!isOwner ? 'bg-gray-100 text-gray-500 cursor-not-allowed dark:bg-gray-800' : 'dark:bg-gray-900 dark:text-white focus:ring-2 focus:ring-blue-500'}`}
                       />
                     </div>
                   </div>
-
-                  {/* Código da Empresa (SEMPRE BLOQUEADO - SÓ LEITURA) */}
                   <div>
                     <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Código (Fixo)</label>
                     <div className="relative">
@@ -335,27 +343,17 @@ export default function Dashboard() {
                     </div>
                   </div>
                 </div>
-
                 {!isOwner && (
                   <p className="text-xs text-orange-600 bg-orange-50 p-2 rounded border border-orange-100 flex items-start gap-2">
                     <AlertTriangle className="w-4 h-4 shrink-0 mt-0.5" />
-                    Como funcionário, não tens permissão para alterar o nome da empresa. Contacta o administrador.
+                    Como funcionário, não tens permissão para alterar o nome da empresa.
                   </p>
                 )}
               </div>
 
               <div className="flex gap-3 justify-end mt-8">
-                <button 
-                  onClick={() => setIsProfileModalOpen(false)}
-                  className="px-4 py-2 text-gray-600 hover:bg-gray-100 dark:text-gray-300 dark:hover:bg-gray-700 rounded-lg font-medium"
-                >
-                  Cancelar
-                </button>
-                <button 
-                  onClick={handleSaveProfile}
-                  disabled={savingProfile}
-                  className="px-6 py-2 bg-blue-600 text-white rounded-lg font-bold hover:bg-blue-700 flex items-center gap-2 shadow-lg disabled:opacity-50"
-                >
+                <button onClick={() => setIsProfileModalOpen(false)} className="px-4 py-2 text-gray-600 hover:bg-gray-100 dark:text-gray-300 dark:hover:bg-gray-700 rounded-lg font-medium">Cancelar</button>
+                <button onClick={handleSaveProfile} disabled={savingProfile} className="px-6 py-2 bg-blue-600 text-white rounded-lg font-bold hover:bg-blue-700 flex items-center gap-2 shadow-lg disabled:opacity-50">
                   {savingProfile ? 'A Guardar...' : <><Save className="w-4 h-4" /> Guardar Alterações</>}
                 </button>
               </div>
@@ -363,7 +361,7 @@ export default function Dashboard() {
           </div>
         )}
 
-        {/* --- MODAL DE ELIMINAR CONTA --- */}
+        {/* MODAL ELIMINAR CONTA */}
         {isDeleteModalOpen && (
           <div className="fixed inset-0 z-[100] flex items-center justify-center bg-black/50 backdrop-blur-sm p-4">
             <div className="bg-white dark:bg-gray-800 rounded-2xl p-6 w-full max-w-md shadow-2xl border dark:border-gray-700 animate-in fade-in zoom-in-95 duration-200">
@@ -374,7 +372,7 @@ export default function Dashboard() {
                 <h3 className="text-xl font-bold text-gray-900 dark:text-white">Zona de Perigo</h3>
               </div>
               <p className="text-gray-600 dark:text-gray-300 mb-4 leading-relaxed">
-                Estás prestes a apagar a tua conta. Para confirmar, escreve <span className="font-bold select-all bg-gray-100 dark:bg-gray-700 px-1 rounded">ELIMINAR</span>:
+                Estás prestes a apagar a tua conta permanentemente. <br/>Para confirmar, escreve <span className="font-bold select-all bg-gray-100 dark:bg-gray-700 px-1 rounded">ELIMINAR</span>:
               </p>
               <input 
                 type="text" 
@@ -385,13 +383,15 @@ export default function Dashboard() {
               />
               <div className="flex gap-3 justify-end">
                 <button onClick={() => setIsDeleteModalOpen(false)} className="px-4 py-2 text-gray-600 hover:bg-gray-100 dark:text-gray-300 dark:hover:bg-gray-700 rounded-lg">Cancelar</button>
-                <button onClick={handleDeleteAccount} disabled={deleteConfirmation !== 'ELIMINAR'} className="px-4 py-2 bg-red-600 text-white rounded-lg font-bold hover:bg-red-700 disabled:opacity-50 shadow-lg">Apagar Tudo</button>
+                <button onClick={handleDeleteAccount} disabled={deleteConfirmation !== 'ELIMINAR' || isDeleting} className="px-4 py-2 bg-red-600 text-white rounded-lg font-bold hover:bg-red-700 disabled:opacity-50 shadow-lg flex items-center gap-2">
+                  {isDeleting ? 'A Apagar...' : 'Apagar Tudo'}
+                </button>
               </div>
             </div>
           </div>
         )}
 
-        {/* --- CONTEÚDO DAS PÁGINAS --- */}
+        {/* CONTEÚDO DAS PÁGINAS */}
         <div className="flex-1 overflow-y-auto p-4 sm:p-8 bg-gray-50 dark:bg-gray-900">
           <Routes>
             <Route path="/" element={
@@ -411,7 +411,7 @@ export default function Dashboard() {
                   </div>
                 </div>
                 <div className="bg-blue-50 dark:bg-blue-900/20 border border-blue-100 dark:border-blue-800 rounded-2xl p-8 text-center">
-                  <h3 className="text-xl font-bold text-blue-800 dark:text-blue-300 mb-2">Bem-vindo ao EasyCheck, {userData?.user_metadata?.full_name?.split(' ')[0]}! 👋</h3>
+                  <h3 className="text-xl font-bold text-blue-800 dark:text-blue-300 mb-2">Bem-vindo, {userData?.user_metadata?.full_name?.split(' ')[0]}! 👋</h3>
                   <p className="text-blue-600 dark:text-blue-400 mb-6">O teu assistente IA está pronto a trabalhar.</p>
                   <Link to="/dashboard/chat" className="inline-flex items-center gap-2 bg-blue-600 text-white px-6 py-3 rounded-xl font-bold hover:bg-blue-700 transition-colors shadow-lg">
                     <MessageSquare className="w-5 h-5" />
