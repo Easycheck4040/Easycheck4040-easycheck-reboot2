@@ -24,7 +24,11 @@ const resources = {
       "roles.accountant": "Accountant", "roles.admin": "Admin Assistant", "roles.hr": "HR Manager", "roles.marketing": "Marketing Specialist", "roles.support": "Customer Support",
 
       "login.title": "Welcome Back", "auth.loginSubtitle": "Enter your credentials to access your account.", "login.email": "Email Address", "login.password": "Password", "login.button": "Sign In", "login.forgot": "Forgot password?", "login.noAccount": "Don't have an account? Sign Up",
-      "auth.createTitle": "Create Account", "auth.createSubtitle": "Start automating your business today.", "auth.fullName": "Full Name", "auth.jobTitle": "Job Title", "auth.iHaveCode": "I have a company invite code", "auth.companyName": "Company Name", "auth.generateCode": "Generate New Company", "auth.haveAccount": "Already have an account? Login",
+      
+      // ATUALIZADO: Aviso de funcionário
+      "auth.createTitle": "Create Account", "auth.createSubtitle": "Start automating your business today.", "auth.fullName": "Full Name", "auth.jobTitle": "Job Title", 
+      "auth.iHaveCode": "I have a company invite code (I am an employee)", 
+      "auth.companyName": "Company Name", "auth.generateCode": "Generate New Company", "auth.haveAccount": "Already have an account? Login",
 
       "contact.title": "How can we help?", "contact.subtitle": "Our team is ready to answer.",
       "contact.greeting.morning": "Good morning!", "contact.greeting.afternoon": "Good afternoon!", "contact.greeting.night": "Good evening!",
@@ -35,7 +39,6 @@ const resources = {
       "contact.form.email": "Email", "contact.form.email_placeholder": "Ex: john@company.com", 
       "contact.form.subject": "Subject", 
       
-      // ADICIONADO: As opções do menu dropdown
       "contact.subjects.general": "General Inquiry",
       "contact.subjects.tech": "Technical Support",
       "contact.subjects.sales": "Sales",
@@ -86,7 +89,11 @@ const resources = {
       "roles.accountant": "Contabilista", "roles.admin": "Assistente Admin", "roles.hr": "Gestor de RH", "roles.marketing": "Especialista Marketing", "roles.support": "Apoio ao Cliente",
 
       "login.title": "Bem-vindo de Volta", "auth.loginSubtitle": "Insere as tuas credenciais para aceder.", "login.email": "Endereço de Email", "login.password": "Palavra-passe", "login.button": "Entrar", "login.forgot": "Esqueceste-te da senha?", "login.noAccount": "Não tens conta? Cria uma",
-      "auth.createTitle": "Criar Conta", "auth.createSubtitle": "Começa a automatizar o teu negócio hoje.", "auth.fullName": "Nome Completo", "auth.jobTitle": "Cargo", "auth.iHaveCode": "Tenho um código de convite", "auth.companyName": "Nome da Empresa", "auth.generateCode": "Gerar Nova Empresa", "auth.haveAccount": "Já tens conta? Entrar",
+      
+      // ATUALIZADO: Aviso de funcionário
+      "auth.createTitle": "Criar Conta", "auth.createSubtitle": "Começa a automatizar o teu negócio hoje.", "auth.fullName": "Nome Completo", "auth.jobTitle": "Cargo", 
+      "auth.iHaveCode": "Tenho um código de convite (sou funcionário)", 
+      "auth.companyName": "Nome da Empresa", "auth.generateCode": "Gerar Nova Empresa", "auth.haveAccount": "Já tens conta? Entrar",
 
       "contact.title": "Como podemos ajudar?", "contact.subtitle": "A nossa equipa está pronta.",
       "contact.greeting.morning": "Bom dia!", "contact.greeting.afternoon": "Boa tarde!", "contact.greeting.night": "Boa noite!",
@@ -97,7 +104,6 @@ const resources = {
       "contact.form.email": "Email", "contact.form.email_placeholder": "Ex: joao@empresa.com", 
       "contact.form.subject": "Assunto", 
       
-      // ADICIONADO: As opções do menu dropdown
       "contact.subjects.general": "Informação Geral", 
       "contact.subjects.tech": "Suporte Técnico",
       "contact.subjects.sales": "Vendas / Comercial",
@@ -144,7 +150,11 @@ const resources = {
       "roles.accountant": "Comptable", "roles.admin": "Assistant Admin", "roles.hr": "Responsable RH", "roles.marketing": "Marketing", "roles.support": "Support Client",
 
       "login.title": "Connexion", "auth.loginSubtitle": "Entrez vos identifiants pour accéder.", "login.email": "Email", "login.password": "Mot de passe", "login.button": "Se connecter", "login.forgot": "Mot de passe oublié ?", "login.noAccount": "Pas de compte? S'inscrire",
-      "auth.createTitle": "Créer Compte", "auth.createSubtitle": "Automatisez votre entreprise dès aujourd'hui.", "auth.fullName": "Nom Complet", "auth.jobTitle": "Poste", "auth.iHaveCode": "J'ai un code d'invitation", "auth.companyName": "Nom Entreprise", "auth.generateCode": "Générer Nouvelle Entreprise", "auth.haveAccount": "Déjà un compte? Connexion",
+      
+      // ATUALIZADO: Aviso de funcionário
+      "auth.createTitle": "Créer Compte", "auth.createSubtitle": "Automatisez votre entreprise dès aujourd'hui.", "auth.fullName": "Nom Complet", "auth.jobTitle": "Poste", 
+      "auth.iHaveCode": "J'ai un code d'invitation (je suis employé)", 
+      "auth.companyName": "Nom Entreprise", "auth.generateCode": "Générer Nouvelle Entreprise", "auth.haveAccount": "Déjà un compte? Connexion",
 
       "contact.title": "Besoin d'aide ?", "contact.subtitle": "Notre équipe est prête à répondre.",
       "contact.greeting.morning": "Bonjour !", "contact.greeting.afternoon": "Bon après-midi !", "contact.greeting.night": "Bonsoir !",
@@ -152,7 +162,6 @@ const resources = {
       "contact.direct_email.title": "Email Direct", "contact.direct_email.subtitle": "Pour urgences",
       "contact.form.name": "Nom", "contact.form.name_placeholder": "Ex: Pierre Dupont", "contact.form.email": "Email", "contact.form.email_placeholder": "Ex: pierre@societe.com", "contact.form.subject": "Sujet", 
       
-      // ADICIONADO: Opções do menu em Francês
       "contact.subjects.general": "Général", 
       "contact.subjects.tech": "Support Technique",
       "contact.subjects.sales": "Ventes",
@@ -197,7 +206,11 @@ const resources = {
       "roles.accountant": "Contador", "roles.admin": "Admin", "roles.hr": "Gerente RRHH", "roles.marketing": "Marketing", "roles.support": "Soporte",
 
       "login.title": "Acceso", "auth.loginSubtitle": "Introduce tus credenciales para acceder.", "login.email": "Correo", "login.password": "Contraseña", "login.button": "Entrar", "login.forgot": "¿Olvidaste contraseña?", "login.noAccount": "¿Sin cuenta? Regístrate",
-      "auth.createTitle": "Crear Cuenta", "auth.createSubtitle": "Automatiza tu negocio hoy.", "auth.fullName": "Nombre Completo", "auth.jobTitle": "Cargo", "auth.iHaveCode": "Tengo código", "auth.companyName": "Nombre Empresa", "auth.generateCode": "Generar Empresa", "auth.haveAccount": "¿Ya tienes cuenta? Entrar",
+      
+      // ATUALIZADO: Aviso de funcionário
+      "auth.createTitle": "Crear Cuenta", "auth.createSubtitle": "Automatiza tu negocio hoy.", "auth.fullName": "Nombre Completo", "auth.jobTitle": "Cargo", 
+      "auth.iHaveCode": "Tengo un código de invitación (soy empleado)", 
+      "auth.companyName": "Nombre Empresa", "auth.generateCode": "Generar Empresa", "auth.haveAccount": "¿Ya tienes cuenta? Entrar",
 
       "contact.title": "¿Cómo ayudar?", "contact.subtitle": "Nuestro equipo está listo.",
       "contact.greeting.morning": "¡Buenos días!", "contact.greeting.afternoon": "¡Buenas tardes!", "contact.greeting.night": "¡Buenas noches!",
@@ -205,7 +218,6 @@ const resources = {
       "contact.direct_email.title": "Email Directo", "contact.direct_email.subtitle": "Urgencias",
       "contact.form.name": "Nombre", "contact.form.name_placeholder": "Ej: Juan Pérez", "contact.form.email": "Email", "contact.form.email_placeholder": "Ej: juan@empresa.com", "contact.form.subject": "Asunto", 
       
-      // ADICIONADO: Opções do menu em Espanhol
       "contact.subjects.general": "General", 
       "contact.subjects.tech": "Soporte Técnico",
       "contact.subjects.sales": "Ventas",
@@ -252,7 +264,11 @@ const resources = {
       "roles.accountant": "Buchhalter", "roles.admin": "Admin", "roles.hr": "HR-Manager", "roles.marketing": "Marketing", "roles.support": "Support",
 
       "login.title": "Anmelden", "auth.loginSubtitle": "Geben Sie Ihre Zugangsdaten ein.", "login.email": "E-Mail", "login.password": "Passwort", "login.button": "Einloggen", "login.forgot": "Passwort vergessen?", "login.noAccount": "Kein Konto? Registrieren",
-      "auth.createTitle": "Konto Erstellen", "auth.createSubtitle": "Automatisieren Sie Ihr Geschäft noch heute.", "auth.fullName": "Vollständiger Name", "auth.jobTitle": "Position", "auth.iHaveCode": "Ich habe einen Code", "auth.companyName": "Firmenname", "auth.generateCode": "Firma Erstellen", "auth.haveAccount": "Bereits ein Konto? Login",
+      
+      // ATUALIZADO: Aviso de funcionário
+      "auth.createTitle": "Konto Erstellen", "auth.createSubtitle": "Automatisieren Sie Ihr Geschäft noch heute.", "auth.fullName": "Vollständiger Name", "auth.jobTitle": "Position", 
+      "auth.iHaveCode": "Ich habe einen Einladungscode (ich bin Angestellter)", 
+      "auth.companyName": "Firmenname", "auth.generateCode": "Firma Erstellen", "auth.haveAccount": "Bereits ein Konto? Login",
 
       "contact.title": "Wie helfen?", "contact.subtitle": "Unser Team (und KI) ist bereit.",
       "contact.greeting.morning": "Guten Morgen!", "contact.greeting.afternoon": "Guten Tag!", "contact.greeting.night": "Guten Abend!",
@@ -260,7 +276,6 @@ const resources = {
       "contact.direct_email.title": "Direkt-E-Mail", "contact.direct_email.subtitle": "Für Notfälle",
       "contact.form.name": "Name", "contact.form.name_placeholder": "z.B. Max Mustermann", "contact.form.email": "E-Mail", "contact.form.email_placeholder": "z.B. max@firma.de", "contact.form.subject": "Betreff", 
       
-      // ADICIONADO: Opções do menu em Alemão
       "contact.subjects.general": "Allgemein",
       "contact.subjects.tech": "Technischer Support",
       "contact.subjects.sales": "Vertrieb",
@@ -307,7 +322,11 @@ const resources = {
       "roles.accountant": "Contabile", "roles.admin": "Admin", "roles.hr": "Manager HR", "roles.marketing": "Marketing", "roles.support": "Supporto",
 
       "login.title": "Accedi", "auth.loginSubtitle": "Inserisci le tue credenziali per accedere.", "login.email": "Email", "login.password": "Password", "login.button": "Entra", "login.forgot": "Password dimenticata?", "login.noAccount": "Non hai un account? Registrati",
-      "auth.createTitle": "Crea Account", "auth.createSubtitle": "Automatizza la tua azienda oggi.", "auth.fullName": "Nome Completo", "auth.jobTitle": "Ruolo", "auth.iHaveCode": "Ho un codice", "auth.companyName": "Nome Azienda", "auth.generateCode": "Genera Azienda", "auth.haveAccount": "Hai già un account? Accedi",
+      
+      // ATUALIZADO: Aviso de funcionário
+      "auth.createTitle": "Crea Account", "auth.createSubtitle": "Automatizza la tua azienda oggi.", "auth.fullName": "Nome Completo", "auth.jobTitle": "Ruolo", 
+      "auth.iHaveCode": "Ho un codice di invito (sono un dipendente)", 
+      "auth.companyName": "Nome Azienda", "auth.generateCode": "Genera Azienda", "auth.haveAccount": "Hai già un account? Accedi",
 
       "contact.title": "Come aiutare?", "contact.subtitle": "Il nostro team è pronto a rispondere.",
       "contact.greeting.morning": "Buongiorno!", "contact.greeting.afternoon": "Buon pomeriggio!", "contact.greeting.night": "Buonasera!",
@@ -315,7 +334,6 @@ const resources = {
       "contact.direct_email.title": "Email Diretta", "contact.direct_email.subtitle": "Per urgenze",
       "contact.form.name": "Nome", "contact.form.name_placeholder": "Es: Mario Rossi", "contact.form.email": "Email", "contact.form.email_placeholder": "Es: mario@azienda.it", "contact.form.subject": "Oggetto", 
       
-      // ADICIONADO: Opções do menu em Italiano
       "contact.subjects.general": "Generale", 
       "contact.subjects.tech": "Supporto Tecnico",
       "contact.subjects.sales": "Vendite",
