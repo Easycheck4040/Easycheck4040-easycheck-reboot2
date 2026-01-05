@@ -25,9 +25,9 @@ import {
   Moon,  
   Sun,
   ChevronDown,
+  ShieldCheck,
   Pencil,
-  UserMinus,
-  Shield
+  UserMinus
 } from 'lucide-react';
 
 export default function Dashboard() {
@@ -48,18 +48,25 @@ export default function Dashboard() {
   const [userData, setUserData] = useState<any>(null);
   const [loadingUser, setLoadingUser] = useState(true);
   
-  // --- ESTADO DA EQUIPA (Vazio - Sem fictícios) ---
-  const [teamMembers, setTeamMembers] = useState<any[]>([]);
+  // --- ESTADO DA EQUIPA (MOCK DATA - Simulada) ---
+  const [teamMembers, setTeamMembers] = useState<any[]>([
+    { id: 1, name: 'Ana Pereira', email: 'ana.pereira@empresa.com', jobTitle: 'Gestora de Contas', role: 'employee', joined: '12 Jan 2025' },
+    { id: 2, name: 'Carlos Silva', email: 'carlos.s@empresa.com', jobTitle: 'Assistente RH', role: 'employee', joined: '15 Jan 2025' },
+    { id: 3, name: 'Pedro Santos', email: 'pedro.dev@empresa.com', jobTitle: 'Programador', role: 'employee', joined: '02 Fev 2025' }
+  ]);
 
   // --- ESTADOS DOS MODAIS ---
-  const [isDeleteModalOpen, setIsDeleteModalOpen] = useState(false);
+  const [isDeleteModalOpen, setIsDeleteModalOpen] = useState(false); // Apagar conta própria
   const [isProfileModalOpen, setIsProfileModalOpen] = useState(false);
+  
+  // Novos Modais de Gestão de Equipa
   const [isEditMemberModalOpen, setIsEditMemberModalOpen] = useState(false);
   const [memberToEdit, setMemberToEdit] = useState<any>(null);
+  
   const [deleteConfirmation, setDeleteConfirmation] = useState('');
   const [isDeleting, setIsDeleting] = useState(false);
 
-  // --- FORMULÁRIO DE PERFIL ---
+  // --- ESTADOS DO FORMULÁRIO DE PERFIL ---
   const [editForm, setEditForm] = useState({
     fullName: '',
     jobTitle: '',
@@ -94,19 +101,13 @@ export default function Dashboard() {
           companyCode: user.user_metadata.company_code || '',
           email: user.email || '' 
         });
-
-        // Se for Patrão, aqui farias o fetch real dos funcionários
-        if (user.user_metadata.role === 'owner') {
-           // const { data } = await supabase.from('profiles')....
-           // setTeamMembers(data);
-        }
       }
       setLoadingUser(false);
     };
     fetchUser();
   }, []);
 
-  // --- FUNÇÕES ---
+  // --- FUNÇÕES DE INTERFACE ---
   const toggleTheme = () => {
     document.documentElement.classList.toggle('dark');
     setIsDark(!isDark);
@@ -129,7 +130,7 @@ export default function Dashboard() {
     navigate('/');
   };
 
-  // --- PERFIL ---
+  // --- FUNÇÕES DE PERFIL ---
   const handleSaveProfile = async () => {
     setSavingProfile(true);
     try {
@@ -141,7 +142,7 @@ export default function Dashboard() {
         }
       });
       if (error) throw error;
-      alert(t('profile.success') || "Perfil atualizado!");
+      alert(t('profile.success') || "Perfil atualizado com sucesso!");
       setIsProfileModalOpen(false);
       setUserData({
         ...userData,
@@ -153,7 +154,7 @@ export default function Dashboard() {
         }
       });
     } catch (error: any) {
-      alert("Erro: " + error.message);
+      alert("Erro ao atualizar: " + error.message);
     } finally {
       setSavingProfile(false);
     }
@@ -161,7 +162,7 @@ export default function Dashboard() {
 
   const handleDeleteAccount = async () => {
     if (deleteConfirmation !== 'ELIMINAR') {
-      alert(t('delete.confirm_text'));
+      alert(t('delete.confirm_text') || "Escreve ELIMINAR para confirmar.");
       return;
     }
     setIsDeleting(true);
@@ -178,41 +179,50 @@ export default function Dashboard() {
     }
   };
 
-  // --- GESTÃO DE EQUIPA ---
+  // --- NOVAS FUNÇÕES: GESTÃO DE EQUIPA (PATRÃO) ---
+  
+  // 1. Abrir modal para editar cargo
   const openEditMember = (member: any) => {
-    setMemberToEdit({ ...member });
+    setMemberToEdit({ ...member }); // Cria uma cópia para editar
     setIsEditMemberModalOpen(true);
   };
 
+  // 2. Guardar novo cargo do funcionário
   const saveMemberRole = () => {
+    // Aqui farias o update no Supabase real
+    // Ex: await supabase.from('profiles').update({ job_title: memberToEdit.jobTitle }).eq('id', memberToEdit.id);
+    
+    // Atualização Local (Mock)
     setTeamMembers(prev => prev.map(m => m.id === memberToEdit.id ? memberToEdit : m));
     setIsEditMemberModalOpen(false);
-    alert(t('team.role_updated') || "Cargo atualizado!");
+    alert(t('team.role_updated') || "Cargo atualizado com sucesso!");
   };
 
+  // 3. Eliminar funcionário da empresa
   const deleteMember = (id: number) => {
-    if (window.confirm(t('team.delete_confirm'))) {
+    if (window.confirm(t('team.delete_confirm') || "Tens a certeza que queres remover este funcionário da empresa?")) {
+      // Aqui farias o delete no Supabase real
+      // Ex: await supabase.rpc('remove_user_from_company', { user_id: id });
+
+      // Atualização Local (Mock)
       setTeamMembers(prev => prev.filter(m => m.id !== id));
-      alert(t('team.member_removed') || "Removido.");
+      alert(t('team.member_removed') || "Funcionário removido.");
     }
   };
 
-  if (loadingUser) return <div className="flex h-screen items-center justify-center bg-gray-50 dark:bg-gray-900 text-gray-500">Loading...</div>;
-
-  const isOwner = userData?.user_metadata?.role === 'owner';
-
-  // MENU DINÂMICO
   const menuItems = [
     { icon: LayoutDashboard, label: t('dashboard.menu.overview') || 'Visão Geral', path: '/dashboard' },
     { icon: MessageSquare, label: t('dashboard.menu.chat') || 'Chat IA', path: '/dashboard/chat' },
-    // Apenas patrão vê "Empresa"
-    { icon: Building2, label: t('dashboard.menu.company') || 'Empresa', path: '/dashboard/company', hidden: !isOwner },
     { icon: FileText, label: t('dashboard.menu.accounting') || 'Contabilidade', path: '/dashboard/accounting' },
     { icon: Mail, label: t('dashboard.menu.communication') || 'Comunicação', path: '/dashboard/communication' },
-    { icon: Users, label: t('dashboard.menu.hr') || 'RH', path: '/dashboard/hr' },
+    { icon: Users, label: t('dashboard.menu.hr') || 'Recursos Humanos', path: '/dashboard/hr' },
     { icon: BarChart3, label: t('dashboard.menu.marketing') || 'Marketing', path: '/dashboard/marketing' },
     { icon: Settings, label: t('dashboard.menu.settings') || 'Definições', path: '/dashboard/settings' },
   ];
+
+  if (loadingUser) return <div className="flex h-screen items-center justify-center bg-gray-50 dark:bg-gray-900 text-gray-500">A carregar...</div>;
+
+  const isOwner = userData?.user_metadata?.role === 'owner';
 
   return (
     <div className="flex h-screen bg-gray-50 dark:bg-gray-900 transition-colors duration-300 font-sans">
@@ -228,7 +238,6 @@ export default function Dashboard() {
           </div>
           <nav className="flex-1 px-4 py-6 space-y-2 overflow-y-auto">
             {menuItems.map((item) => {
-              if (item.hidden) return null; // Esconde se não for patrão
               const isActive = location.pathname === item.path || (item.path !== '/dashboard' && location.pathname.startsWith(item.path));
               return (
                 <Link
@@ -254,7 +263,7 @@ export default function Dashboard() {
         </div>
       </aside>
 
-      {/* MAIN CONTENT */}
+      {/* ÁREA PRINCIPAL */}
       <main className="flex-1 md:ml-64 flex flex-col h-screen overflow-hidden relative">
         
         {/* HEADER */}
@@ -269,9 +278,13 @@ export default function Dashboard() {
           </div>
 
           <div className="flex items-center gap-4">
+            
             {/* LÍNGUAS */}
             <div className="relative">
-              <button onClick={() => setIsLangMenuOpen(!isLangMenuOpen)} className="p-2 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-700 flex items-center gap-2 text-gray-500 dark:text-gray-400">
+              <button 
+                onClick={() => setIsLangMenuOpen(!isLangMenuOpen)}
+                className="p-2 rounded-lg text-gray-500 hover:bg-gray-100 dark:text-gray-400 dark:hover:bg-gray-700 flex items-center gap-2"
+              >
                 <Globe className="w-5 h-5" />
                 <span className="font-bold text-sm uppercase hidden sm:block">{i18n.language}</span>
                 <ChevronDown className="w-3 h-3" />
@@ -290,10 +303,12 @@ export default function Dashboard() {
               )}
             </div>
 
-            <button onClick={toggleTheme} className="p-2 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-700 text-gray-500 dark:text-gray-400">
+            {/* TEMA */}
+            <button onClick={toggleTheme} className="p-2 rounded-lg text-gray-500 hover:bg-gray-100 dark:text-gray-400 dark:hover:bg-gray-700">
               {isDark ? <Sun className="w-5 h-5" /> : <Moon className="w-5 h-5" />}
             </button>
 
+            {/* NOTIFICAÇÕES (LIMPAS) */}
             <div className="relative">
               <button onClick={() => setIsNotifOpen(!isNotifOpen)} className="p-2 rounded-full hover:bg-gray-100 dark:hover:bg-gray-700 text-gray-500 dark:text-gray-400">
                 <Bell className="w-6 h-6" />
@@ -302,17 +317,27 @@ export default function Dashboard() {
                 <>
                   <div className="fixed inset-0 z-30" onClick={() => setIsNotifOpen(false)}></div>
                   <div className="absolute right-0 mt-2 w-80 bg-white dark:bg-gray-800 rounded-xl shadow-xl border dark:border-gray-700 p-4 z-40">
-                    <h3 className="font-bold mb-3 dark:text-white border-b dark:border-gray-700 pb-2">{t('notifications.title') || 'Notificações'}</h3>
-                    <p className="text-center py-4 text-gray-400 text-sm">{t('notifications.empty') || 'Vazio'}</p>
+                    <h3 className="font-bold mb-3 dark:text-white border-b dark:border-gray-700 pb-2">
+                      {t('notifications.title') || 'Notificações'}
+                    </h3>
+                    <div className="flex flex-col items-center justify-center py-6 text-gray-400">
+                      <Bell className="w-8 h-8 mb-2 opacity-50" />
+                      <p className="text-sm">{t('notifications.empty') || 'Sem novas notificações.'}</p>
+                    </div>
                   </div>
                 </>
               )}
             </div>
 
+            {/* PERFIL */}
             <div className="relative">
-              <button onClick={() => setIsProfileDropdownOpen(!isProfileDropdownOpen)} className="w-10 h-10 bg-gradient-to-tr from-blue-600 to-purple-600 rounded-full flex items-center justify-center text-white font-bold shadow-md cursor-pointer hover:opacity-90">
+              <button 
+                onClick={() => setIsProfileDropdownOpen(!isProfileDropdownOpen)}
+                className="w-10 h-10 bg-gradient-to-tr from-blue-600 to-purple-600 rounded-full flex items-center justify-center text-white font-bold shadow-md cursor-pointer hover:opacity-90"
+              >
                 {getInitials(userData?.user_metadata?.full_name)}
               </button>
+
               {isProfileDropdownOpen && (
                 <>
                   <div className="fixed inset-0 z-30" onClick={() => setIsProfileDropdownOpen(false)}></div>
@@ -320,12 +345,16 @@ export default function Dashboard() {
                     <div className="px-4 py-4 border-b dark:border-gray-700 bg-gray-50 dark:bg-gray-800/50">
                       <p className="text-sm font-bold text-gray-900 dark:text-white truncate">{userData?.user_metadata?.full_name}</p>
                       <p className="text-xs text-gray-500 dark:text-gray-400 truncate mb-1">{userData?.email}</p>
+                      <p className="text-xs text-gray-400 truncate mb-1">{userData?.user_metadata?.job_title || 'Sem Cargo'}</p>
                       <span className="text-[10px] uppercase tracking-wider font-bold bg-blue-100 text-blue-700 px-2 py-0.5 rounded-full inline-block">
-                        {isOwner ? (t('role.owner') || 'Patrão') : (t('role.employee') || 'Funcionário')}
+                        {isOwner ? (t('role.owner') || 'Patrão / Admin') : (t('role.employee') || 'Funcionário')}
                       </span>
                     </div>
                     <button onClick={() => { setIsProfileModalOpen(true); setIsProfileDropdownOpen(false); }} className="w-full text-left px-4 py-3 text-sm text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700 flex items-center gap-2">
                       <User className="w-4 h-4 text-blue-600" /> {t('profile.edit') || 'Editar Perfil'}
+                    </button>
+                    <button onClick={() => { setIsDeleteModalOpen(true); setIsProfileDropdownOpen(false); }} className="w-full text-left px-4 py-3 text-sm text-red-600 hover:bg-red-50 dark:hover:bg-red-900/20 flex items-center gap-2 border-t dark:border-gray-700">
+                      <Trash2 className="w-4 h-4" /> {t('profile.delete') || 'Eliminar Conta'}
                     </button>
                   </div>
                 </>
@@ -334,23 +363,104 @@ export default function Dashboard() {
           </div>
         </header>
 
-        {/* ROTAS E CONTEÚDO */}
+        {/* --- MODAL EDITAR PERFIL --- */}
+        {isProfileModalOpen && (
+          <div className="fixed inset-0 z-[100] flex items-center justify-center bg-black/50 backdrop-blur-sm p-4">
+            <div className="bg-white dark:bg-gray-800 rounded-2xl p-6 w-full max-w-lg shadow-2xl border dark:border-gray-700 animate-in fade-in zoom-in-95 duration-200">
+              <div className="flex justify-between items-center mb-6 border-b dark:border-gray-700 pb-4">
+                <h3 className="text-xl font-bold text-gray-900 dark:text-white flex items-center gap-2">
+                  <User className="w-5 h-5 text-blue-600" />
+                  {t('profile.edit_title') || 'Editar Perfil'}
+                </h3>
+                <button onClick={() => setIsProfileModalOpen(false)} className="text-gray-400 hover:text-gray-600">
+                  <X className="w-5 h-5" />
+                </button>
+              </div>
+
+              <div className="space-y-4">
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">{t('form.email') || 'Email'}</label>
+                  <div className="relative">
+                    <Mail className="w-4 h-4 absolute left-3 top-3 text-gray-400" />
+                    <input type="email" value={editForm.email} disabled className="w-full pl-9 p-3 border rounded-lg bg-gray-100 text-gray-500 cursor-not-allowed dark:bg-gray-800 dark:border-gray-700" />
+                  </div>
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">{t('form.fullname') || 'Nome Completo'}</label>
+                  <input type="text" value={editForm.fullName} onChange={(e) => setEditForm({...editForm, fullName: e.target.value})} className="w-full p-3 border rounded-lg dark:bg-gray-900 dark:text-white dark:border-gray-600 focus:ring-2 focus:ring-blue-500 outline-none" />
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">{t('form.jobtitle') || 'Cargo'}</label>
+                  <div className="relative">
+                    <Briefcase className="w-4 h-4 absolute left-3 top-3 text-gray-400" />
+                    <input type="text" value={editForm.jobTitle} onChange={(e) => setEditForm({...editForm, jobTitle: e.target.value})} className="w-full pl-9 p-3 border rounded-lg dark:bg-gray-900 dark:text-white dark:border-gray-600 focus:ring-2 focus:ring-blue-500 outline-none" />
+                  </div>
+                </div>
+                <div className="grid grid-cols-2 gap-4">
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1 flex justify-between">{t('form.company') || 'Empresa'} {!isOwner && <Lock className="w-3 h-3 text-orange-500"/>}</label>
+                    <div className="relative">
+                      <Building2 className="w-4 h-4 absolute left-3 top-3 text-gray-400" />
+                      <input type="text" value={editForm.companyName} onChange={(e) => setEditForm({...editForm, companyName: e.target.value})} disabled={!isOwner} className={`w-full pl-9 p-3 border rounded-lg outline-none ${!isOwner ? 'bg-gray-100 text-gray-500 cursor-not-allowed dark:bg-gray-800' : 'dark:bg-gray-900 dark:text-white focus:ring-2 focus:ring-blue-500'}`} />
+                    </div>
+                  </div>
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">{t('form.code') || 'Código'}</label>
+                    <div className="relative">
+                      <span className="absolute left-3 top-3 text-gray-400 font-mono text-xs">#</span>
+                      <input type="text" value={editForm.companyCode} disabled className="w-full pl-8 p-3 border rounded-lg bg-gray-100 text-gray-500 cursor-not-allowed dark:bg-gray-800 dark:border-gray-700 font-mono" />
+                    </div>
+                  </div>
+                </div>
+              </div>
+              <div className="flex gap-3 justify-end mt-8">
+                <button onClick={() => setIsProfileModalOpen(false)} className="px-4 py-2 text-gray-600 hover:bg-gray-100 dark:text-gray-300 rounded-lg font-medium">{t('common.cancel') || 'Cancelar'}</button>
+                <button onClick={handleSaveProfile} disabled={savingProfile} className="px-6 py-2 bg-blue-600 text-white rounded-lg font-bold hover:bg-blue-700 flex items-center gap-2 shadow-lg disabled:opacity-50">{savingProfile ? (t('common.saving') || 'A Guardar...') : <><Save className="w-4 h-4" /> {t('common.save') || 'Guardar'}</>}</button>
+              </div>
+            </div>
+          </div>
+        )}
+        
+        {/* --- NOVO MODAL: EDITAR CARGO DE FUNCIONÁRIO (PATRÃO) --- */}
+        {isEditMemberModalOpen && memberToEdit && (
+          <div className="fixed inset-0 z-[100] flex items-center justify-center bg-black/50 backdrop-blur-sm p-4">
+            <div className="bg-white dark:bg-gray-800 rounded-2xl p-6 w-full max-w-sm shadow-2xl border dark:border-gray-700 animate-in fade-in zoom-in-95 duration-200">
+               <h3 className="text-lg font-bold text-gray-900 dark:text-white mb-4">
+                 {t('team.edit_role') || 'Editar Cargo'} - {memberToEdit.name}
+               </h3>
+               <div className="mb-4">
+                 <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">{t('form.jobtitle') || 'Novo Cargo'}</label>
+                 <input 
+                   type="text" 
+                   value={memberToEdit.jobTitle} 
+                   onChange={(e) => setMemberToEdit({...memberToEdit, jobTitle: e.target.value})}
+                   className="w-full p-3 border rounded-lg dark:bg-gray-900 dark:text-white dark:border-gray-600 focus:ring-2 focus:ring-blue-500 outline-none" 
+                 />
+               </div>
+               <div className="flex gap-3 justify-end">
+                 <button onClick={() => setIsEditMemberModalOpen(false)} className="px-4 py-2 text-gray-600 hover:bg-gray-100 dark:text-gray-300 rounded-lg">{t('common.cancel') || 'Cancelar'}</button>
+                 <button onClick={saveMemberRole} className="px-4 py-2 bg-blue-600 text-white rounded-lg font-bold hover:bg-blue-700">{t('common.save') || 'Guardar'}</button>
+               </div>
+            </div>
+          </div>
+        )}
+
+        {/* CONTEÚDO */}
         <div className="flex-1 overflow-y-auto p-4 sm:p-8 bg-gray-50 dark:bg-gray-900">
           <Routes>
             <Route path="/" element={
               <div className="space-y-6">
                 <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-                  {/* Cards de Exemplo */}
                   <div className="bg-white dark:bg-gray-800 p-6 rounded-2xl shadow-sm border border-gray-100 dark:border-gray-700">
-                    <h3 className="text-gray-500 dark:text-gray-400 text-sm font-medium">{t('dashboard.stats.revenue') || 'Receita'}</h3>
+                    <h3 className="text-gray-500 dark:text-gray-400 text-sm font-medium">{t('dashboard.stats.revenue') || 'Receita Mensal'}</h3>
                     <p className="text-3xl font-bold text-gray-900 dark:text-white mt-2">€0,00</p>
                   </div>
                   <div className="bg-white dark:bg-gray-800 p-6 rounded-2xl shadow-sm border border-gray-100 dark:border-gray-700">
-                    <h3 className="text-gray-500 dark:text-gray-400 text-sm font-medium">{t('dashboard.stats.actions') || 'Ações IA'}</h3>
+                    <h3 className="text-gray-500 dark:text-gray-400 text-sm font-medium">{t('dashboard.stats.actions') || 'Ações da IA (Hoje)'}</h3>
                     <p className="text-3xl font-bold text-blue-600 mt-2">0</p>
                   </div>
                   <div className="bg-white dark:bg-gray-800 p-6 rounded-2xl shadow-sm border border-gray-100 dark:border-gray-700">
-                    <h3 className="text-gray-500 dark:text-gray-400 text-sm font-medium">{t('dashboard.stats.invoices') || 'Faturas'}</h3>
+                    <h3 className="text-gray-500 dark:text-gray-400 text-sm font-medium">{t('dashboard.stats.invoices') || 'Faturas por Enviar'}</h3>
                     <p className="text-3xl font-bold text-orange-500 mt-2">0</p>
                   </div>
                 </div>
@@ -358,46 +468,38 @@ export default function Dashboard() {
                   <h3 className="text-xl font-bold text-blue-800 dark:text-blue-300 mb-2">
                     {t('dashboard.welcome') || 'Bem-vindo'}, {userData?.user_metadata?.full_name?.split(' ')[0]}! 👋
                   </h3>
+                  <p className="text-blue-600 dark:text-blue-400 mb-6">{t('dashboard.subtitle') || 'O teu assistente IA está pronto a trabalhar.'}</p>
                   <Link to="/dashboard/chat" className="inline-flex items-center gap-2 bg-blue-600 text-white px-6 py-3 rounded-xl font-bold hover:bg-blue-700 transition-colors shadow-lg">
                     <MessageSquare className="w-5 h-5" />
-                    {t('dashboard.open_chat') || 'Chat IA'}
+                    {t('dashboard.open_chat') || 'Abrir Chat IA'}
                   </Link>
                 </div>
               </div>
             } />
-
-            {/* ROTA DA EMPRESA (SÓ PARA PATRÃO) */}
-            <Route path="company" element={
-              isOwner ? (
-                <div className="space-y-6">
-                  <div className="bg-white dark:bg-gray-800 rounded-2xl shadow-sm border dark:border-gray-700 p-8">
-                    <h2 className="text-2xl font-bold text-gray-900 dark:text-white mb-6 flex items-center gap-3">
-                      <Building2 className="w-6 h-6 text-blue-600" />
-                      {t('settings.company_title') || 'Gestão da Empresa'}
-                    </h2>
-                    
-                    <div className="mb-8 p-4 bg-blue-50 dark:bg-blue-900/20 rounded-xl border border-blue-100 dark:border-blue-800">
-                      <h4 className="font-bold text-blue-800 dark:text-blue-300 mb-2">{t('settings.invite_code') || 'Código de Convite'}</h4>
-                      <div className="flex flex-col sm:flex-row items-start sm:items-center gap-4">
-                        <code className="bg-white dark:bg-gray-900 px-4 py-2 rounded-lg font-mono text-lg border dark:border-gray-700 select-all">
-                          {userData?.user_metadata?.company_code}
-                        </code>
-                        <p className="text-sm text-blue-600 dark:text-blue-400">{t('settings.invite_text') || 'Partilha com funcionários.'}</p>
+            <Route path="settings" element={
+              <div className="space-y-6">
+                <div className="bg-white dark:bg-gray-800 rounded-2xl shadow-sm border dark:border-gray-700 p-8">
+                  <h2 className="text-2xl font-bold text-gray-900 dark:text-white mb-6 flex items-center gap-3">
+                    <Building2 className="w-6 h-6 text-blue-600" />
+                    {t('settings.company_title') || 'Gestão da Empresa'}
+                  </h2>
+                  
+                  {isOwner ? (
+                    <>
+                      <div className="mb-8 p-4 bg-blue-50 dark:bg-blue-900/20 rounded-xl border border-blue-100 dark:border-blue-800">
+                        <h4 className="font-bold text-blue-800 dark:text-blue-300 mb-2">{t('settings.invite_code') || 'Código de Convite da Equipa'}</h4>
+                        <div className="flex flex-col sm:flex-row items-start sm:items-center gap-4">
+                          <code className="bg-white dark:bg-gray-900 px-4 py-2 rounded-lg font-mono text-lg border dark:border-gray-700 select-all">
+                            {userData?.user_metadata?.company_code}
+                          </code>
+                          <p className="text-sm text-blue-600 dark:text-blue-400">{t('settings.invite_text') || 'Partilha este código com os funcionários para se juntarem.'}</p>
+                        </div>
                       </div>
-                    </div>
 
-                    <h3 className="text-lg font-bold text-gray-900 dark:text-white mb-4 flex items-center gap-2">
-                      <Users className="w-5 h-5" />
-                      {t('settings.team_members') || 'Membros da Equipa'}
-                    </h3>
-                    
-                    {/* LISTA VAZIA OU COM MEMBROS REAIS */}
-                    {teamMembers.length === 0 ? (
-                       <div className="text-center py-12 border-2 border-dashed border-gray-200 dark:border-gray-700 rounded-xl">
-                          <Users className="w-12 h-12 text-gray-300 mx-auto mb-3" />
-                          <p className="text-gray-500">{t('settings.no_members') || 'Ainda não tens funcionários registados.'}</p>
-                       </div>
-                    ) : (
+                      <h3 className="text-lg font-bold text-gray-900 dark:text-white mb-4 flex items-center gap-2">
+                        <Users className="w-5 h-5" />
+                        {t('settings.team_members') || 'Membros da Equipa'}
+                      </h3>
                       <div className="overflow-x-auto">
                         <table className="w-full text-left border-collapse">
                           <thead>
@@ -409,89 +511,84 @@ export default function Dashboard() {
                             </tr>
                           </thead>
                           <tbody>
+                            {/* LINHA DO PATRÃO (Você) */}
+                            <tr className="border-b dark:border-gray-700 hover:bg-gray-50 dark:hover:bg-gray-800/50 bg-blue-50/50 dark:bg-blue-900/10">
+                               <td className="py-3 px-2 font-bold dark:text-white flex items-center gap-2">
+                                 {userData?.user_metadata?.full_name} <span className="text-[10px] bg-blue-200 text-blue-800 px-1 rounded">YOU</span>
+                               </td>
+                               <td className="py-3 px-2 text-gray-600 dark:text-gray-400">{userData?.email}</td>
+                               <td className="py-3 px-2"><span className="px-2 py-1 rounded-full text-xs font-bold bg-purple-100 text-purple-700">{userData?.user_metadata?.job_title || 'Owner'}</span></td>
+                               <td className="py-3 px-2 text-right text-gray-400 text-xs italic">Admin</td>
+                            </tr>
+
+                            {/* LISTA DE FUNCIONÁRIOS (Mock ou Real) */}
                             {teamMembers.map((member) => (
-                              <tr key={member.id} className="border-b dark:border-gray-700 last:border-0 hover:bg-gray-50 dark:hover:bg-gray-800/50">
+                              <tr key={member.id} className="border-b dark:border-gray-700 last:border-0 hover:bg-gray-50 dark:hover:bg-gray-800/50 transition-colors group">
                                 <td className="py-3 px-2 font-medium dark:text-white">{member.name}</td>
                                 <td className="py-3 px-2 text-gray-600 dark:text-gray-400">{member.email}</td>
-                                <td className="py-3 px-2">{member.jobTitle}</td>
+                                <td className="py-3 px-2">
+                                  <span className="px-2 py-1 rounded-full text-xs font-bold bg-gray-100 text-gray-700 dark:bg-gray-700 dark:text-gray-300">
+                                    {member.jobTitle}
+                                  </span>
+                                </td>
                                 <td className="py-3 px-2 text-right">
                                   <div className="flex items-center justify-end gap-2">
-                                    <button onClick={() => openEditMember(member)} className="p-1.5 text-blue-600 hover:bg-blue-50 rounded-lg"><Pencil className="w-4 h-4" /></button>
-                                    <button onClick={() => deleteMember(member.id)} className="p-1.5 text-red-600 hover:bg-red-50 rounded-lg"><UserMinus className="w-4 h-4" /></button>
+                                    <button onClick={() => openEditMember(member)} className="p-1.5 text-blue-600 hover:bg-blue-50 rounded-lg transition-colors" title={t('action.edit') || "Editar Cargo"}>
+                                      <Pencil className="w-4 h-4" />
+                                    </button>
+                                    <button onClick={() => deleteMember(member.id)} className="p-1.5 text-red-600 hover:bg-red-50 rounded-lg transition-colors" title={t('action.remove') || "Remover da Empresa"}>
+                                      <UserMinus className="w-4 h-4" />
+                                    </button>
                                   </div>
                                 </td>
                               </tr>
                             ))}
                           </tbody>
                         </table>
+                        {teamMembers.length === 0 && (
+                          <div className="text-center py-8 text-gray-500 text-sm">
+                            {t('settings.no_members') || 'Ainda não tens funcionários registados.'}
+                          </div>
+                        )}
                       </div>
-                    )}
-                  </div>
+                    </>
+                  ) : (
+                    <div className="text-center py-12 text-gray-500">
+                      <ShieldCheck className="w-16 h-16 mx-auto mb-4 text-gray-300" />
+                      <h3 className="text-lg font-bold text-gray-900 dark:text-white">{t('settings.restricted_title') || 'Acesso Restrito'}</h3>
+                      <p>{t('settings.restricted_text') || 'Apenas o administrador da empresa pode gerir as definições e ver a equipa.'}</p>
+                    </div>
+                  )}
                 </div>
-              ) : (
-                 // Se empregado tentar aceder pela URL
-                 <div className="text-center py-12">
-                   <Shield className="w-16 h-16 mx-auto mb-4 text-gray-300" />
-                   <h3 className="text-xl font-bold dark:text-white">Acesso Restrito</h3>
-                 </div>
-              )
-            } />
-
-            <Route path="settings" element={
-               <div className="p-8 text-center text-gray-500">
-                  <Settings className="w-12 h-12 mx-auto mb-4 opacity-50" />
-                  <h3>{t('dashboard.menu.settings') || 'Definições Gerais'}</h3>
-                  <p>Aqui estarão opções como notificações, idioma padrão, etc.</p>
-               </div>
+              </div>
             } />
             
-            {/* Outras Rotas */}
-            <Route path="*" element={<div className="h-full flex items-center justify-center text-gray-400">Em desenvolvimento...</div>} />
+            {/* Outras rotas vazias */}
+            <Route path="chat" element={<div className="h-full flex items-center justify-center text-gray-400">Chat IA...</div>} />
+            <Route path="communication" element={<div className="h-full flex items-center justify-center text-gray-400">Comunicação...</div>} />
+            <Route path="accounting" element={<div className="h-full flex items-center justify-center text-gray-400">Contabilidade...</div>} />
+            <Route path="hr" element={<div className="h-full flex items-center justify-center text-gray-400">RH...</div>} />
+            <Route path="marketing" element={<div className="h-full flex items-center justify-center text-gray-400">Marketing...</div>} />
           </Routes>
         </div>
       </main>
-      
-      {/* MODAL EDITAR PERFIL */}
-      {isProfileModalOpen && (
+
+      {/* MODAL APAGAR CONTA PRÓPRIA */}
+      {isDeleteModalOpen && (
           <div className="fixed inset-0 z-[100] flex items-center justify-center bg-black/50 backdrop-blur-sm p-4">
-            <div className="bg-white dark:bg-gray-800 rounded-2xl p-6 w-full max-w-lg shadow-2xl border dark:border-gray-700">
-              <div className="flex justify-between items-center mb-6 border-b dark:border-gray-700 pb-4">
-                <h3 className="text-xl font-bold text-gray-900 dark:text-white flex items-center gap-2">
-                  <User className="w-5 h-5 text-blue-600" /> {t('profile.edit_title') || 'Editar Perfil'}
-                </h3>
-                <button onClick={() => setIsProfileModalOpen(false)}><X className="w-5 h-5 text-gray-400" /></button>
+            <div className="bg-white dark:bg-gray-800 rounded-2xl p-6 w-full max-w-md shadow-2xl border dark:border-gray-700">
+              <div className="flex items-center gap-3 text-red-600 mb-4">
+                <AlertTriangle className="w-6 h-6" />
+                <h3 className="text-xl font-bold text-gray-900 dark:text-white">{t('delete.title') || 'Zona de Perigo'}</h3>
               </div>
-              <div className="space-y-4">
-                 <div>
-                   <label className="block text-sm text-gray-600 dark:text-gray-300 mb-1">{t('form.fullname') || 'Nome'}</label>
-                   <input type="text" value={editForm.fullName} onChange={e => setEditForm({...editForm, fullName: e.target.value})} className="w-full p-2 border rounded dark:bg-gray-900 dark:border-gray-600 dark:text-white" />
-                 </div>
-                 <div className="flex justify-end gap-2 mt-4">
-                   <button onClick={() => setIsProfileModalOpen(false)} className="px-4 py-2 border rounded dark:border-gray-600 dark:text-gray-300">{t('common.cancel') || 'Cancelar'}</button>
-                   <button onClick={handleSaveProfile} disabled={savingProfile} className="px-4 py-2 bg-blue-600 text-white rounded">{t('common.save') || 'Guardar'}</button>
-                 </div>
+              <p className="text-gray-600 dark:text-gray-300 mb-4">{t('delete.text') || 'Apagar conta permanentemente? Escreve ELIMINAR:'}</p>
+              <input type="text" value={deleteConfirmation} onChange={(e) => setDeleteConfirmation(e.target.value)} className="w-full p-3 border rounded-lg mb-6 uppercase dark:bg-gray-900 dark:text-white dark:border-gray-600" />
+              <div className="flex gap-3 justify-end">
+                <button onClick={() => setIsDeleteModalOpen(false)} className="px-4 py-2 rounded-lg bg-gray-100 dark:bg-gray-700 dark:text-white">{t('common.cancel') || 'Cancelar'}</button>
+                <button onClick={handleDeleteAccount} className="px-4 py-2 bg-red-600 text-white rounded-lg font-bold">{t('common.delete') || 'Apagar'}</button>
               </div>
             </div>
           </div>
-      )}
-
-      {/* MODAL EDITAR CARGO (PATRÃO) */}
-      {isEditMemberModalOpen && memberToEdit && (
-         <div className="fixed inset-0 z-[100] flex items-center justify-center bg-black/50 backdrop-blur-sm p-4">
-            <div className="bg-white dark:bg-gray-800 rounded-2xl p-6 w-full max-w-sm shadow-2xl border dark:border-gray-700">
-               <h3 className="text-lg font-bold dark:text-white mb-4">{t('team.edit_role') || 'Editar Cargo'}</h3>
-               <input 
-                 type="text" 
-                 value={memberToEdit.jobTitle} 
-                 onChange={e => setMemberToEdit({...memberToEdit, jobTitle: e.target.value})} 
-                 className="w-full p-2 border rounded dark:bg-gray-900 dark:border-gray-600 dark:text-white mb-4"
-               />
-               <div className="flex justify-end gap-2">
-                  <button onClick={() => setIsEditMemberModalOpen(false)} className="px-3 py-1.5 border rounded dark:text-white">{t('common.cancel') || 'Cancelar'}</button>
-                  <button onClick={saveMemberRole} className="px-3 py-1.5 bg-blue-600 text-white rounded">{t('common.save') || 'Guardar'}</button>
-               </div>
-            </div>
-         </div>
       )}
     </div>
   );
