@@ -1,76 +1,93 @@
 import { useState, useEffect } from 'react';
-import { useTranslation } from 'react-i18next';
-import { useNavigate } from 'react-router-dom';
+import { Routes, Route, Link, useLocation, useNavigate } from 'react-router-dom';
+import { useTranslation } from 'react-i18next'; // <--- Importado para tradução
+import { supabase } from '../supabase/client';
 import { 
   LayoutDashboard, 
   MessageSquare, 
-  Calculator, 
-  Mail, 
+  FileText, 
   Users, 
-  TrendingUp, 
+  BarChart3, 
   Settings, 
-  LogOut,
+  LogOut, 
+  Menu, 
+  X,
   Bell,
-  Globe,
-  Moon,
-  Sun,
+  Mail,
   User,
-  Building,
+  Trash2,
+  AlertTriangle,
+  Lock,
   Save,
-  X
+  Building2,
+  Briefcase,
+  Globe, // <--- Novo ícone
+  Moon,  // <--- Novo ícone
+  Sun    // <--- Novo ícone
 } from 'lucide-react';
 
-// Interfaces para os tipos de dados
-interface UserData {
-  name: string;
-  email: string;
-  role: 'admin' | 'employee'; // admin = Patrão, employee = Empregado
-  initials: string;
-}
-
-interface CompanyData {
-  name: string;
-  code: string;
-  nif: string;
-  address: string;
-}
-
 export default function Dashboard() {
-  const { t, i18n } = useTranslation();
+  const { t, i18n } = useTranslation(); // <--- Hook de tradução
+  const location = useLocation();
   const navigate = useNavigate();
-  const [activeTab, setActiveTab] = useState('overview');
+  
+  // --- ESTADOS GERAIS ---
+  const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
+  const [isProfileDropdownOpen, setIsProfileDropdownOpen] = useState(false);
+  const [isNotifOpen, setIsNotifOpen] = useState(false);
+  
+  // --- ESTADO DO TEMA (DIA/NOITE) ---
   const [isDark, setIsDark] = useState(false);
-  const [showProfileModal, setShowProfileModal] = useState(false);
-  const [showCompanyModal, setShowCompanyModal] = useState(false);
 
-  // --- DADOS SIMULADOS (ESTADO) ---
-  const [user, setUser] = useState<UserData>({
-    name: 'Iuri Santos',
-    email: 'iuri@easycheckglobal.com',
-    role: 'admin', // Mude para 'employee' para testar a visão do empregado
-    initials: 'IS'
+  // --- ESTADOS DE DADOS DO UTILIZADOR ---
+  const [userData, setUserData] = useState<any>(null);
+  const [loadingUser, setLoadingUser] = useState(true);
+
+  // --- ESTADOS DOS MODAIS ---
+  const [isDeleteModalOpen, setIsDeleteModalOpen] = useState(false);
+  const [isProfileModalOpen, setIsProfileModalOpen] = useState(false);
+  const [deleteConfirmation, setDeleteConfirmation] = useState('');
+  const [isDeleting, setIsDeleting] = useState(false);
+
+  // --- ESTADOS DO FORMULÁRIO DE PERFIL ---
+  const [editForm, setEditForm] = useState({
+    fullName: '',
+    jobTitle: '',
+    companyName: '',
+    companyCode: ''
   });
+  const [savingProfile, setSavingProfile] = useState(false);
 
-  const [company, setCompany] = useState<CompanyData>({
-    name: 'EasyCheck Global',
-    code: 'EMP-2024-882',
-    nif: '500100200',
-    address: 'Lisboa, Portugal'
-  });
-
-  // Formulários temporários para edição
-  const [editUserForm, setEditUserForm] = useState(user);
-  const [editCompanyForm, setEditCompanyForm] = useState(company);
-
+  // 1. CARREGAR DADOS E TEMA
   useEffect(() => {
-    if (document.documentElement.classList.contains('dark')) setIsDark(true);
+    // Verificar tema inicial
+    if (document.documentElement.classList.contains('dark')) {
+      setIsDark(true);
+    }
+
+    const fetchUser = async () => {
+      const { data: { user } } = await supabase.auth.getUser();
+      if (user) {
+        setUserData(user);
+        setEditForm({
+          fullName: user.user_metadata.full_name || '',
+          jobTitle: user.user_metadata.job_title || '',
+          companyName: user.user_metadata.company_name || '',
+          companyCode: user.user_metadata.company_code || ''
+        });
+      }
+      setLoadingUser(false);
+    };
+    fetchUser();
   }, []);
 
+  // FUNÇÃO MUDAR TEMA
   const toggleTheme = () => {
     document.documentElement.classList.toggle('dark');
     setIsDark(!isDark);
   };
 
+  // FUNÇÃO MUDAR LÍNGUA (Ciclo entre as línguas)
   const toggleLanguage = () => {
     const langs = ['pt', 'en', 'fr', 'es', 'de', 'it'];
     const current = langs.indexOf(i18n.language);
@@ -78,273 +95,389 @@ export default function Dashboard() {
     i18n.changeLanguage(langs[next]);
   };
 
-  const handleLogout = () => {
-    navigate('/'); 
+  // 2. OBTER INICIAIS
+  const getInitials = (name: string) => {
+    if (!name) return 'EC';
+    const names = name.split(' ');
+    if (names.length === 1) return names[0].substring(0, 2).toUpperCase();
+    return (names[0][0] + names[names.length - 1][0]).toUpperCase();
   };
 
-  const handleSaveProfile = () => {
-    setUser(editUserForm);
-    setShowProfileModal(false);
-    alert("Perfil atualizado com sucesso!");
+  // 3. LOGOUT
+  const handleLogout = async () => {
+    await supabase.auth.signOut();
+    navigate('/');
   };
 
-  const handleSaveCompany = () => {
-    setCompany(editCompanyForm);
-    setShowCompanyModal(false);
-    alert("Dados da empresa atualizados!");
+  // 4. SALVAR PERFIL
+  const handleSaveProfile = async () => {
+    setSavingProfile(true);
+    try {
+      const { error } = await supabase.auth.updateUser({
+        data: {
+          full_name: editForm.fullName,
+          job_title: editForm.jobTitle,
+          company_name: editForm.companyName 
+        }
+      });
+
+      if (error) throw error;
+      
+      alert(t('contact.form.success') || "Perfil atualizado com sucesso!");
+      setIsProfileModalOpen(false);
+      
+      setUserData({
+        ...userData,
+        user_metadata: {
+          ...userData.user_metadata,
+          full_name: editForm.fullName,
+          job_title: editForm.jobTitle,
+          company_name: editForm.companyName
+        }
+      });
+
+    } catch (error: any) {
+      alert("Erro ao atualizar perfil: " + error.message);
+    } finally {
+      setSavingProfile(false);
+    }
   };
 
-  // Menu dinâmico (Esconde 'Definições da Empresa' se for empregado)
+  // 5. ELIMINAR CONTA (REAL - COM RPC)
+  const handleDeleteAccount = async () => {
+    if (deleteConfirmation !== 'ELIMINAR') {
+      alert("Por favor escreve ELIMINAR para confirmar.");
+      return;
+    }
+
+    setIsDeleting(true);
+
+    try {
+      const { error } = await supabase.rpc('delete_user');
+      if (error) throw error;
+
+      await supabase.auth.signOut();
+      alert("A tua conta foi eliminada permanentemente.");
+      navigate('/');
+
+    } catch (error: any) {
+      console.error("Erro ao apagar:", error);
+      alert("Erro ao eliminar conta: " + error.message);
+    } finally {
+      setIsDeleting(false);
+    }
+  };
+
+  // Itens do Menu (Agora com Tradução)
   const menuItems = [
-    { id: 'overview', icon: LayoutDashboard, label: t('dashboard.menu.overview') },
-    { id: 'chat', icon: MessageSquare, label: t('dashboard.menu.chat') },
-    { id: 'accounting', icon: Calculator, label: t('dashboard.menu.accounting') },
-    { id: 'communication', icon: Mail, label: t('dashboard.menu.communication') },
-    { id: 'hr', icon: Users, label: t('dashboard.menu.hr') },
-    { id: 'marketing', icon: TrendingUp, label: t('dashboard.menu.marketing') },
-    { id: 'settings', icon: Settings, label: t('dashboard.menu.settings') },
+    { icon: LayoutDashboard, label: t('dashboard.menu.overview') || 'Visão Geral', path: '/dashboard' },
+    { icon: MessageSquare, label: t('dashboard.menu.chat') || 'Chat IA', path: '/dashboard/chat' },
+    { icon: FileText, label: t('dashboard.menu.accounting') || 'Contabilidade', path: '/dashboard/accounting' },
+    { icon: Mail, label: t('dashboard.menu.communication') || 'Comunicação', path: '/dashboard/communication' },
+    { icon: Users, label: t('dashboard.menu.hr') || 'Recursos Humanos', path: '/dashboard/hr' },
+    { icon: BarChart3, label: t('dashboard.menu.marketing') || 'Marketing', path: '/dashboard/marketing' },
+    { icon: Settings, label: t('dashboard.menu.settings') || 'Definições', path: '/dashboard/settings' },
   ];
+
+  if (loadingUser) return <div className="flex h-screen items-center justify-center bg-gray-50 dark:bg-gray-900 text-gray-500">A carregar perfil...</div>;
+
+  const isOwner = userData?.user_metadata?.role === 'owner';
 
   return (
     <div className="flex h-screen bg-gray-50 dark:bg-gray-900 transition-colors duration-300 font-sans">
       
       {/* SIDEBAR */}
-      <aside className="w-72 bg-white dark:bg-gray-800 border-r border-gray-200 dark:border-gray-700 hidden md:flex flex-col transition-colors duration-300">
-        <div className="p-6 flex items-center gap-3">
-          <img src="/logopequena.PNG" alt="Logo" className="h-8 w-8 object-contain" />
-          <span className="font-bold text-xl text-gray-900 dark:text-white">EasyCheck</span>
-        </div>
-
-        <nav className="flex-1 px-4 py-4 space-y-1">
-          {menuItems.map((item) => (
-            <button
-              key={item.id}
-              onClick={() => setActiveTab(item.id)}
-              className={`w-full flex items-center gap-3 px-4 py-3 rounded-xl text-sm font-medium transition-all duration-200 ${
-                activeTab === item.id
-                  ? 'bg-blue-600 text-white shadow-lg shadow-blue-500/30'
-                  : 'text-gray-600 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-700'
-              }`}
-            >
-              <item.icon className="w-5 h-5" />
-              {item.label}
+      <aside className={`fixed inset-y-0 left-0 z-50 w-64 bg-white dark:bg-gray-800 border-r dark:border-gray-700 transform transition-transform duration-200 ease-in-out md:translate-x-0 ${isMobileMenuOpen ? 'translate-x-0' : '-translate-x-full'}`}>
+        <div className="h-full flex flex-col">
+          <div className="h-20 flex items-center px-6 border-b dark:border-gray-700">
+            <Link to="/" className="flex items-center gap-3 hover:opacity-80 transition-opacity">
+              <img src="/logopequena.PNG" alt="EasyCheck Logo" className="h-8 w-auto object-contain" />
+              <span className="font-bold text-xl text-gray-900 dark:text-white">EasyCheck</span>
+            </Link>
+          </div>
+          <nav className="flex-1 px-4 py-6 space-y-2 overflow-y-auto">
+            {menuItems.map((item) => {
+              const isActive = location.pathname === item.path || (item.path !== '/dashboard' && location.pathname.startsWith(item.path));
+              return (
+                <Link
+                  key={item.path}
+                  to={item.path}
+                  onClick={() => setIsMobileMenuOpen(false)}
+                  className={`flex items-center gap-3 px-4 py-3 rounded-xl transition-all font-medium ${
+                    isActive ? 'bg-blue-600 text-white shadow-lg shadow-blue-500/30' : 'text-gray-600 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-700'
+                  }`}
+                >
+                  <item.icon className="w-5 h-5" />
+                  <span>{item.label}</span>
+                </Link>
+              );
+            })}
+          </nav>
+          <div className="p-4 border-t dark:border-gray-700">
+            <button onClick={handleLogout} className="flex items-center gap-3 w-full px-4 py-3 text-red-500 hover:bg-red-50 dark:hover:bg-red-900/20 rounded-xl transition-colors font-medium">
+              <LogOut className="w-5 h-5" />
+              {t('dashboard.menu.logout') || 'Sair da Conta'}
             </button>
-          ))}
-        </nav>
-
-        <div className="p-4 border-t border-gray-200 dark:border-gray-700">
-           {/* Info da Empresa (Visível para todos, editável só por admin) */}
-           <div className="mb-4 px-2">
-              <p className="text-xs font-bold text-gray-400 uppercase tracking-wider mb-1">Empresa</p>
-              <div className="flex items-center justify-between">
-                <p className="text-sm font-medium text-gray-700 dark:text-gray-300 truncate">{company.name}</p>
-                {user.role === 'admin' && (
-                  <button onClick={() => setShowCompanyModal(true)} className="text-blue-600 hover:text-blue-700 text-xs font-bold">
-                    Editar
-                  </button>
-                )}
-              </div>
-              <p className="text-xs text-gray-400 font-mono mt-0.5">{company.code}</p>
-           </div>
-
-          <button 
-            onClick={handleLogout}
-            className="w-full flex items-center gap-3 px-4 py-3 rounded-xl text-sm font-medium text-red-600 hover:bg-red-50 dark:hover:bg-red-900/20 transition-colors"
-          >
-            <LogOut className="w-5 h-5" />
-            {t('dashboard.menu.logout')}
-          </button>
+          </div>
         </div>
       </aside>
 
-      {/* MAIN CONTENT */}
-      <main className="flex-1 flex flex-col overflow-hidden relative">
+      {/* ÁREA PRINCIPAL */}
+      <main className="flex-1 md:ml-64 flex flex-col h-screen overflow-hidden relative">
         
-        {/* HEADER PROFISSIONAL */}
-        <header className="h-20 bg-white dark:bg-gray-800 border-b border-gray-200 dark:border-gray-700 flex items-center justify-between px-8 transition-colors duration-300">
-          <div>
-            <h1 className="text-2xl font-bold text-gray-900 dark:text-white capitalize">
-              {menuItems.find(i => i.id === activeTab)?.label}
-            </h1>
-            <p className="text-sm text-gray-500 dark:text-gray-400 hidden sm:block">
-              {user.role === 'admin' ? 'Administrador' : 'Colaborador'} • {company.name}
-            </p>
+        {/* HEADER */}
+        <header className="h-20 bg-white dark:bg-gray-800 border-b dark:border-gray-700 flex items-center justify-between px-4 sm:px-8 shadow-sm z-20">
+          <div className="flex items-center gap-4">
+            <button onClick={() => setIsMobileMenuOpen(!isMobileMenuOpen)} className="md:hidden p-2 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-700">
+              {isMobileMenuOpen ? <X /> : <Menu />}
+            </button>
+            <h2 className="text-xl font-bold text-gray-800 dark:text-white capitalize">
+              {menuItems.find(i => i.path === location.pathname)?.label || t('dashboard.menu.overview')}
+            </h2>
           </div>
 
-          <div className="flex items-center gap-3">
-            <button onClick={toggleLanguage} className="p-2.5 rounded-xl bg-gray-100 dark:bg-gray-700 text-gray-600 dark:text-gray-300 hover:bg-gray-200 dark:hover:bg-gray-600 transition-colors flex items-center gap-2 font-bold text-xs uppercase">
-              <Globe className="w-4 h-4" />
-              {i18n.language}
+          <div className="flex items-center gap-4">
+            
+            {/* === NOVOS BOTÕES (TRADUÇÃO E TEMA) === */}
+            
+            {/* Botão Língua */}
+            <button 
+              onClick={toggleLanguage}
+              className="p-2 rounded-lg text-gray-500 hover:bg-gray-100 dark:text-gray-400 dark:hover:bg-gray-700 transition-colors flex items-center gap-2"
+              title="Mudar Idioma"
+            >
+              <Globe className="w-5 h-5" />
+              <span className="font-bold text-sm uppercase">{i18n.language}</span>
             </button>
 
-            <button onClick={toggleTheme} className="p-2.5 rounded-xl bg-gray-100 dark:bg-gray-700 text-gray-600 dark:text-gray-300 hover:bg-gray-200 dark:hover:bg-gray-600 transition-colors">
+            {/* Botão Tema */}
+            <button 
+              onClick={toggleTheme}
+              className="p-2 rounded-lg text-gray-500 hover:bg-gray-100 dark:text-gray-400 dark:hover:bg-gray-700 transition-colors"
+              title="Mudar Tema"
+            >
               {isDark ? <Sun className="w-5 h-5" /> : <Moon className="w-5 h-5" />}
             </button>
 
-            <div className="h-8 w-px bg-gray-200 dark:bg-gray-700 mx-2"></div>
+            <div className="h-6 w-px bg-gray-200 dark:bg-gray-700 mx-2 hidden sm:block"></div>
 
-            <button className="relative p-2.5 rounded-xl text-gray-500 hover:bg-gray-100 dark:text-gray-400 dark:hover:bg-gray-700 transition-colors">
-              <Bell className="w-5 h-5" />
-              <span className="absolute top-3 right-3 w-2 h-2 bg-red-500 rounded-full ring-2 ring-white dark:ring-gray-800"></span>
-            </button>
-            
-            {/* PERFIL DO UTILIZADOR (NO CANTO SUPERIOR DIREITO) */}
-            <button 
-              onClick={() => setShowProfileModal(true)}
-              className="flex items-center gap-3 pl-2 pr-1 py-1 rounded-full hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors group"
-            >
-              <div className="text-right hidden sm:block">
-                <p className="text-sm font-bold text-gray-900 dark:text-white leading-none">{user.name}</p>
-                <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">{t('dashboard.menu.settings')}</p>
-              </div>
-              <div className="w-10 h-10 rounded-full bg-gradient-to-tr from-blue-600 to-indigo-600 flex items-center justify-center text-white font-bold shadow-md group-hover:shadow-lg transition-all">
-                {user.initials}
-              </div>
-            </button>
+            {/* NOTIFICAÇÕES */}
+            <div className="relative">
+              <button onClick={() => setIsNotifOpen(!isNotifOpen)} className="p-2 relative rounded-full hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors text-gray-500 dark:text-gray-400">
+                <Bell className="w-6 h-6" />
+                <span className="absolute top-2 right-2 w-2 h-2 bg-red-500 rounded-full border-2 border-white dark:border-gray-800"></span>
+              </button>
+              {isNotifOpen && (
+                <>
+                  <div className="fixed inset-0 z-30" onClick={() => setIsNotifOpen(false)}></div>
+                  <div className="absolute right-0 mt-2 w-80 bg-white dark:bg-gray-800 rounded-xl shadow-xl border dark:border-gray-700 p-4 z-40">
+                    <h3 className="font-bold mb-3 dark:text-white border-b dark:border-gray-700 pb-2">Notificações</h3>
+                    <div className="space-y-3">
+                      <div className="flex gap-3 text-sm p-2 hover:bg-gray-50 dark:hover:bg-gray-700 rounded-lg cursor-pointer">
+                        <div className="w-2 h-2 mt-1.5 bg-blue-500 rounded-full shrink-0"></div>
+                        <p className="text-gray-600 dark:text-gray-300">A tua fatura #1023 foi paga.</p>
+                      </div>
+                    </div>
+                  </div>
+                </>
+              )}
+            </div>
+
+            {/* PERFIL */}
+            <div className="relative">
+              <button 
+                onClick={() => setIsProfileDropdownOpen(!isProfileDropdownOpen)}
+                className="w-10 h-10 bg-gradient-to-tr from-blue-600 to-purple-600 rounded-full flex items-center justify-center text-white font-bold shadow-md cursor-pointer hover:opacity-90 transition-opacity"
+              >
+                {getInitials(userData?.user_metadata?.full_name)}
+              </button>
+
+              {isProfileDropdownOpen && (
+                <>
+                  <div className="fixed inset-0 z-30" onClick={() => setIsProfileDropdownOpen(false)}></div>
+                  <div className="absolute right-0 mt-2 w-64 bg-white dark:bg-gray-800 rounded-xl shadow-xl border dark:border-gray-700 overflow-hidden z-40">
+                    <div className="px-4 py-4 border-b dark:border-gray-700 bg-gray-50 dark:bg-gray-800/50">
+                      <p className="text-sm font-bold text-gray-900 dark:text-white truncate">{userData?.user_metadata?.full_name || 'Utilizador'}</p>
+                      <p className="text-xs text-gray-500 truncate">{userData?.user_metadata?.job_title || 'Sem Cargo'}</p>
+                      <span className="text-[10px] uppercase tracking-wider font-bold bg-blue-100 text-blue-700 px-2 py-0.5 rounded-full mt-1 inline-block">
+                        {isOwner ? 'Patrão / Admin' : 'Funcionário'}
+                      </span>
+                    </div>
+                    <button 
+                      onClick={() => { setIsProfileModalOpen(true); setIsProfileDropdownOpen(false); }}
+                      className="w-full text-left px-4 py-3 text-sm text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700 flex items-center gap-2 transition-colors"
+                    >
+                      <User className="w-4 h-4 text-blue-600" /> Editar Perfil
+                    </button>
+                    <button 
+                      onClick={() => { setIsDeleteModalOpen(true); setIsProfileDropdownOpen(false); }}
+                      className="w-full text-left px-4 py-3 text-sm text-red-600 hover:bg-red-50 dark:hover:bg-red-900/20 flex items-center gap-2 transition-colors border-t dark:border-gray-700"
+                    >
+                      <Trash2 className="w-4 h-4" /> Eliminar Conta
+                    </button>
+                    <button onClick={handleLogout} className="w-full text-left px-4 py-3 text-sm text-gray-500 hover:bg-gray-50 dark:hover:bg-gray-700 flex items-center gap-2">
+                      <LogOut className="w-4 h-4" /> {t('dashboard.menu.logout') || 'Sair'}
+                    </button>
+                  </div>
+                </>
+              )}
+            </div>
           </div>
         </header>
 
-        {/* DASHBOARD CONTENT */}
-        <div className="flex-1 overflow-y-auto p-8">
-          
-          {/* STATS CARDS */}
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
-            <div className="bg-white dark:bg-gray-800 p-6 rounded-2xl border border-gray-100 dark:border-gray-700 shadow-sm hover:shadow-md transition-all">
-              <p className="text-sm text-gray-500 dark:text-gray-400 mb-1 font-medium">{t('dashboard.stats.revenue')}</p>
-              <h3 className="text-3xl font-bold text-gray-900 dark:text-white">€12,450</h3>
-            </div>
-            <div className="bg-white dark:bg-gray-800 p-6 rounded-2xl border border-gray-100 dark:border-gray-700 shadow-sm hover:shadow-md transition-all">
-              <p className="text-sm text-gray-500 dark:text-gray-400 mb-1 font-medium">{t('dashboard.stats.actions')}</p>
-              <h3 className="text-3xl font-bold text-blue-600">128</h3>
-            </div>
-            <div className="bg-white dark:bg-gray-800 p-6 rounded-2xl border border-gray-100 dark:border-gray-700 shadow-sm hover:shadow-md transition-all">
-              <p className="text-sm text-gray-500 dark:text-gray-400 mb-1 font-medium">{t('dashboard.stats.invoices')}</p>
-              <h3 className="text-3xl font-bold text-orange-500">7</h3>
-            </div>
-          </div>
-
-          {/* WELCOME AREA */}
-          <div className="bg-white dark:bg-gray-800 border border-gray-100 dark:border-gray-700 rounded-3xl p-10 text-center flex flex-col items-center justify-center gap-6 shadow-sm">
-            <div>
-              <h2 className="text-3xl font-bold text-gray-900 dark:text-white mb-3">
-                {t('dashboard.welcome')} {user.name.split(' ')[0]}! 👋
-              </h2>
-              <p className="text-gray-600 dark:text-gray-300 text-lg max-w-2xl mx-auto">
-                {t('dashboard.subtitle')}
-              </p>
-            </div>
-            <button className="px-8 py-4 bg-blue-600 text-white rounded-2xl font-bold hover:bg-blue-700 transition-transform hover:scale-105 flex items-center gap-3 shadow-lg shadow-blue-500/30">
-              <MessageSquare className="w-5 h-5" />
-              {t('dashboard.open_chat')}
-            </button>
-          </div>
-
-        </div>
-
-        {/* --- MODAIS DE EDIÇÃO --- */}
-
-        {/* MODAL PERFIL (Para todos) */}
-        {showProfileModal && (
-          <div className="fixed inset-0 bg-black/50 backdrop-blur-sm z-50 flex items-center justify-center p-4">
-            <div className="bg-white dark:bg-gray-800 rounded-2xl w-full max-w-md p-6 shadow-2xl animate-in fade-in zoom-in duration-200">
-              <div className="flex justify-between items-center mb-6">
+        {/* MODAL EDITAR PERFIL */}
+        {isProfileModalOpen && (
+          <div className="fixed inset-0 z-[100] flex items-center justify-center bg-black/50 backdrop-blur-sm p-4">
+            <div className="bg-white dark:bg-gray-800 rounded-2xl p-6 w-full max-w-lg shadow-2xl border dark:border-gray-700 animate-in fade-in zoom-in-95 duration-200">
+              <div className="flex justify-between items-center mb-6 border-b dark:border-gray-700 pb-4">
                 <h3 className="text-xl font-bold text-gray-900 dark:text-white flex items-center gap-2">
                   <User className="w-5 h-5 text-blue-600" />
-                  Editar Perfil
+                  Editar o meu Perfil
                 </h3>
-                <button onClick={() => setShowProfileModal(false)} className="text-gray-400 hover:text-red-500">
-                  <X className="w-6 h-6" />
+                <button onClick={() => setIsProfileModalOpen(false)} className="text-gray-400 hover:text-gray-600 dark:hover:text-gray-200">
+                  <X className="w-5 h-5" />
                 </button>
               </div>
-              
+
               <div className="space-y-4">
                 <div>
                   <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Nome Completo</label>
                   <input 
                     type="text" 
-                    value={editUserForm.name} 
-                    onChange={e => setEditUserForm({...editUserForm, name: e.target.value})}
-                    className="w-full p-3 rounded-xl border dark:bg-gray-900 dark:border-gray-600 focus:ring-2 focus:ring-blue-500 outline-none" 
+                    value={editForm.fullName}
+                    onChange={(e) => setEditForm({...editForm, fullName: e.target.value})}
+                    className="w-full p-3 border rounded-lg dark:bg-gray-900 dark:text-white dark:border-gray-600 focus:ring-2 focus:ring-blue-500 outline-none"
                   />
                 </div>
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Email</label>
-                  <input 
-                    type="email" 
-                    value={editUserForm.email} 
-                    onChange={e => setEditUserForm({...editUserForm, email: e.target.value})}
-                    className="w-full p-3 rounded-xl border dark:bg-gray-900 dark:border-gray-600 focus:ring-2 focus:ring-blue-500 outline-none" 
-                  />
+                  <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Cargo</label>
+                  <div className="relative">
+                    <Briefcase className="w-4 h-4 absolute left-3 top-3 text-gray-400" />
+                    <input 
+                      type="text" 
+                      value={editForm.jobTitle}
+                      onChange={(e) => setEditForm({...editForm, jobTitle: e.target.value})}
+                      className="w-full pl-9 p-3 border rounded-lg dark:bg-gray-900 dark:text-white dark:border-gray-600 focus:ring-2 focus:ring-blue-500 outline-none"
+                    />
+                  </div>
                 </div>
-                
-                <div className="pt-4 flex gap-3">
-                  <button onClick={() => setShowProfileModal(false)} className="flex-1 py-3 rounded-xl border border-gray-200 hover:bg-gray-50 dark:border-gray-600 dark:hover:bg-gray-700 font-medium">Cancelar</button>
-                  <button onClick={handleSaveProfile} className="flex-1 py-3 rounded-xl bg-blue-600 text-white hover:bg-blue-700 font-bold flex justify-center items-center gap-2">
-                    <Save className="w-4 h-4" /> Guardar
-                  </button>
+                <div className="grid grid-cols-2 gap-4">
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1 flex justify-between">
+                      Empresa
+                      {!isOwner && <span className="text-xs text-orange-500 flex items-center gap-1"><Lock className="w-3 h-3"/> Bloqueado</span>}
+                    </label>
+                    <div className="relative">
+                      <Building2 className="w-4 h-4 absolute left-3 top-3 text-gray-400" />
+                      <input 
+                        type="text" 
+                        value={editForm.companyName}
+                        onChange={(e) => setEditForm({...editForm, companyName: e.target.value})}
+                        disabled={!isOwner}
+                        className={`w-full pl-9 p-3 border rounded-lg outline-none ${!isOwner ? 'bg-gray-100 text-gray-500 cursor-not-allowed dark:bg-gray-800' : 'dark:bg-gray-900 dark:text-white focus:ring-2 focus:ring-blue-500'}`}
+                      />
+                    </div>
+                  </div>
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Código (Fixo)</label>
+                    <div className="relative">
+                      <span className="absolute left-3 top-3 text-gray-400 font-mono text-xs">#</span>
+                      <input 
+                        type="text" 
+                        value={editForm.companyCode}
+                        disabled
+                        className="w-full pl-8 p-3 border rounded-lg bg-gray-100 text-gray-500 cursor-not-allowed dark:bg-gray-800 dark:border-gray-700 font-mono"
+                      />
+                    </div>
+                  </div>
                 </div>
+                {!isOwner && (
+                  <p className="text-xs text-orange-600 bg-orange-50 p-2 rounded border border-orange-100 flex items-start gap-2">
+                    <AlertTriangle className="w-4 h-4 shrink-0 mt-0.5" />
+                    Como funcionário, não tens permissão para alterar o nome da empresa.
+                  </p>
+                )}
               </div>
-            </div>
-          </div>
-        )}
 
-        {/* MODAL EMPRESA (Só Admin) */}
-        {showCompanyModal && (
-          <div className="fixed inset-0 bg-black/50 backdrop-blur-sm z-50 flex items-center justify-center p-4">
-            <div className="bg-white dark:bg-gray-800 rounded-2xl w-full max-w-md p-6 shadow-2xl animate-in fade-in zoom-in duration-200">
-              <div className="flex justify-between items-center mb-6">
-                <h3 className="text-xl font-bold text-gray-900 dark:text-white flex items-center gap-2">
-                  <Building className="w-5 h-5 text-purple-600" />
-                  Dados da Empresa
-                </h3>
-                <button onClick={() => setShowCompanyModal(false)} className="text-gray-400 hover:text-red-500">
-                  <X className="w-6 h-6" />
+              <div className="flex gap-3 justify-end mt-8">
+                <button onClick={() => setIsProfileModalOpen(false)} className="px-4 py-2 text-gray-600 hover:bg-gray-100 dark:text-gray-300 dark:hover:bg-gray-700 rounded-lg font-medium">Cancelar</button>
+                <button onClick={handleSaveProfile} disabled={savingProfile} className="px-6 py-2 bg-blue-600 text-white rounded-lg font-bold hover:bg-blue-700 flex items-center gap-2 shadow-lg disabled:opacity-50">
+                  {savingProfile ? 'A Guardar...' : <><Save className="w-4 h-4" /> Guardar Alterações</>}
                 </button>
               </div>
-              
-              <div className="space-y-4">
-                <div className="bg-yellow-50 dark:bg-yellow-900/20 p-3 rounded-lg text-xs text-yellow-700 dark:text-yellow-400 mb-2">
-                  ⚠️ Alterações aqui afetam todos os utilizadores da empresa.
+            </div>
+          </div>
+        )}
+
+        {/* MODAL ELIMINAR CONTA */}
+        {isDeleteModalOpen && (
+          <div className="fixed inset-0 z-[100] flex items-center justify-center bg-black/50 backdrop-blur-sm p-4">
+            <div className="bg-white dark:bg-gray-800 rounded-2xl p-6 w-full max-w-md shadow-2xl border dark:border-gray-700 animate-in fade-in zoom-in-95 duration-200">
+              <div className="flex items-center gap-3 text-red-600 mb-4">
+                <div className="bg-red-100 dark:bg-red-900/30 p-2 rounded-full">
+                  <AlertTriangle className="w-6 h-6" />
                 </div>
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Nome da Empresa</label>
-                  <input 
-                    type="text" 
-                    value={editCompanyForm.name} 
-                    onChange={e => setEditCompanyForm({...editCompanyForm, name: e.target.value})}
-                    className="w-full p-3 rounded-xl border dark:bg-gray-900 dark:border-gray-600 focus:ring-2 focus:ring-purple-500 outline-none" 
-                  />
-                </div>
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">NIF</label>
-                  <input 
-                    type="text" 
-                    value={editCompanyForm.nif} 
-                    onChange={e => setEditCompanyForm({...editCompanyForm, nif: e.target.value})}
-                    className="w-full p-3 rounded-xl border dark:bg-gray-900 dark:border-gray-600 focus:ring-2 focus:ring-purple-500 outline-none" 
-                  />
-                </div>
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Morada</label>
-                  <input 
-                    type="text" 
-                    value={editCompanyForm.address} 
-                    onChange={e => setEditCompanyForm({...editCompanyForm, address: e.target.value})}
-                    className="w-full p-3 rounded-xl border dark:bg-gray-900 dark:border-gray-600 focus:ring-2 focus:ring-purple-500 outline-none" 
-                  />
-                </div>
-                
-                <div className="pt-4 flex gap-3">
-                  <button onClick={() => setShowCompanyModal(false)} className="flex-1 py-3 rounded-xl border border-gray-200 hover:bg-gray-50 dark:border-gray-600 dark:hover:bg-gray-700 font-medium">Cancelar</button>
-                  <button onClick={handleSaveCompany} className="flex-1 py-3 rounded-xl bg-purple-600 text-white hover:bg-purple-700 font-bold flex justify-center items-center gap-2">
-                    <Save className="w-4 h-4" /> Atualizar Empresa
-                  </button>
-                </div>
+                <h3 className="text-xl font-bold text-gray-900 dark:text-white">Zona de Perigo</h3>
+              </div>
+              <p className="text-gray-600 dark:text-gray-300 mb-4 leading-relaxed">
+                Estás prestes a apagar a tua conta permanentemente. <br/>Para confirmar, escreve <span className="font-bold select-all bg-gray-100 dark:bg-gray-700 px-1 rounded">ELIMINAR</span>:
+              </p>
+              <input 
+                type="text" 
+                value={deleteConfirmation}
+                onChange={(e) => setDeleteConfirmation(e.target.value)}
+                placeholder="Escreve ELIMINAR"
+                className="w-full p-3 border rounded-lg mb-6 dark:bg-gray-900 dark:text-white dark:border-gray-600 focus:ring-2 focus:ring-red-500 outline-none uppercase"
+              />
+              <div className="flex gap-3 justify-end">
+                <button onClick={() => setIsDeleteModalOpen(false)} className="px-4 py-2 text-gray-600 hover:bg-gray-100 dark:text-gray-300 dark:hover:bg-gray-700 rounded-lg">Cancelar</button>
+                <button onClick={handleDeleteAccount} disabled={deleteConfirmation !== 'ELIMINAR' || isDeleting} className="px-4 py-2 bg-red-600 text-white rounded-lg font-bold hover:bg-red-700 disabled:opacity-50 shadow-lg flex items-center gap-2">
+                  {isDeleting ? 'A Apagar...' : 'Apagar Tudo'}
+                </button>
               </div>
             </div>
           </div>
         )}
 
+        {/* CONTEÚDO DAS PÁGINAS */}
+        <div className="flex-1 overflow-y-auto p-4 sm:p-8 bg-gray-50 dark:bg-gray-900">
+          <Routes>
+            <Route path="/" element={
+              <div className="space-y-6">
+                <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+                  <div className="bg-white dark:bg-gray-800 p-6 rounded-2xl shadow-sm border border-gray-100 dark:border-gray-700">
+                    <h3 className="text-gray-500 dark:text-gray-400 text-sm font-medium">{t('dashboard.stats.revenue') || 'Receita Mensal'}</h3>
+                    <p className="text-3xl font-bold text-gray-900 dark:text-white mt-2">€0,00</p>
+                  </div>
+                  <div className="bg-white dark:bg-gray-800 p-6 rounded-2xl shadow-sm border border-gray-100 dark:border-gray-700">
+                    <h3 className="text-gray-500 dark:text-gray-400 text-sm font-medium">{t('dashboard.stats.actions') || 'Ações da IA (Hoje)'}</h3>
+                    <p className="text-3xl font-bold text-blue-600 mt-2">0</p>
+                  </div>
+                  <div className="bg-white dark:bg-gray-800 p-6 rounded-2xl shadow-sm border border-gray-100 dark:border-gray-700">
+                    <h3 className="text-gray-500 dark:text-gray-400 text-sm font-medium">{t('dashboard.stats.invoices') || 'Faturas por Enviar'}</h3>
+                    <p className="text-3xl font-bold text-orange-500 mt-2">0</p>
+                  </div>
+                </div>
+                <div className="bg-blue-50 dark:bg-blue-900/20 border border-blue-100 dark:border-blue-800 rounded-2xl p-8 text-center">
+                  <h3 className="text-xl font-bold text-blue-800 dark:text-blue-300 mb-2">
+                    {t('dashboard.welcome') || 'Bem-vindo'}, {userData?.user_metadata?.full_name?.split(' ')[0]}! 👋
+                  </h3>
+                  <p className="text-blue-600 dark:text-blue-400 mb-6">{t('dashboard.subtitle') || 'O teu assistente IA está pronto a trabalhar.'}</p>
+                  <Link to="/dashboard/chat" className="inline-flex items-center gap-2 bg-blue-600 text-white px-6 py-3 rounded-xl font-bold hover:bg-blue-700 transition-colors shadow-lg">
+                    <MessageSquare className="w-5 h-5" />
+                    {t('dashboard.open_chat') || 'Abrir Chat IA'}
+                  </Link>
+                </div>
+              </div>
+            } />
+            <Route path="chat" element={<div className="h-full flex items-center justify-center text-gray-400">O Chat IA vai aparecer aqui em breve... 🤖</div>} />
+            <Route path="communication" element={<div className="h-full flex items-center justify-center text-gray-400">Emails e Comunicações aqui... ✉️</div>} />
+            <Route path="accounting" element={<div className="h-full flex items-center justify-center text-gray-400">Contabilidade... 💰</div>} />
+            <Route path="hr" element={<div className="h-full flex items-center justify-center text-gray-400">Recursos Humanos... 👥</div>} />
+            <Route path="marketing" element={<div className="h-full flex items-center justify-center text-gray-400">Marketing... 📈</div>} />
+            <Route path="settings" element={<div className="h-full flex items-center justify-center text-gray-400">Definições... ⚙️</div>} />
+          </Routes>
+        </div>
       </main>
     </div>
   );
