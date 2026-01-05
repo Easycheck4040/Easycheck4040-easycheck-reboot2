@@ -8,7 +8,7 @@ export default function Contact() {
   const [form, setForm] = useState({ name: '', email: '', subject: 'Dúvida Geral', message: '' });
   const [status, setStatus] = useState<'idle' | 'sending' | 'success' | 'error'>('idle');
   
-  // Estado para a saudação dinâmica (Bom dia / Boa tarde)
+  // Estado para a saudação dinâmica
   const [greeting, setGreeting] = useState('');
 
   useEffect(() => {
@@ -22,7 +22,11 @@ export default function Contact() {
     e.preventDefault();
     setStatus('sending');
 
-    // Preparar os dados para o EmailJS
+    // Configuração do EmailJS com os teus códigos REAIS
+    const serviceID = 'service_otbmz08';
+    const templateID = 'template_nyz0z8r';
+    const publicKey = 'Ge7iFCc1jF-Q87xqW';
+
     const templateParams = {
       name: form.name,
       email: form.email,
@@ -30,26 +34,23 @@ export default function Contact() {
       message: form.message
     };
 
-    // ENVIO REAL COM OS TEUS DADOS
-    emailjs.send(
-      'service_60rf77e',      // Teu Service ID
-      'template_nyz0z8r',     // Teu Template ID
-      templateParams,
-      'Ge7iFCc1jF-Q87xqW'     // Tua Public Key
-    )
-    .then((response) => {
-       console.log('SUCESSO!', response.status, response.text);
-       setStatus('success');
-       // Limpar formulário e resetar status após 3 segundos
-       setTimeout(() => {
-         setStatus('idle');
-         setForm({ name: '', email: '', subject: 'Dúvida Geral', message: '' });
-       }, 3000);
-    }, (err) => {
-       console.log('ERRO...', err);
-       setStatus('error');
-       setTimeout(() => setStatus('idle'), 4000);
-    });
+    emailjs.send(serviceID, templateID, templateParams, publicKey)
+      .then((response) => {
+        console.log('SUCCESS!', response.status, response.text);
+        setStatus('success');
+        
+        // Limpar o formulário e resetar estado após 3 segundos
+        setTimeout(() => {
+          setStatus('idle');
+          setForm({ name: '', email: '', subject: 'Dúvida Geral', message: '' });
+        }, 5000);
+      })
+      .catch((err) => {
+        console.error('FAILED...', err);
+        setStatus('error');
+        // Volta ao normal após 4 segundos para tentar de novo
+        setTimeout(() => setStatus('idle'), 4000);
+      });
   };
 
   return (
@@ -69,11 +70,10 @@ export default function Contact() {
 
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-16">
             
-            {/* ESQUERDA: Status do Sistema (A "Brincadeirinha") */}
+            {/* ESQUERDA: Informações e Status */}
             <div className="space-y-8 animate-in slide-in-from-left duration-700 delay-100">
               <div className="bg-gray-50 dark:bg-gray-800/50 p-8 rounded-3xl border border-gray-100 dark:border-gray-700 relative overflow-hidden">
                 
-                {/* Efeito decorativo */}
                 <div className="absolute top-0 right-0 p-3 opacity-10">
                   <Zap className="w-24 h-24 text-blue-600" />
                 </div>
@@ -83,7 +83,6 @@ export default function Contact() {
                 </h3>
 
                 <div className="space-y-6">
-                  {/* Item 1 */}
                   <div className="flex items-center justify-between group">
                     <div className="flex items-center gap-3">
                       <div className="bg-green-100 dark:bg-green-900/30 p-2 rounded-lg text-green-600">
@@ -96,7 +95,6 @@ export default function Contact() {
                     </span>
                   </div>
 
-                  {/* Item 2 */}
                   <div className="flex items-center justify-between group">
                     <div className="flex items-center gap-3">
                       <div className="bg-blue-100 dark:bg-blue-900/30 p-2 rounded-lg text-blue-600">
@@ -109,7 +107,6 @@ export default function Contact() {
                     </span>
                   </div>
 
-                  {/* Item 3 - Café */}
                   <div className="flex items-center justify-between group">
                     <div className="flex items-center gap-3">
                       <div className="bg-orange-100 dark:bg-orange-900/30 p-2 rounded-lg text-orange-600 group-hover:rotate-12 transition-transform">
@@ -199,9 +196,10 @@ export default function Contact() {
                   type="submit" 
                   disabled={status === 'sending' || status === 'success'}
                   className={`w-full py-4 rounded-xl font-bold text-white shadow-lg flex items-center justify-center gap-2 transition-all duration-500 transform
-                    ${status === 'success' ? 'bg-green-500 scale-100' : 'bg-blue-600 hover:bg-blue-700 hover:scale-[1.02]'}
-                    ${status === 'error' ? 'bg-red-500' : ''}
-                    ${status === 'sending' ? 'opacity-80 cursor-wait' : ''}
+                    ${status === 'success' ? 'bg-green-500 scale-100 cursor-default' : ''}
+                    ${status === 'error' ? 'bg-red-500 hover:bg-red-600' : ''}
+                    ${status === 'idle' ? 'bg-blue-600 hover:bg-blue-700 hover:scale-[1.02]' : ''}
+                    ${status === 'sending' ? 'bg-blue-400 cursor-wait' : ''}
                   `}
                 >
                   {status === 'idle' && (
@@ -222,7 +220,7 @@ export default function Contact() {
                   )}
                   {status === 'error' && (
                     <>
-                      Erro no Envio <AlertCircle className="w-5 h-5" />
+                      Erro. Tenta de novo. <AlertCircle className="w-5 h-5" />
                     </>
                   )}
                 </button>
