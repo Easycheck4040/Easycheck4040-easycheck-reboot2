@@ -27,9 +27,7 @@ import {
   ChevronDown,
   Pencil,
   UserMinus,
-  Shield,
-  Eye,      // <--- Novo
-  EyeOff    // <--- Novo
+  Shield
 } from 'lucide-react';
 
 export default function Dashboard() {
@@ -43,9 +41,6 @@ export default function Dashboard() {
   const [isNotifOpen, setIsNotifOpen] = useState(false);
   const [isLangMenuOpen, setIsLangMenuOpen] = useState(false);
 
-  // --- ESTADO DE PRIVACIDADE (MOSTRAR/ESCONDER NÚMEROS) ---
-  const [showFinancials, setShowFinancials] = useState(true); // <--- Novo Estado
-
   // --- ESTADO DO TEMA ---
   const [isDark, setIsDark] = useState(false);
 
@@ -53,7 +48,7 @@ export default function Dashboard() {
   const [userData, setUserData] = useState<any>(null);
   const [loadingUser, setLoadingUser] = useState(true);
   
-  // --- ESTADO DA EQUIPA ---
+  // --- ESTADO DA EQUIPA (Vazio - Sem fictícios) ---
   const [teamMembers, setTeamMembers] = useState<any[]>([]);
 
   // --- ESTADOS DOS MODAIS ---
@@ -100,8 +95,10 @@ export default function Dashboard() {
           email: user.email || '' 
         });
 
+        // Se for Patrão, aqui farias o fetch real dos funcionários
         if (user.user_metadata.role === 'owner') {
-           // Aqui viria o fetch real da equipa
+           // const { data } = await supabase.from('profiles')....
+           // setTeamMembers(data);
         }
       }
       setLoadingUser(false);
@@ -130,11 +127,6 @@ export default function Dashboard() {
   const handleLogout = async () => {
     await supabase.auth.signOut();
     navigate('/');
-  };
-
-  // --- FUNÇÃO PARA ESCONDER VALORES ---
-  const togglePrivacy = () => {
-    setShowFinancials(!showFinancials);
   };
 
   // --- PERFIL ---
@@ -213,6 +205,7 @@ export default function Dashboard() {
   const menuItems = [
     { icon: LayoutDashboard, label: t('dashboard.menu.overview') || 'Visão Geral', path: '/dashboard' },
     { icon: MessageSquare, label: t('dashboard.menu.chat') || 'Chat IA', path: '/dashboard/chat' },
+    // Apenas patrão vê "Empresa"
     { icon: Building2, label: t('dashboard.menu.company') || 'Empresa', path: '/dashboard/company', hidden: !isOwner },
     { icon: FileText, label: t('dashboard.menu.accounting') || 'Contabilidade', path: '/dashboard/accounting' },
     { icon: Mail, label: t('dashboard.menu.communication') || 'Comunicação', path: '/dashboard/communication' },
@@ -235,7 +228,7 @@ export default function Dashboard() {
           </div>
           <nav className="flex-1 px-4 py-6 space-y-2 overflow-y-auto">
             {menuItems.map((item) => {
-              if (item.hidden) return null;
+              if (item.hidden) return null; // Esconde se não for patrão
               const isActive = location.pathname === item.path || (item.path !== '/dashboard' && location.pathname.startsWith(item.path));
               return (
                 <Link
@@ -347,39 +340,19 @@ export default function Dashboard() {
             <Route path="/" element={
               <div className="space-y-6">
                 <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-                  
-                  {/* CARD 1 - RECEITA (COM OLHO) */}
+                  {/* Cards de Exemplo */}
                   <div className="bg-white dark:bg-gray-800 p-6 rounded-2xl shadow-sm border border-gray-100 dark:border-gray-700">
-                    <div className="flex justify-between items-center mb-2">
-                      <h3 className="text-gray-500 dark:text-gray-400 text-sm font-medium">{t('dashboard.stats.revenue') || 'Receita'}</h3>
-                      <button onClick={togglePrivacy} className="text-gray-400 hover:text-blue-600 transition-colors">
-                        {showFinancials ? <Eye className="w-4 h-4" /> : <EyeOff className="w-4 h-4" />}
-                      </button>
-                    </div>
-                    <p className="text-3xl font-bold text-gray-900 dark:text-white transition-all duration-300">
-                      {showFinancials ? '€0,00' : '••••••'}
-                    </p>
+                    <h3 className="text-gray-500 dark:text-gray-400 text-sm font-medium">{t('dashboard.stats.revenue') || 'Receita'}</h3>
+                    <p className="text-3xl font-bold text-gray-900 dark:text-white mt-2">€0,00</p>
                   </div>
-
-                  {/* CARD 2 - AÇÕES IA (Sempre visível) */}
                   <div className="bg-white dark:bg-gray-800 p-6 rounded-2xl shadow-sm border border-gray-100 dark:border-gray-700">
                     <h3 className="text-gray-500 dark:text-gray-400 text-sm font-medium">{t('dashboard.stats.actions') || 'Ações IA'}</h3>
                     <p className="text-3xl font-bold text-blue-600 mt-2">0</p>
                   </div>
-
-                  {/* CARD 3 - FATURAS (COM OLHO) */}
                   <div className="bg-white dark:bg-gray-800 p-6 rounded-2xl shadow-sm border border-gray-100 dark:border-gray-700">
-                    <div className="flex justify-between items-center mb-2">
-                      <h3 className="text-gray-500 dark:text-gray-400 text-sm font-medium">{t('dashboard.stats.invoices') || 'Faturas'}</h3>
-                      <button onClick={togglePrivacy} className="text-gray-400 hover:text-orange-500 transition-colors">
-                        {showFinancials ? <Eye className="w-4 h-4" /> : <EyeOff className="w-4 h-4" />}
-                      </button>
-                    </div>
-                    <p className="text-3xl font-bold text-orange-500 transition-all duration-300">
-                      {showFinancials ? '0' : '•••'}
-                    </p>
+                    <h3 className="text-gray-500 dark:text-gray-400 text-sm font-medium">{t('dashboard.stats.invoices') || 'Faturas'}</h3>
+                    <p className="text-3xl font-bold text-orange-500 mt-2">0</p>
                   </div>
-
                 </div>
                 <div className="bg-blue-50 dark:bg-blue-900/20 border border-blue-100 dark:border-blue-800 rounded-2xl p-8 text-center">
                   <h3 className="text-xl font-bold text-blue-800 dark:text-blue-300 mb-2">
@@ -418,7 +391,7 @@ export default function Dashboard() {
                       {t('settings.team_members') || 'Membros da Equipa'}
                     </h3>
                     
-                    {/* LISTA VAZIA */}
+                    {/* LISTA VAZIA OU COM MEMBROS REAIS */}
                     {teamMembers.length === 0 ? (
                        <div className="text-center py-12 border-2 border-dashed border-gray-200 dark:border-gray-700 rounded-xl">
                           <Users className="w-12 h-12 text-gray-300 mx-auto mb-3" />
@@ -456,6 +429,7 @@ export default function Dashboard() {
                   </div>
                 </div>
               ) : (
+                 // Se empregado tentar aceder pela URL
                  <div className="text-center py-12">
                    <Shield className="w-16 h-16 mx-auto mb-4 text-gray-300" />
                    <h3 className="text-xl font-bold dark:text-white">Acesso Restrito</h3>
@@ -467,10 +441,11 @@ export default function Dashboard() {
                <div className="p-8 text-center text-gray-500">
                   <Settings className="w-12 h-12 mx-auto mb-4 opacity-50" />
                   <h3>{t('dashboard.menu.settings') || 'Definições Gerais'}</h3>
-                  <p>Configurações gerais do sistema.</p>
+                  <p>Aqui estarão opções como notificações, idioma padrão, etc.</p>
                </div>
             } />
             
+            {/* Outras Rotas */}
             <Route path="*" element={<div className="h-full flex items-center justify-center text-gray-400">Em desenvolvimento...</div>} />
           </Routes>
         </div>
@@ -488,10 +463,6 @@ export default function Dashboard() {
               </div>
               <div className="space-y-4">
                  <div>
-                   <label className="block text-sm text-gray-600 dark:text-gray-300 mb-1">{t('form.email') || 'Email'}</label>
-                   <input type="email" value={editForm.email} disabled className="w-full p-2 border rounded bg-gray-100 text-gray-500 dark:bg-gray-800 dark:border-gray-700" />
-                 </div>
-                 <div>
                    <label className="block text-sm text-gray-600 dark:text-gray-300 mb-1">{t('form.fullname') || 'Nome'}</label>
                    <input type="text" value={editForm.fullName} onChange={e => setEditForm({...editForm, fullName: e.target.value})} className="w-full p-2 border rounded dark:bg-gray-900 dark:border-gray-600 dark:text-white" />
                  </div>
@@ -504,22 +475,23 @@ export default function Dashboard() {
           </div>
       )}
 
-      {/* MODAL APAGAR CONTA */}
-      {isDeleteModalOpen && (
-          <div className="fixed inset-0 z-[100] flex items-center justify-center bg-black/50 backdrop-blur-sm p-4">
-            <div className="bg-white dark:bg-gray-800 rounded-2xl p-6 w-full max-w-md shadow-2xl border dark:border-gray-700">
-              <div className="flex items-center gap-3 text-red-600 mb-4">
-                <AlertTriangle className="w-6 h-6" />
-                <h3 className="text-xl font-bold text-gray-900 dark:text-white">{t('delete.title') || 'Zona de Perigo'}</h3>
-              </div>
-              <p className="text-gray-600 dark:text-gray-300 mb-4">{t('delete.text') || 'Apagar conta permanentemente? Escreve ELIMINAR:'}</p>
-              <input type="text" value={deleteConfirmation} onChange={(e) => setDeleteConfirmation(e.target.value)} className="w-full p-3 border rounded-lg mb-6 uppercase dark:bg-gray-900 dark:text-white dark:border-gray-600" />
-              <div className="flex gap-3 justify-end">
-                <button onClick={() => setIsDeleteModalOpen(false)} className="px-4 py-2 rounded-lg bg-gray-100 dark:bg-gray-700 dark:text-white">{t('common.cancel') || 'Cancelar'}</button>
-                <button onClick={handleDeleteAccount} className="px-4 py-2 bg-red-600 text-white rounded-lg font-bold">{t('common.delete') || 'Apagar'}</button>
-              </div>
+      {/* MODAL EDITAR CARGO (PATRÃO) */}
+      {isEditMemberModalOpen && memberToEdit && (
+         <div className="fixed inset-0 z-[100] flex items-center justify-center bg-black/50 backdrop-blur-sm p-4">
+            <div className="bg-white dark:bg-gray-800 rounded-2xl p-6 w-full max-w-sm shadow-2xl border dark:border-gray-700">
+               <h3 className="text-lg font-bold dark:text-white mb-4">{t('team.edit_role') || 'Editar Cargo'}</h3>
+               <input 
+                 type="text" 
+                 value={memberToEdit.jobTitle} 
+                 onChange={e => setMemberToEdit({...memberToEdit, jobTitle: e.target.value})} 
+                 className="w-full p-2 border rounded dark:bg-gray-900 dark:border-gray-600 dark:text-white mb-4"
+               />
+               <div className="flex justify-end gap-2">
+                  <button onClick={() => setIsEditMemberModalOpen(false)} className="px-3 py-1.5 border rounded dark:text-white">{t('common.cancel') || 'Cancelar'}</button>
+                  <button onClick={saveMemberRole} className="px-3 py-1.5 bg-blue-600 text-white rounded">{t('common.save') || 'Guardar'}</button>
+               </div>
             </div>
-          </div>
+         </div>
       )}
     </div>
   );
