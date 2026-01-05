@@ -7,79 +7,45 @@ const resources = {
   // ============================================================
   en: {
     translation: {
-      // NAV
       "nav.home": "Home", "nav.pricing": "Pricing", "nav.contact": "Contact Us", "nav.login": "Login", "nav.signup": "Sign Up", "nav.logout": "Log Out", "nav.dashboard": "Dashboard",
       
-      // HERO
       "hero.savings": "AI-Powered Savings",
-      "hero.title": "Run Your Business on Autopilot", 
-      "hero.description": "Save 90% on costs and eliminate manual errors with AI integration.", 
-      "hero.cta": "Start Saving Now",
+      "hero.title": "Run Your Business on Autopilot", "hero.description": "Save 90% on costs and eliminate manual errors with AI integration.", "hero.cta": "Start Saving Now",
 
-      // SERVICES (DESCRIÇÕES LONGAS)
       "services.title": "Your AI Workforce",
-      "categories.accounting.title": "AI Accounting", 
-      "categories.accounting.description": "Automated invoices, expense tracking, OCR receipt scanning, and real-time tax calculation.",
-      
-      "categories.communication.title": "Smart Communication", 
-      "categories.communication.description": "AI reads emails, categorizes them, and drafts professional responses instantly for your review.",
-      
-      "categories.hr.title": "HR Management", 
-      "categories.hr.description": "Streamlined payroll processing, vacation tracking, performance reviews, and automated employee onboarding.",
-      
-      "categories.marketing.title": "Growth Marketing", 
-      "categories.marketing.description": "Auto-create and schedule ad campaigns, generate social media content, and analyze performance metrics.",
-      
-      "categories.administrative.title": "Admin Automation", 
-      "categories.administrative.description": "Digital filing, contract data extraction, scheduling, and automated data entry across platforms.",
-      
-      "categories.chat.title": "AI Business Assistant", 
-      "categories.chat.description": "Your 24/7 intelligent advisor capable of answering queries, generating reports, and executing tasks via chat.",
+      "categories.accounting.title": "AI Accounting", "categories.accounting.description": "Automated invoices, expense tracking, OCR receipt scanning, and real-time tax calculation.",
+      "categories.communication.title": "Smart Communication", "categories.communication.description": "AI reads emails, categorizes them, and drafts professional responses instantly for your review.",
+      "categories.hr.title": "HR Management", "categories.hr.description": "Streamlined payroll processing, vacation tracking, performance reviews, and automated employee onboarding.",
+      "categories.marketing.title": "Growth Marketing", "categories.marketing.description": "Auto-create and schedule ad campaigns, generate social media content, and analyze performance metrics.",
+      "categories.administrative.title": "Admin Automation", "categories.administrative.description": "Digital filing, contract data extraction, scheduling, and automated data entry across platforms.",
+      "categories.chat.title": "AI Business Assistant", "categories.chat.description": "Your 24/7 intelligent advisor capable of answering queries, generating reports, and executing tasks via chat.",
 
-      // COMPARISON
-      "comparison.title": "Why Choose EasyCheck?",
-      "comparison.traditional": "Traditional Method",
-      "comparison.recommended": "Recommended",
-      "comparison.replace_text": "Replaces 5+ Salaries",
-      "comparison.total": "Total Cost",
-      "comparison.savings": "Estimated Annual Savings",
+      "comparison.title": "Why Choose EasyCheck?", "comparison.traditional": "Traditional Method", "comparison.recommended": "Recommended", "comparison.replace_text": "Replaces 5+ Salaries", "comparison.total": "Total Cost", "comparison.savings": "Estimated Annual Savings",
       "roles.accountant": "Accountant", "roles.admin": "Admin Assistant", "roles.hr": "HR Manager", "roles.marketing": "Marketing Specialist", "roles.support": "Customer Support",
 
-      // AUTH
-      "login.title": "Welcome Back", 
-      "auth.loginSubtitle": "Enter your credentials to access your account.", 
-      "login.email": "Email Address", "login.password": "Password", "login.button": "Sign In", "login.forgot": "Forgot password?", "login.noAccount": "Don't have an account? Sign Up",
+      "login.title": "Welcome Back", "auth.loginSubtitle": "Enter your credentials to access your account.", "login.email": "Email Address", "login.password": "Password", "login.button": "Sign In", "login.forgot": "Forgot password?", "login.noAccount": "Don't have an account? Sign Up",
       "auth.createTitle": "Create Account", "auth.createSubtitle": "Start automating your business today.", "auth.fullName": "Full Name", "auth.jobTitle": "Job Title", "auth.iHaveCode": "I have a company invite code", "auth.companyName": "Company Name", "auth.generateCode": "Generate New Company", "auth.haveAccount": "Already have an account? Login",
 
-      // CONTACT
       "contact.title": "How can we help?", "contact.subtitle": "Our team is ready to answer.",
       "contact.greeting.morning": "Good morning!", "contact.greeting.afternoon": "Good afternoon!", "contact.greeting.night": "Good evening!",
       "contact.status.title": "System Status", "contact.status.online": "ONLINE", "contact.status.servers": "Servers", "contact.status.response": "Response Time", "contact.status.caffeine": "Caffeine Level",
       "contact.direct_email.title": "Direct Email", "contact.direct_email.subtitle": "For urgent matters",
-      "contact.form.name": "Name", "contact.form.name_placeholder": "Ex: John Doe",
-      "contact.form.email": "Email", "contact.form.email_placeholder": "Ex: john@company.com",
-      "contact.form.subject": "Subject", "contact.subjects.general": "General Inquiry",
+      "contact.form.name": "Name", "contact.form.name_placeholder": "Ex: John Doe", "contact.form.email": "Email", "contact.form.email_placeholder": "Ex: john@company.com", "contact.form.subject": "Subject", "contact.subjects.general": "General Inquiry",
       "contact.form.message": "Message", "contact.form.message_placeholder": "How can we help you today?",
       "contact.form.send": "Send Message", "contact.form.success": "Message sent!",
 
-      // FOOTER
       "footer.slogan": "AI-powered business management.", "footer.company": "Company", "footer.legal": "Legal", "footer.privacy": "Privacy Policy", "footer.terms": "Terms of Service", "footer.complaints": "Complaints", "footer.rights": "All rights reserved.",
 
-      // DASHBOARD
       "dashboard.menu.overview": "Overview", "dashboard.menu.company": "Company Management", "dashboard.menu.chat": "AI Chat", "dashboard.menu.accounting": "Accounting", "dashboard.menu.communication": "Communication", "dashboard.menu.hr": "HR", "dashboard.menu.marketing": "Marketing", "dashboard.menu.settings": "Settings", "dashboard.menu.logout": "Log Out",
-      "dashboard.welcome": "Welcome", "dashboard.subtitle": "Your AI assistant is ready.", "dashboard.open_chat": "Open Chat",
-      "dashboard.stats.revenue": "Revenue", "dashboard.stats.actions": "AI Actions", "dashboard.stats.invoices": "Invoices",
-      "notifications.title": "Notifications", "notifications.empty": "No new notifications.",
+      "dashboard.welcome": "Welcome", "dashboard.subtitle": "Your AI assistant is ready.", "dashboard.open_chat": "Open Chat", "dashboard.stats.revenue": "Revenue", "dashboard.stats.actions": "AI Actions", "dashboard.stats.invoices": "Invoices", "notifications.title": "Notifications", "notifications.empty": "No new notifications.",
 
-      // PROFILE & SETTINGS
-      "profile.edit": "Edit Profile", "profile.edit_title": "Edit Profile", 
-      "profile.company_section": "Company Information", "PROFILE.COMPANY_SECTION": "Company Information",
+      "profile.edit": "Edit Profile", "profile.edit_title": "Edit Profile", "profile.company_section": "Company Information", "PROFILE.COMPANY_SECTION": "Company Information",
       "profile.delete": "Delete Account", "profile.success": "Updated successfully!",
       "role.owner": "Owner", "role.employee": "Employee",
       "delete.title": "Danger Zone", "delete.text": "Delete account? Type ELIMINAR:", "delete.confirm_text": "Please type ELIMINAR to confirm.",
+      
       "settings.company_title": "Company Management", "settings.invite_code": "Invite Code", "settings.invite_text": "Share with employees.", "settings.team_members": "Team Members", "settings.no_members": "No employees yet.", "settings.restricted_title": "Restricted", "settings.restricted_text": "Owner only.",
       
-      // COMMON
       "common.save": "Save", "common.cancel": "Cancel", "common.delete": "Delete", "common.saving": "Saving...",
       "form.fullname": "Full Name", "form.jobtitle": "Job Title", "form.email": "Email", "form.company_name": "Company Name", "form.address": "Address", "form.nif": "Tax ID", "form.code": "Code",
       "table.name": "Name", "table.email": "Email", "table.role": "Role", "table.actions": "Actions",
@@ -95,9 +61,7 @@ const resources = {
       "nav.home": "Início", "nav.pricing": "Preços", "nav.contact": "Contactar", "nav.login": "Entrar", "nav.signup": "Criar Conta", "nav.logout": "Sair", "nav.dashboard": "Dashboard",
       
       "hero.savings": "Poupança com IA",
-      "hero.title": "Gere a Tua Empresa em Piloto Automático", 
-      "hero.description": "Poupa 90% dos custos e elimina erros manuais com a nossa integração de IA.", 
-      "hero.cta": "Começar a Poupar",
+      "hero.title": "Gere a Tua Empresa em Piloto Automático", "hero.description": "Poupa 90% dos custos e elimina erros manuais com a nossa integração de IA.", "hero.cta": "Começar a Poupar",
 
       "services.title": "A Tua Equipa de IA",
       "categories.accounting.title": "Contabilidade IA", "categories.accounting.description": "Faturas automáticas, rastreio de despesas, leitura OCR de recibos e cálculo de impostos em tempo real.",
@@ -122,26 +86,22 @@ const resources = {
       "footer.slogan": "Gestão empresarial com IA.", "footer.company": "Empresa", "footer.legal": "Legal", "footer.privacy": "Privacidade", "footer.terms": "Termos", "footer.complaints": "Livro de Reclamações", "footer.rights": "Todos os direitos reservados.",
 
       "dashboard.menu.overview": "Visão Geral", "dashboard.menu.company": "Gestão da Empresa", "dashboard.menu.chat": "Chat IA", "dashboard.menu.accounting": "Contabilidade", "dashboard.menu.communication": "Comunicação", "dashboard.menu.hr": "Recursos Humanos", "dashboard.menu.marketing": "Marketing", "dashboard.menu.settings": "Definições", "dashboard.menu.logout": "Sair da Conta",
-      "dashboard.welcome": "Bem-vindo", "dashboard.subtitle": "O teu assistente IA está pronto.", "dashboard.open_chat": "Abrir Chat IA",
-      "dashboard.stats.revenue": "Receita Mensal", "dashboard.stats.actions": "Ações IA", "dashboard.stats.invoices": "Faturas",
-      "notifications.title": "Notificações", "notifications.empty": "Sem notificações.",
+      "dashboard.welcome": "Bem-vindo", "dashboard.subtitle": "O teu assistente IA está pronto.", "dashboard.open_chat": "Abrir Chat IA", "dashboard.stats.revenue": "Receita Mensal", "dashboard.stats.actions": "Ações IA", "dashboard.stats.invoices": "Faturas", "notifications.title": "Notificações", "notifications.empty": "Sem notificações.",
 
       "profile.edit": "Editar Perfil", "profile.edit_title": "Editar Perfil", "profile.company_section": "Informação da Empresa", "PROFILE.COMPANY_SECTION": "Informação da Empresa",
       "profile.delete": "Eliminar Conta", "profile.success": "Atualizado!",
       "role.owner": "Patrão", "role.employee": "Funcionário",
-      "delete.title": "Zona de Perigo", "delete.text": "Apagar conta? Escreve ELIMINAR:", "delete.confirm_text": "Escreve ELIMINAR para confirmar.",
-      
+      "delete.title": "Zona de Perigo", "delete.text": "Apagar conta? Escreve ELIMINAR:",
       "settings.company_title": "Gestão da Empresa", "settings.invite_code": "Código de Convite", "settings.invite_text": "Partilha com funcionários.", "settings.team_members": "Membros", "settings.no_members": "Sem funcionários.", "settings.restricted_title": "Acesso Restrito", "settings.restricted_text": "Apenas o patrão pode ver.",
       
       "common.save": "Guardar", "common.cancel": "Cancelar", "common.delete": "Apagar", "common.saving": "A Guardar...",
       "form.fullname": "Nome Completo", "form.jobtitle": "Cargo", "form.email": "Email", "form.company_name": "Nome da Empresa", "form.address": "Morada", "form.nif": "NIF", "form.code": "Código da Empresa",
-      "table.name": "Nome", "table.email": "Email", "table.role": "Cargo", "table.actions": "Ações",
-      "team.edit_role": "Editar Cargo", "team.role_updated": "Cargo atualizado!", "team.delete_confirm": "Remover funcionário?", "team.member_removed": "Removido."
+      "table.name": "Nome", "table.email": "Email", "table.role": "Cargo", "table.actions": "Ações", "team.edit_role": "Editar Cargo", "team.role_updated": "Cargo atualizado!", "team.delete_confirm": "Remover funcionário?", "team.member_removed": "Removido."
     }
   },
 
   // ============================================================
-  // 🇫🇷 FRANCÊS (FR) - EXPANDIDO
+  // 🇫🇷 FRANCÊS (FR)
   // ============================================================
   fr: {
     translation: {
@@ -149,13 +109,12 @@ const resources = {
       
       "hero.savings": "Économies IA",
       "hero.title": "Gérez Votre Entreprise en Pilote Automatique", "hero.description": "Économisez 90% des coûts et éliminez les erreurs manuelles.", "hero.cta": "Commencer",
-      
       "services.title": "Votre Équipe IA",
       "categories.accounting.title": "Comptabilité IA", "categories.accounting.description": "Factures automatisées, suivi des dépenses, numérisation OCR et calcul des impôts en temps réel.",
       "categories.communication.title": "Communication Intelligente", "categories.communication.description": "L'IA lit les emails, les catégorise et rédige des réponses professionnelles instantanément.",
       "categories.hr.title": "Gestion RH", "categories.hr.description": "Traitement de la paie, suivi des congés, évaluations de performance et intégration des employés.",
-      "categories.marketing.title": "Marketing", "categories.marketing.description": "Création automatique de campagnes, contenu pour réseaux sociaux et analyse des performances.",
-      "categories.administrative.title": "Automatisation Admin", "categories.administrative.description": "Archivage numérique, extraction de données de contrats et saisie automatique.",
+      "categories.marketing.title": "Marketing Digital", "categories.marketing.description": "Création automatique de campagnes publicitaires, contenu pour réseaux sociaux et analyse des performances.",
+      "categories.administrative.title": "Automatisation Admin", "categories.administrative.description": "Archivage numérique, extraction de données de contrats, planification et saisie automatique.",
       "categories.chat.title": "Assistant IA", "categories.chat.description": "Votre conseiller intelligent 24/7 capable de répondre aux questions et générer des rapports.",
 
       "comparison.title": "Pourquoi EasyCheck?", "comparison.traditional": "Méthode Traditionnelle", "comparison.recommended": "Recommandé", "comparison.replace_text": "Remplace 5+ Salaires", "comparison.total": "Coût Total", "comparison.savings": "Économies Estimées",
@@ -173,42 +132,34 @@ const resources = {
       "footer.slogan": "Gestion d'entreprise par IA.", "footer.company": "Entreprise", "footer.legal": "Légal", "footer.privacy": "Confidentialité", "footer.terms": "Conditions", "footer.complaints": "Réclamations", "footer.rights": "Tous droits réservés.",
 
       "dashboard.menu.overview": "Vue d'ensemble", "dashboard.menu.company": "Gestion Entreprise", "dashboard.menu.chat": "Chat IA", "dashboard.menu.accounting": "Comptabilité", "dashboard.menu.communication": "Communication", "dashboard.menu.hr": "RH", "dashboard.menu.marketing": "Marketing", "dashboard.menu.settings": "Paramètres", "dashboard.menu.logout": "Déconnexion",
-      "dashboard.welcome": "Bienvenue", "dashboard.subtitle": "Votre assistant IA est prêt.", "dashboard.open_chat": "Ouvrir Chat",
-      "dashboard.stats.revenue": "Revenu", "dashboard.stats.actions": "Actions IA", "dashboard.stats.invoices": "Factures",
-      "notifications.title": "Notifications", "notifications.empty": "Aucune nouvelle notification.",
+      "dashboard.welcome": "Bienvenue", "dashboard.subtitle": "Votre assistant IA est prêt.", "dashboard.open_chat": "Ouvrir Chat", "dashboard.stats.revenue": "Revenu", "dashboard.stats.actions": "Actions IA", "dashboard.stats.invoices": "Factures", "notifications.title": "Notifications", "notifications.empty": "Aucune nouvelle notification.",
 
-      "profile.edit": "Modifier Profil", "profile.edit_title": "Modifier Profil", 
-      "profile.company_section": "Info Entreprise", "PROFILE.COMPANY_SECTION": "Info Entreprise",
+      "profile.edit": "Modifier Profil", "profile.edit_title": "Modifier Profil", "profile.company_section": "Info Entreprise", "PROFILE.COMPANY_SECTION": "Info Entreprise",
       "profile.delete": "Supprimer Compte", "profile.success": "Mis à jour avec succès !",
       "role.owner": "Patron", "role.employee": "Employé",
       "delete.title": "Zone de Danger", "delete.text": "Supprimer compte ? Tapez ELIMINAR :", "delete.confirm_text": "Tapez ELIMINAR pour confirmer.",
-      
       "settings.company_title": "Gestion Entreprise", "settings.invite_code": "Code Invitation", "settings.invite_text": "Partagez avec les employés.", "settings.team_members": "Membres de l'Équipe", "settings.no_members": "Aucun employé enregistré.", "settings.restricted_title": "Accès Restreint", "settings.restricted_text": "Seul le patron peut voir ceci.",
-      
       "common.save": "Enregistrer", "common.cancel": "Annuler", "common.delete": "Supprimer", "common.saving": "Enregistrement...",
       "form.fullname": "Nom Complet", "form.jobtitle": "Poste", "form.email": "Email", "form.company_name": "Nom Entreprise", "form.address": "Adresse", "form.nif": "Numéro Fiscal", "form.code": "Code Entreprise",
-      "table.name": "Nom", "table.email": "Email", "table.role": "Poste", "table.actions": "Actions",
-      "team.edit_role": "Modifier Poste", "team.role_updated": "Poste mis à jour !", "team.delete_confirm": "Retirer cet employé ?", "team.member_removed": "Employé retiré."
+      "table.name": "Nom", "table.email": "Email", "table.role": "Poste", "table.actions": "Actions", "team.edit_role": "Modifier Poste", "team.role_updated": "Poste mis à jour !", "team.delete_confirm": "Retirer cet employé ?", "team.member_removed": "Employé retiré."
     }
   },
 
   // ============================================================
-  // 🇪🇸 ESPANHOL (ES) - EXPANDIDO
+  // 🇪🇸 ESPANHOL (ES)
   // ============================================================
   es: {
     translation: {
       "nav.home": "Inicio", "nav.pricing": "Precios", "nav.contact": "Contactar", "nav.login": "Acceso", "nav.signup": "Registro", "nav.logout": "Salir", "nav.dashboard": "Panel",
-      
-      "hero.savings": "Ahorro con IA",
-      "hero.title": "Gestiona Tu Empresa en Piloto Automático", "hero.description": "Ahorra 90% en costos y elimina errores manuales con IA.", "hero.cta": "Empezar",
+      "hero.savings": "Ahorro con IA", "hero.title": "Gestiona Tu Empresa en Piloto Automático", "hero.description": "Ahorra 90% en costos y elimina errores manuales con IA.", "hero.cta": "Empezar",
       
       "services.title": "Tu Equipo de IA",
-      "categories.accounting.title": "Contabilidad IA", "categories.accounting.description": "Facturas automatizadas, seguimiento de gastos y cálculo de impuestos en tiempo real.",
-      "categories.communication.title": "Comunicación Inteligente", "categories.communication.description": "Lectura y redacción automática de correos electrónicos profesionales.",
-      "categories.hr.title": "Gestión de RRHH", "categories.hr.description": "Gestión de nóminas, vacaciones, evaluaciones y contratación automática.",
-      "categories.marketing.title": "Marketing", "categories.marketing.description": "Creación automática de campañas y contenido para redes sociales.",
-      "categories.administrative.title": "Administración", "categories.administrative.description": "Archivo digital y entrada de datos automática entre plataformas.",
-      "categories.chat.title": "Asistente IA", "categories.chat.description": "Tu asesor inteligente 24/7 capaz de responder consultas y generar informes.",
+      "categories.accounting.title": "Contabilidad IA", "categories.accounting.description": "Facturas automatizadas, seguimiento de gastos, escaneo OCR y cálculo de impuestos en tiempo real.",
+      "categories.communication.title": "Comunicación Inteligente", "categories.communication.description": "IA que lee correos, los clasifica y redacta respuestas profesionales instantáneas para tu revisión.",
+      "categories.hr.title": "Gestión de RRHH", "categories.hr.description": "Procesamiento de nóminas, seguimiento de vacaciones, evaluaciones de desempeño y contratación automática.",
+      "categories.marketing.title": "Marketing Digital", "categories.marketing.description": "Creación automática de campañas publicitarias, contenido para redes sociales y análisis de métricas.",
+      "categories.administrative.title": "Administración", "categories.administrative.description": "Archivo digital, extracción de datos de contratos, programación y entrada de datos automática.",
+      "categories.chat.title": "Asistente de Negocios IA", "categories.chat.description": "Tu asesor inteligente 24/7 capaz de responder consultas, generar informes y ejecutar tareas vía chat.",
 
       "comparison.title": "¿Por qué EasyCheck?", "comparison.traditional": "Método Tradicional", "comparison.recommended": "Recomendado", "comparison.replace_text": "Reemplaza 5+ Salarios", "comparison.total": "Costo Total", "comparison.savings": "Ahorro Estimado",
       "roles.accountant": "Contador", "roles.admin": "Admin", "roles.hr": "Gerente RRHH", "roles.marketing": "Marketing", "roles.support": "Soporte",
@@ -225,16 +176,13 @@ const resources = {
       "footer.slogan": "Gestión empresarial con IA.", "footer.company": "Empresa", "footer.legal": "Legal", "footer.privacy": "Privacidad", "footer.terms": "Términos", "footer.complaints": "Quejas", "footer.rights": "Derechos reservados.",
 
       "dashboard.menu.overview": "Visión General", "dashboard.menu.company": "Gestión Empresa", "dashboard.menu.chat": "Chat IA", "dashboard.menu.accounting": "Contabilidad", "dashboard.menu.communication": "Comunicación", "dashboard.menu.hr": "RRHH", "dashboard.menu.marketing": "Marketing", "dashboard.menu.settings": "Configuración", "dashboard.menu.logout": "Cerrar Sesión",
-      "dashboard.welcome": "Bienvenido", "dashboard.subtitle": "Tu asistente IA está listo.", "dashboard.open_chat": "Abrir Chat", "dashboard.stats.revenue": "Ingresos", "dashboard.stats.actions": "Acciones IA", "dashboard.stats.invoices": "Facturas",
-      "notifications.title": "Notificaciones", "notifications.empty": "Sin notificaciones.",
+      "dashboard.welcome": "Bienvenido", "dashboard.subtitle": "Tu asistente IA está listo.", "dashboard.open_chat": "Abrir Chat", "dashboard.stats.revenue": "Ingresos", "dashboard.stats.actions": "Acciones IA", "dashboard.stats.invoices": "Facturas", "notifications.title": "Notificaciones", "notifications.empty": "Sin notificaciones.",
 
       "profile.edit": "Editar Perfil", "profile.edit_title": "Editar Perfil", "profile.company_section": "Info Empresa", "PROFILE.COMPANY_SECTION": "Info Empresa",
       "profile.delete": "Eliminar Cuenta", "profile.success": "¡Actualizado con éxito!",
       "role.owner": "Dueño", "role.employee": "Empleado",
       "delete.title": "Peligro", "delete.text": "¿Eliminar cuenta permanentemente? Escribe ELIMINAR:", "delete.confirm_text": "Escribe ELIMINAR para confirmar.",
-      
       "settings.company_title": "Gestión Empresa", "settings.invite_code": "Código Invitación", "settings.invite_text": "Comparte con empleados.", "settings.team_members": "Miembros del Equipo", "settings.no_members": "Sin empleados.", "settings.restricted_title": "Acceso Restringido", "settings.restricted_text": "Solo el dueño puede ver esto.",
-      
       "common.save": "Guardar", "common.cancel": "Cancelar", "common.delete": "Eliminar", "common.saving": "Guardando...",
       "form.fullname": "Nombre", "form.jobtitle": "Cargo", "form.email": "Email", "form.company_name": "Empresa", "form.address": "Dirección", "form.nif": "NIF", "form.code": "Código",
       "table.name": "Nombre", "table.email": "Email", "table.role": "Cargo", "table.actions": "Acciones", "team.edit_role": "Editar Cargo", "team.role_updated": "¡Actualizado!", "team.delete_confirm": "¿Eliminar empleado?", "team.member_removed": "Eliminado."
@@ -249,41 +197,38 @@ const resources = {
       "nav.home": "Startseite", "nav.pricing": "Preise", "nav.contact": "Kontakt", "nav.login": "Anmelden", "nav.signup": "Registrieren", "nav.logout": "Abmelden", "nav.dashboard": "Dashboard",
       
       "hero.savings": "KI-Ersparnisse",
-      "hero.title": "Unternehmen auf Autopilot", "hero.description": "Sparen Sie 90% Kosten und eliminieren Sie Fehler.", "hero.cta": "Starten",
+      "hero.title": "Führen Sie Ihr Unternehmen auf Autopilot", "hero.description": "Sparen Sie 90% der Kosten und eliminieren Sie manuelle Fehler mit KI-Integration.", "hero.cta": "Starten",
       
       "services.title": "Ihr KI-Team",
-      "categories.accounting.title": "KI-Buchhaltung", "categories.accounting.description": "Automatische Rechnungen, Ausgabenverfolgung und Steuern.",
-      "categories.communication.title": "Kommunikation", "categories.communication.description": "Automatische E-Mail-Antworten und Entwürfe.",
-      "categories.hr.title": "Personalwesen", "categories.hr.description": "Gehaltsabrechnung, Urlaubsverwaltung und Onboarding.",
-      "categories.marketing.title": "Marketing", "categories.marketing.description": "Automatische Kampagnen und Social Media.",
-      "categories.administrative.title": "Verwaltung", "categories.administrative.description": "Digitale Ablage und Dateneingabe.",
-      "categories.chat.title": "KI-Assistent", "categories.chat.description": "Ihr 24/7 intelligenter Berater.",
+      "categories.accounting.title": "KI-Buchhaltung", "categories.accounting.description": "Automatisierte Rechnungsstellung, Ausgabenverfolgung, OCR-Belegscan und Echtzeit-Steuerberechnung.",
+      "categories.communication.title": "Intelligente Kommunikation", "categories.communication.description": "KI liest E-Mails, kategorisiert sie und entwirft sofort professionelle Antworten zur Überprüfung.",
+      "categories.hr.title": "Personalwesen", "categories.hr.description": "Optimierte Lohnabrechnung, Urlaubsverwaltung, Leistungsbeurteilungen und automatisiertes Mitarbeiter-Onboarding.",
+      "categories.marketing.title": "Wachstumsmarketing", "categories.marketing.description": "Automatische Erstellung und Planung von Werbekampagnen, Generierung von Social-Media-Inhalten und Analyse.",
+      "categories.administrative.title": "Admin-Automatisierung", "categories.administrative.description": "Digitale Ablage, Extraktion von Vertragsdaten, Terminplanung und automatisierte Dateneingabe über Plattformen hinweg.",
+      "categories.chat.title": "KI-Geschäftsassistent", "categories.chat.description": "Ihr intelligenter 24/7-Berater, der Anfragen beantworten, Berichte erstellen und Aufgaben per Chat ausführen kann.",
 
       "comparison.title": "Warum EasyCheck?", "comparison.traditional": "Traditionell", "comparison.recommended": "Empfohlen", "comparison.replace_text": "Ersetzt 5+ Gehälter", "comparison.total": "Gesamtkosten", "comparison.savings": "Geschätzte Ersparnis",
       "roles.accountant": "Buchhalter", "roles.admin": "Admin", "roles.hr": "HR-Manager", "roles.marketing": "Marketing", "roles.support": "Support",
 
-      "login.title": "Anmelden", "auth.loginSubtitle": "Geben Sie Ihre Daten ein.", "login.email": "E-Mail", "login.password": "Passwort", "login.button": "Einloggen", "login.forgot": "Passwort vergessen?", "login.noAccount": "Kein Konto? Registrieren",
-      "auth.createTitle": "Konto Erstellen", "auth.createSubtitle": "Automatisieren Sie Ihr Geschäft.", "auth.fullName": "Name", "auth.jobTitle": "Position", "auth.iHaveCode": "Ich habe einen Code", "auth.companyName": "Firmenname", "auth.generateCode": "Firma Erstellen", "auth.haveAccount": "Bereits ein Konto? Login",
+      "login.title": "Anmelden", "auth.loginSubtitle": "Geben Sie Ihre Zugangsdaten ein.", "login.email": "E-Mail", "login.password": "Passwort", "login.button": "Einloggen", "login.forgot": "Passwort vergessen?", "login.noAccount": "Kein Konto? Registrieren",
+      "auth.createTitle": "Konto Erstellen", "auth.createSubtitle": "Automatisieren Sie Ihr Geschäft noch heute.", "auth.fullName": "Vollständiger Name", "auth.jobTitle": "Position", "auth.iHaveCode": "Ich habe einen Code", "auth.companyName": "Firmenname", "auth.generateCode": "Firma Erstellen", "auth.haveAccount": "Bereits ein Konto? Login",
 
-      "contact.title": "Wie helfen?", "contact.subtitle": "Unser Team ist bereit.",
+      "contact.title": "Wie helfen?", "contact.subtitle": "Unser Team (und KI) ist bereit.",
       "contact.greeting.morning": "Guten Morgen!", "contact.greeting.afternoon": "Guten Tag!", "contact.greeting.night": "Guten Abend!",
       "contact.status.title": "Systemstatus", "contact.status.online": "ONLINE", "contact.status.servers": "Server", "contact.status.response": "Reaktionszeit", "contact.status.caffeine": "Koffeinpegel",
       "contact.direct_email.title": "Direkt-E-Mail", "contact.direct_email.subtitle": "Für Notfälle",
-      "contact.form.name": "Name", "contact.form.name_placeholder": "z.B. Max Mustermann", "contact.form.email": "E-Mail", "contact.form.email_placeholder": "z.B. max@firma.de", "contact.form.subject": "Betreff", "contact.subjects.general": "Allgemein", "contact.form.message": "Nachricht", "contact.form.message_placeholder": "Wie können wir helfen?", "contact.form.send": "Senden", "contact.form.success": "Gesendet!",
+      "contact.form.name": "Name", "contact.form.name_placeholder": "z.B. Max Mustermann", "contact.form.email": "E-Mail", "contact.form.email_placeholder": "z.B. max@firma.de", "contact.form.subject": "Betreff", "contact.subjects.general": "Allgemein", "contact.form.message": "Nachricht", "contact.form.message_placeholder": "Wie können wir heute helfen?", "contact.form.send": "Senden", "contact.form.success": "Nachricht gesendet!",
 
-      "footer.slogan": "KI-gestützte Unternehmensführung.", "footer.company": "Firma", "footer.legal": "Rechtliches", "footer.privacy": "Datenschutz", "footer.terms": "AGB", "footer.complaints": "Beschwerden", "footer.rights": "Alle Rechte vorbehalten.",
+      "footer.slogan": "KI-gestützte Unternehmensführung für die Moderne.", "footer.company": "Firma", "footer.legal": "Rechtliches", "footer.privacy": "Datenschutz", "footer.terms": "AGB", "footer.complaints": "Beschwerden", "footer.rights": "Alle Rechte vorbehalten.",
 
       "dashboard.menu.overview": "Überblick", "dashboard.menu.company": "Firmenverwaltung", "dashboard.menu.chat": "KI-Chat", "dashboard.menu.accounting": "Buchhaltung", "dashboard.menu.communication": "Kommunikation", "dashboard.menu.hr": "Personal", "dashboard.menu.marketing": "Marketing", "dashboard.menu.settings": "Einstellungen", "dashboard.menu.logout": "Abmelden",
-      "dashboard.welcome": "Willkommen", "dashboard.subtitle": "KI-Assistent bereit.", "dashboard.open_chat": "Chat Öffnen", "dashboard.stats.revenue": "Umsatz", "dashboard.stats.actions": "KI-Aktionen", "dashboard.stats.invoices": "Rechnungen",
-      "notifications.title": "Benachrichtigungen", "notifications.empty": "Keine Nachrichten.",
+      "dashboard.welcome": "Willkommen", "dashboard.subtitle": "KI-Assistent bereit.", "dashboard.open_chat": "Chat Öffnen", "dashboard.stats.revenue": "Umsatz", "dashboard.stats.actions": "KI-Aktionen", "dashboard.stats.invoices": "Rechnungen", "notifications.title": "Benachrichtigungen", "notifications.empty": "Keine neuen Nachrichten.",
 
       "profile.edit": "Profil Bearbeiten", "profile.edit_title": "Profil Bearbeiten", "profile.company_section": "Firmeninfo", "PROFILE.COMPANY_SECTION": "Firmeninfo",
-      "profile.delete": "Konto Löschen", "profile.success": "Aktualisiert!",
+      "profile.delete": "Konto Löschen", "profile.success": "Erfolgreich aktualisiert!",
       "role.owner": "Inhaber", "role.employee": "Mitarbeiter",
-      "delete.title": "Gefahr", "delete.text": "Konto löschen? ELIMINAR eingeben:", "delete.confirm_text": "ELIMINAR zur Bestätigung eingeben.",
-      
+      "delete.title": "Gefahr", "delete.text": "Konto dauerhaft löschen? ELIMINAR eingeben:", "delete.confirm_text": "ELIMINAR zur Bestätigung eingeben.",
       "settings.company_title": "Firmenverwaltung", "settings.invite_code": "Einladungscode", "settings.invite_text": "Mit Mitarbeitern teilen.", "settings.team_members": "Team", "settings.no_members": "Keine Mitarbeiter.", "settings.restricted_title": "Zugriff Verweigert", "settings.restricted_text": "Nur der Inhaber darf dies sehen.",
-      
       "common.save": "Speichern", "common.saving": "Speichern...", "common.cancel": "Abbrechen", "common.delete": "Löschen",
       "form.fullname": "Name", "form.jobtitle": "Position", "form.email": "E-Mail", "form.company_name": "Firma", "form.address": "Adresse", "form.nif": "Steuernummer", "form.code": "Code",
       "table.name": "Name", "table.email": "E-Mail", "table.role": "Position", "table.actions": "Aktionen", "team.edit_role": "Position Bearbeiten", "team.role_updated": "Aktualisiert!", "team.delete_confirm": "Mitarbeiter entfernen?", "team.member_removed": "Entfernt."
@@ -298,41 +243,38 @@ const resources = {
       "nav.home": "Home", "nav.pricing": "Prezzi", "nav.contact": "Contattaci", "nav.login": "Accedi", "nav.signup": "Registrati", "nav.logout": "Esci", "nav.dashboard": "Dashboard",
       
       "hero.savings": "Risparmi IA",
-      "hero.title": "Azienda col Pilota Automatico", "hero.description": "Risparmia il 90% dei costi ed elimina errori manuali.", "hero.cta": "Inizia",
+      "hero.title": "Azienda col Pilota Automatico", "hero.description": "Risparmia il 90% dei costi ed elimina gli errori manuali con l'integrazione IA.", "hero.cta": "Inizia",
       
       "services.title": "Il Tuo Team IA",
-      "categories.accounting.title": "Contabilità IA", "categories.accounting.description": "Fatture automatizzate, monitoraggio spese e calcolo tasse.",
-      "categories.communication.title": "Comunicazione", "categories.communication.description": "Lettura e redazione automatica di email.",
-      "categories.hr.title": "Risorse Umane", "categories.hr.description": "Gestione paghe, ferie e dipendenti.",
-      "categories.marketing.title": "Marketing", "categories.marketing.description": "Creazione campagne e contenuti social.",
-      "categories.administrative.title": "Amministrazione", "categories.administrative.description": "Archiviazione digitale e inserimento dati.",
-      "categories.chat.title": "Assistente IA", "categories.chat.description": "Il tuo consulente intelligente 24/7.",
+      "categories.accounting.title": "Contabilità IA", "categories.accounting.description": "Fatturazione automatizzata, monitoraggio spese, scansione scontrini OCR e calcolo delle imposte in tempo reale.",
+      "categories.communication.title": "Comunicazione Intelligente", "categories.communication.description": "L'IA legge le email, le categorizza e redige risposte professionali istantanee per la tua revisione.",
+      "categories.hr.title": "Risorse Umane", "categories.hr.description": "Elaborazione buste paga semplificata, gestione ferie, valutazioni delle prestazioni e onboarding automatizzato dei dipendenti.",
+      "categories.marketing.title": "Marketing Digitale", "categories.marketing.description": "Creazione e pianificazione automatica di campagne pubblicitarie, generazione di contenuti social e analisi delle metriche.",
+      "categories.administrative.title": "Automazione Admin", "categories.administrative.description": "Archiviazione digitale, estrazione dati contrattuali, pianificazione e inserimento automatico dei dati tra le piattaforme.",
+      "categories.chat.title": "Assistente IA", "categories.chat.description": "Il tuo consulente intelligente 24/7 in grado di rispondere a domande, generare report ed eseguire compiti via chat.",
 
       "comparison.title": "Perché EasyCheck?", "comparison.traditional": "Tradizionale", "comparison.recommended": "Consigliato", "comparison.replace_text": "Sostituisce 5+ Stipendi", "comparison.total": "Costo Totale", "comparison.savings": "Risparmio Stimato",
       "roles.accountant": "Contabile", "roles.admin": "Admin", "roles.hr": "Manager HR", "roles.marketing": "Marketing", "roles.support": "Supporto",
 
-      "login.title": "Accedi", "auth.loginSubtitle": "Inserisci le tue credenziali.", "login.email": "Email", "login.password": "Password", "login.button": "Entra", "login.forgot": "Password dimenticata?", "login.noAccount": "Non hai un account? Registrati",
-      "auth.createTitle": "Crea Account", "auth.createSubtitle": "Automatizza la tua azienda.", "auth.fullName": "Nome Completo", "auth.jobTitle": "Ruolo", "auth.iHaveCode": "Ho un codice", "auth.companyName": "Nome Azienda", "auth.generateCode": "Genera Azienda", "auth.haveAccount": "Hai già un account? Accedi",
+      "login.title": "Accedi", "auth.loginSubtitle": "Inserisci le tue credenziali per accedere.", "login.email": "Email", "login.password": "Password", "login.button": "Entra", "login.forgot": "Password dimenticata?", "login.noAccount": "Non hai un account? Registrati",
+      "auth.createTitle": "Crea Account", "auth.createSubtitle": "Automatizza la tua azienda oggi.", "auth.fullName": "Nome Completo", "auth.jobTitle": "Ruolo", "auth.iHaveCode": "Ho un codice", "auth.companyName": "Nome Azienda", "auth.generateCode": "Genera Azienda", "auth.haveAccount": "Hai già un account? Accedi",
 
-      "contact.title": "Come aiutare?", "contact.subtitle": "Il nostro team è pronto.",
+      "contact.title": "Come aiutare?", "contact.subtitle": "Il nostro team è pronto a rispondere.",
       "contact.greeting.morning": "Buongiorno!", "contact.greeting.afternoon": "Buon pomeriggio!", "contact.greeting.night": "Buonasera!",
       "contact.status.title": "Stato Sistema", "contact.status.online": "ONLINE", "contact.status.servers": "Server", "contact.status.response": "Tempo Risposta", "contact.status.caffeine": "Livello Caffeina",
       "contact.direct_email.title": "Email Diretta", "contact.direct_email.subtitle": "Per urgenze",
-      "contact.form.name": "Nome", "contact.form.name_placeholder": "Es: Mario Rossi", "contact.form.email": "Email", "contact.form.email_placeholder": "Es: mario@azienda.it", "contact.form.subject": "Oggetto", "contact.subjects.general": "Generale", "contact.form.message": "Messaggio", "contact.form.message_placeholder": "Come possiamo aiutare?", "contact.form.send": "Invia", "contact.form.success": "Inviato!",
+      "contact.form.name": "Nome", "contact.form.name_placeholder": "Es: Mario Rossi", "contact.form.email": "Email", "contact.form.email_placeholder": "Es: mario@azienda.it", "contact.form.subject": "Oggetto", "contact.subjects.general": "Generale", "contact.form.message": "Messaggio", "contact.form.message_placeholder": "Come possiamo aiutare?", "contact.form.send": "Invia", "contact.form.success": "Messaggio inviato!",
 
-      "footer.slogan": "Gestione aziendale IA.", "footer.company": "Azienda", "footer.legal": "Legale", "footer.privacy": "Privacy", "footer.terms": "Termini", "footer.complaints": "Reclami", "footer.rights": "Tutti i diritti riservati.",
+      "footer.slogan": "Gestione aziendale basata sull'IA per l'era moderna.", "footer.company": "Azienda", "footer.legal": "Legale", "footer.privacy": "Privacy", "footer.terms": "Termini", "footer.complaints": "Reclami", "footer.rights": "Tutti i diritti riservati.",
 
       "dashboard.menu.overview": "Panoramica", "dashboard.menu.company": "Gestione Azienda", "dashboard.menu.chat": "Chat IA", "dashboard.menu.accounting": "Contabilità", "dashboard.menu.communication": "Comunicazione", "dashboard.menu.hr": "Risorse Umane", "dashboard.menu.marketing": "Marketing", "dashboard.menu.settings": "Impostazioni", "dashboard.menu.logout": "Esci",
-      "dashboard.welcome": "Benvenuto", "dashboard.subtitle": "Assistente IA pronto.", "dashboard.open_chat": "Apri Chat", "dashboard.stats.revenue": "Entrate", "dashboard.stats.actions": "Azioni IA", "dashboard.stats.invoices": "Fatture",
-      "notifications.title": "Notifiche", "notifications.empty": "Nessuna notifica.",
+      "dashboard.welcome": "Benvenuto", "dashboard.subtitle": "Assistente IA pronto.", "dashboard.open_chat": "Apri Chat", "dashboard.stats.revenue": "Entrate", "dashboard.stats.actions": "Azioni IA", "dashboard.stats.invoices": "Fatture", "notifications.title": "Notifiche", "notifications.empty": "Nessuna notifica.",
 
       "profile.edit": "Modifica Profilo", "profile.edit_title": "Modifica Profilo", "profile.company_section": "Info Azienda", "PROFILE.COMPANY_SECTION": "Info Azienda",
-      "profile.delete": "Elimina Account", "profile.success": "Aggiornato!",
+      "profile.delete": "Elimina Account", "profile.success": "Aggiornato con successo!",
       "role.owner": "Proprietario", "role.employee": "Dipendente",
       "delete.title": "Pericolo", "delete.text": "Eliminare account? Scrivi ELIMINAR:", "delete.confirm_text": "Scrivi ELIMINAR per confermare.",
-      
       "settings.company_title": "Gestione Azienda", "settings.invite_code": "Codice Invito", "settings.invite_text": "Condividi con i dipendenti.", "settings.team_members": "Team", "settings.no_members": "Nessun dipendente.", "settings.restricted_title": "Accesso Limitato", "settings.restricted_text": "Solo il proprietario può vedere questo.",
-      
       "common.save": "Salva", "common.saving": "Salvataggio...", "common.cancel": "Annulla", "common.delete": "Elimina",
       "form.fullname": "Nome", "form.jobtitle": "Ruolo", "form.email": "Email", "form.company_name": "Azienda", "form.address": "Indirizzo", "form.nif": "Codice Fiscale", "form.code": "Codice",
       "table.name": "Nome", "table.email": "Email", "table.role": "Ruolo", "table.actions": "Azioni", "team.edit_role": "Modifica Ruolo", "team.role_updated": "Aggiornato!", "team.delete_confirm": "Rimuovere dipendente?", "team.member_removed": "Rimosso."

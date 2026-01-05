@@ -127,7 +127,7 @@ export default function Contact() {
                     <div>
                       <h3 className="font-bold text-lg text-gray-900 dark:text-white mb-1">{t('contact.direct_email.title')}</h3>
                       <p className="text-sm text-gray-500 dark:text-gray-400 mb-1">{t('contact.direct_email.subtitle')}</p>
-                      <a href="mailto:suporte@easycheckglobal.com" className="text-blue-600 font-bold hover:underline">suporte@easycheckglobal.com</a>
+                      <a href="mailto:suporte@easycheckglobal.com" className="text-blue-600 font-bold hover:underline">support@easycheckglobal.com</a>
                     </div>
                   </div>
                 </div>
