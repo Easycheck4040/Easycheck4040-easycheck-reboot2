@@ -1,12 +1,12 @@
 import { useState, useEffect } from 'react';
+import emailjs from '@emailjs/browser'; // <--- O Carteiro foi importado!
 import Footer from '../components/Footer';
-import { Mail, Clock, Send, Check, Coffee, Server, Zap, AlertCircle } from 'lucide-react';
-import emailjs from '@emailjs/browser';
+import { Mail, Clock, Send, Check, Coffee, Server, Zap } from 'lucide-react';
 
 export default function Contact() {
   // Estado para o formulário
   const [form, setForm] = useState({ name: '', email: '', subject: 'Dúvida Geral', message: '' });
-  const [status, setStatus] = useState<'idle' | 'sending' | 'success' | 'error'>('idle');
+  const [status, setStatus] = useState<'idle' | 'sending' | 'success'>('idle');
   
   // Estado para a saudação dinâmica
   const [greeting, setGreeting] = useState('');
@@ -22,11 +22,7 @@ export default function Contact() {
     e.preventDefault();
     setStatus('sending');
 
-    // Configuração do EmailJS com os teus códigos REAIS
-    const serviceID = 'service_otbmz08';
-    const templateID = 'template_nyz0z8r';
-    const publicKey = 'Ge7iFCc1jF-Q87xqW';
-
+    // Preparar os dados para o EmailJS
     const templateParams = {
       name: form.name,
       email: form.email,
@@ -34,27 +30,29 @@ export default function Contact() {
       message: form.message
     };
 
-    emailjs.send(serviceID, templateID, templateParams, publicKey)
+    // ENVIO REAL DO EMAIL
+    // Service ID, Template ID, Parâmetros, Public Key
+    emailjs.send('service_otbmz08', 'template_nyz0z8r', templateParams, 'Ge7iFCc1jF-Q87xqW')
       .then((response) => {
-        console.log('SUCCESS!', response.status, response.text);
-        setStatus('success');
-        
-        // Limpar o formulário e resetar estado após 3 segundos
-        setTimeout(() => {
-          setStatus('idle');
-          setForm({ name: '', email: '', subject: 'Dúvida Geral', message: '' });
-        }, 5000);
-      })
-      .catch((err) => {
-        console.error('FAILED...', err);
-        setStatus('error');
-        // Volta ao normal após 4 segundos para tentar de novo
-        setTimeout(() => setStatus('idle'), 4000);
+         console.log('SUCESSO!', response.status, response.text);
+         setStatus('success');
+         
+         // Limpar formulário e resetar botão após 3 segundos
+         setTimeout(() => {
+           setStatus('idle');
+           setForm({ name: '', email: '', subject: 'Dúvida Geral', message: '' });
+         }, 3000);
+      }, (err) => {
+         console.log('ERRO...', err);
+         alert("Ups! Algo correu mal. Por favor tenta novamente ou envia email direto.");
+         setStatus('idle');
       });
   };
 
   return (
     <div className="min-h-screen bg-white dark:bg-gray-900 flex flex-col transition-colors duration-300">
+      
+      {/* Navbar removida pois já está no App.tsx */}
       
       <main className="flex-1 pt-32 pb-20">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
@@ -74,6 +72,7 @@ export default function Contact() {
             <div className="space-y-8 animate-in slide-in-from-left duration-700 delay-100">
               <div className="bg-gray-50 dark:bg-gray-800/50 p-8 rounded-3xl border border-gray-100 dark:border-gray-700 relative overflow-hidden">
                 
+                {/* Efeito decorativo */}
                 <div className="absolute top-0 right-0 p-3 opacity-10">
                   <Zap className="w-24 h-24 text-blue-600" />
                 </div>
@@ -83,6 +82,7 @@ export default function Contact() {
                 </h3>
 
                 <div className="space-y-6">
+                  {/* Item 1 */}
                   <div className="flex items-center justify-between group">
                     <div className="flex items-center gap-3">
                       <div className="bg-green-100 dark:bg-green-900/30 p-2 rounded-lg text-green-600">
@@ -95,6 +95,7 @@ export default function Contact() {
                     </span>
                   </div>
 
+                  {/* Item 2 */}
                   <div className="flex items-center justify-between group">
                     <div className="flex items-center gap-3">
                       <div className="bg-blue-100 dark:bg-blue-900/30 p-2 rounded-lg text-blue-600">
@@ -107,6 +108,7 @@ export default function Contact() {
                     </span>
                   </div>
 
+                  {/* Item 3 - Cafeína */}
                   <div className="flex items-center justify-between group">
                     <div className="flex items-center gap-3">
                       <div className="bg-orange-100 dark:bg-orange-900/30 p-2 rounded-lg text-orange-600 group-hover:rotate-12 transition-transform">
@@ -128,7 +130,7 @@ export default function Contact() {
                     <div>
                       <h3 className="font-bold text-lg text-gray-900 dark:text-white mb-1">Email Direto</h3>
                       <p className="text-sm text-gray-500 dark:text-gray-400 mb-1">Preferes usar o teu cliente de email?</p>
-                      <a href="mailto:contact@easycheckglobal.com" className="text-blue-600 font-bold hover:underline">contact@easycheckglobal.com</a>
+                      <a href="mailto:suporte@easycheckglobal.com" className="text-blue-600 font-bold hover:underline">suporte@easycheckglobal.com</a>
                     </div>
                   </div>
                 </div>
@@ -145,6 +147,7 @@ export default function Contact() {
                     <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 ml-1">Nome</label>
                     <input 
                       type="text" 
+                      name="name"
                       required
                       value={form.name}
                       onChange={(e) => setForm({...form, name: e.target.value})}
@@ -156,6 +159,7 @@ export default function Contact() {
                     <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 ml-1">Email</label>
                     <input 
                       type="email" 
+                      name="email"
                       required
                       value={form.email}
                       onChange={(e) => setForm({...form, email: e.target.value})}
@@ -165,9 +169,11 @@ export default function Contact() {
                   </div>
                 </div>
 
+                {/* Assunto */}
                 <div className="space-y-1">
                   <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 ml-1">Assunto</label>
                   <select 
+                    name="subject"
                     value={form.subject}
                     onChange={(e) => setForm({...form, subject: e.target.value})}
                     className="w-full p-3 rounded-xl border bg-gray-50 dark:bg-gray-900 dark:border-gray-600 focus:ring-2 focus:ring-blue-500 outline-none transition-all cursor-pointer"
@@ -183,6 +189,7 @@ export default function Contact() {
                 <div className="space-y-1">
                   <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 ml-1">Mensagem</label>
                   <textarea 
+                    name="message"
                     rows={4} 
                     required
                     value={form.message}
@@ -194,12 +201,10 @@ export default function Contact() {
 
                 <button 
                   type="submit" 
-                  disabled={status === 'sending' || status === 'success'}
+                  disabled={status !== 'idle'}
                   className={`w-full py-4 rounded-xl font-bold text-white shadow-lg flex items-center justify-center gap-2 transition-all duration-500 transform
-                    ${status === 'success' ? 'bg-green-500 scale-100 cursor-default' : ''}
-                    ${status === 'error' ? 'bg-red-500 hover:bg-red-600' : ''}
-                    ${status === 'idle' ? 'bg-blue-600 hover:bg-blue-700 hover:scale-[1.02]' : ''}
-                    ${status === 'sending' ? 'bg-blue-400 cursor-wait' : ''}
+                    ${status === 'success' ? 'bg-green-500 scale-100' : 'bg-blue-600 hover:bg-blue-700 hover:scale-[1.02]'}
+                    ${status === 'sending' ? 'opacity-80 cursor-wait' : ''}
                   `}
                 >
                   {status === 'idle' && (
@@ -216,11 +221,6 @@ export default function Contact() {
                   {status === 'success' && (
                     <>
                       Enviado com Sucesso! <Check className="w-5 h-5" />
-                    </>
-                  )}
-                  {status === 'error' && (
-                    <>
-                      Erro. Tenta de novo. <AlertCircle className="w-5 h-5" />
                     </>
                   )}
                 </button>
