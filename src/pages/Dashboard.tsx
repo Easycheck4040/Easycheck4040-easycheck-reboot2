@@ -25,7 +25,9 @@ import {
   Moon,  
   Sun,
   ChevronDown,
-  ShieldCheck
+  ShieldCheck,
+  Pencil,
+  UserMinus
 } from 'lucide-react';
 
 export default function Dashboard() {
@@ -45,11 +47,22 @@ export default function Dashboard() {
   // --- ESTADOS DE DADOS DO UTILIZADOR ---
   const [userData, setUserData] = useState<any>(null);
   const [loadingUser, setLoadingUser] = useState(true);
-  const [teamMembers, setTeamMembers] = useState<any[]>([]); // Lista da equipa
+  
+  // --- ESTADO DA EQUIPA (MOCK DATA - Simulada) ---
+  const [teamMembers, setTeamMembers] = useState<any[]>([
+    { id: 1, name: 'Ana Pereira', email: 'ana.pereira@empresa.com', jobTitle: 'Gestora de Contas', role: 'employee', joined: '12 Jan 2025' },
+    { id: 2, name: 'Carlos Silva', email: 'carlos.s@empresa.com', jobTitle: 'Assistente RH', role: 'employee', joined: '15 Jan 2025' },
+    { id: 3, name: 'Pedro Santos', email: 'pedro.dev@empresa.com', jobTitle: 'Programador', role: 'employee', joined: '02 Fev 2025' }
+  ]);
 
   // --- ESTADOS DOS MODAIS ---
-  const [isDeleteModalOpen, setIsDeleteModalOpen] = useState(false);
+  const [isDeleteModalOpen, setIsDeleteModalOpen] = useState(false); // Apagar conta própria
   const [isProfileModalOpen, setIsProfileModalOpen] = useState(false);
+  
+  // Novos Modais de Gestão de Equipa
+  const [isEditMemberModalOpen, setIsEditMemberModalOpen] = useState(false);
+  const [memberToEdit, setMemberToEdit] = useState<any>(null);
+  
   const [deleteConfirmation, setDeleteConfirmation] = useState('');
   const [isDeleting, setIsDeleting] = useState(false);
 
@@ -59,7 +72,7 @@ export default function Dashboard() {
     jobTitle: '',
     companyName: '',
     companyCode: '',
-    email: '' // Novo campo
+    email: '' 
   });
   const [savingProfile, setSavingProfile] = useState(false);
 
@@ -77,7 +90,7 @@ export default function Dashboard() {
   useEffect(() => {
     if (document.documentElement.classList.contains('dark')) setIsDark(true);
 
-    const fetchUserAndTeam = async () => {
+    const fetchUser = async () => {
       const { data: { user } } = await supabase.auth.getUser();
       if (user) {
         setUserData(user);
@@ -86,27 +99,15 @@ export default function Dashboard() {
           jobTitle: user.user_metadata.job_title || '',
           companyName: user.user_metadata.company_name || '',
           companyCode: user.user_metadata.company_code || '',
-          email: user.email || '' // Capturar email
+          email: user.email || '' 
         });
-
-        // Se for Patrão, carregar equipa (Simulação para UI)
-        if (user.user_metadata.role === 'owner') {
-          // AQUI ENTRARIA A QUERY REAL AO SUPABASE:
-          // const { data } = await supabase.from('profiles').select('*').eq('company_code', user.user_metadata.company_code);
-          
-          // DADOS DE EXEMPLO (Para veres o layout a funcionar)
-          setTeamMembers([
-            { id: 1, name: 'Ana Pereira', email: 'ana.pereira@empresa.com', role: 'Gestora de Contas', joined: '12 Jan 2025' },
-            { id: 2, name: 'Carlos Silva', email: 'carlos.s@empresa.com', role: 'Assistente RH', joined: '15 Jan 2025' },
-            { id: 3, name: user.user_metadata.full_name, email: user.email, role: 'CEO / Patrão', joined: 'Fundador' }
-          ]);
-        }
       }
       setLoadingUser(false);
     };
-    fetchUserAndTeam();
+    fetchUser();
   }, []);
 
+  // --- FUNÇÕES DE INTERFACE ---
   const toggleTheme = () => {
     document.documentElement.classList.toggle('dark');
     setIsDark(!isDark);
@@ -129,6 +130,7 @@ export default function Dashboard() {
     navigate('/');
   };
 
+  // --- FUNÇÕES DE PERFIL ---
   const handleSaveProfile = async () => {
     setSavingProfile(true);
     try {
@@ -140,7 +142,7 @@ export default function Dashboard() {
         }
       });
       if (error) throw error;
-      alert(t('contact.form.success') || "Perfil atualizado com sucesso!");
+      alert(t('profile.success') || "Perfil atualizado com sucesso!");
       setIsProfileModalOpen(false);
       setUserData({
         ...userData,
@@ -160,7 +162,7 @@ export default function Dashboard() {
 
   const handleDeleteAccount = async () => {
     if (deleteConfirmation !== 'ELIMINAR') {
-      alert("Escreve ELIMINAR para confirmar.");
+      alert(t('delete.confirm_text') || "Escreve ELIMINAR para confirmar.");
       return;
     }
     setIsDeleting(true);
@@ -174,6 +176,37 @@ export default function Dashboard() {
       alert("Erro: " + error.message);
     } finally {
       setIsDeleting(false);
+    }
+  };
+
+  // --- NOVAS FUNÇÕES: GESTÃO DE EQUIPA (PATRÃO) ---
+  
+  // 1. Abrir modal para editar cargo
+  const openEditMember = (member: any) => {
+    setMemberToEdit({ ...member }); // Cria uma cópia para editar
+    setIsEditMemberModalOpen(true);
+  };
+
+  // 2. Guardar novo cargo do funcionário
+  const saveMemberRole = () => {
+    // Aqui farias o update no Supabase real
+    // Ex: await supabase.from('profiles').update({ job_title: memberToEdit.jobTitle }).eq('id', memberToEdit.id);
+    
+    // Atualização Local (Mock)
+    setTeamMembers(prev => prev.map(m => m.id === memberToEdit.id ? memberToEdit : m));
+    setIsEditMemberModalOpen(false);
+    alert(t('team.role_updated') || "Cargo atualizado com sucesso!");
+  };
+
+  // 3. Eliminar funcionário da empresa
+  const deleteMember = (id: number) => {
+    if (window.confirm(t('team.delete_confirm') || "Tens a certeza que queres remover este funcionário da empresa?")) {
+      // Aqui farias o delete no Supabase real
+      // Ex: await supabase.rpc('remove_user_from_company', { user_id: id });
+
+      // Atualização Local (Mock)
+      setTeamMembers(prev => prev.filter(m => m.id !== id));
+      alert(t('team.member_removed') || "Funcionário removido.");
     }
   };
 
@@ -284,10 +317,12 @@ export default function Dashboard() {
                 <>
                   <div className="fixed inset-0 z-30" onClick={() => setIsNotifOpen(false)}></div>
                   <div className="absolute right-0 mt-2 w-80 bg-white dark:bg-gray-800 rounded-xl shadow-xl border dark:border-gray-700 p-4 z-40">
-                    <h3 className="font-bold mb-3 dark:text-white border-b dark:border-gray-700 pb-2">Notificações</h3>
+                    <h3 className="font-bold mb-3 dark:text-white border-b dark:border-gray-700 pb-2">
+                      {t('notifications.title') || 'Notificações'}
+                    </h3>
                     <div className="flex flex-col items-center justify-center py-6 text-gray-400">
                       <Bell className="w-8 h-8 mb-2 opacity-50" />
-                      <p className="text-sm">Sem novas notificações.</p>
+                      <p className="text-sm">{t('notifications.empty') || 'Sem novas notificações.'}</p>
                     </div>
                   </div>
                 </>
@@ -309,18 +344,17 @@ export default function Dashboard() {
                   <div className="absolute right-0 mt-2 w-72 bg-white dark:bg-gray-800 rounded-xl shadow-xl border dark:border-gray-700 overflow-hidden z-40">
                     <div className="px-4 py-4 border-b dark:border-gray-700 bg-gray-50 dark:bg-gray-800/50">
                       <p className="text-sm font-bold text-gray-900 dark:text-white truncate">{userData?.user_metadata?.full_name}</p>
-                      {/* MOSTRAR EMAIL AQUI */}
                       <p className="text-xs text-gray-500 dark:text-gray-400 truncate mb-1">{userData?.email}</p>
                       <p className="text-xs text-gray-400 truncate mb-1">{userData?.user_metadata?.job_title || 'Sem Cargo'}</p>
                       <span className="text-[10px] uppercase tracking-wider font-bold bg-blue-100 text-blue-700 px-2 py-0.5 rounded-full inline-block">
-                        {isOwner ? 'Patrão / Admin' : 'Funcionário'}
+                        {isOwner ? (t('role.owner') || 'Patrão / Admin') : (t('role.employee') || 'Funcionário')}
                       </span>
                     </div>
                     <button onClick={() => { setIsProfileModalOpen(true); setIsProfileDropdownOpen(false); }} className="w-full text-left px-4 py-3 text-sm text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700 flex items-center gap-2">
-                      <User className="w-4 h-4 text-blue-600" /> Editar Perfil
+                      <User className="w-4 h-4 text-blue-600" /> {t('profile.edit') || 'Editar Perfil'}
                     </button>
                     <button onClick={() => { setIsDeleteModalOpen(true); setIsProfileDropdownOpen(false); }} className="w-full text-left px-4 py-3 text-sm text-red-600 hover:bg-red-50 dark:hover:bg-red-900/20 flex items-center gap-2 border-t dark:border-gray-700">
-                      <Trash2 className="w-4 h-4" /> Eliminar Conta
+                      <Trash2 className="w-4 h-4" /> {t('profile.delete') || 'Eliminar Conta'}
                     </button>
                   </div>
                 </>
@@ -329,14 +363,14 @@ export default function Dashboard() {
           </div>
         </header>
 
-        {/* MODAL EDITAR PERFIL */}
+        {/* --- MODAL EDITAR PERFIL --- */}
         {isProfileModalOpen && (
           <div className="fixed inset-0 z-[100] flex items-center justify-center bg-black/50 backdrop-blur-sm p-4">
             <div className="bg-white dark:bg-gray-800 rounded-2xl p-6 w-full max-w-lg shadow-2xl border dark:border-gray-700 animate-in fade-in zoom-in-95 duration-200">
               <div className="flex justify-between items-center mb-6 border-b dark:border-gray-700 pb-4">
                 <h3 className="text-xl font-bold text-gray-900 dark:text-white flex items-center gap-2">
                   <User className="w-5 h-5 text-blue-600" />
-                  Editar Perfil
+                  {t('profile.edit_title') || 'Editar Perfil'}
                 </h3>
                 <button onClick={() => setIsProfileModalOpen(false)} className="text-gray-400 hover:text-gray-600">
                   <X className="w-5 h-5" />
@@ -345,23 +379,18 @@ export default function Dashboard() {
 
               <div className="space-y-4">
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Email (Login)</label>
+                  <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">{t('form.email') || 'Email'}</label>
                   <div className="relative">
                     <Mail className="w-4 h-4 absolute left-3 top-3 text-gray-400" />
-                    <input 
-                      type="email" 
-                      value={editForm.email}
-                      disabled
-                      className="w-full pl-9 p-3 border rounded-lg bg-gray-100 text-gray-500 cursor-not-allowed dark:bg-gray-800 dark:border-gray-700"
-                    />
+                    <input type="email" value={editForm.email} disabled className="w-full pl-9 p-3 border rounded-lg bg-gray-100 text-gray-500 cursor-not-allowed dark:bg-gray-800 dark:border-gray-700" />
                   </div>
                 </div>
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Nome Completo</label>
+                  <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">{t('form.fullname') || 'Nome Completo'}</label>
                   <input type="text" value={editForm.fullName} onChange={(e) => setEditForm({...editForm, fullName: e.target.value})} className="w-full p-3 border rounded-lg dark:bg-gray-900 dark:text-white dark:border-gray-600 focus:ring-2 focus:ring-blue-500 outline-none" />
                 </div>
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Cargo</label>
+                  <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">{t('form.jobtitle') || 'Cargo'}</label>
                   <div className="relative">
                     <Briefcase className="w-4 h-4 absolute left-3 top-3 text-gray-400" />
                     <input type="text" value={editForm.jobTitle} onChange={(e) => setEditForm({...editForm, jobTitle: e.target.value})} className="w-full pl-9 p-3 border rounded-lg dark:bg-gray-900 dark:text-white dark:border-gray-600 focus:ring-2 focus:ring-blue-500 outline-none" />
@@ -369,26 +398,49 @@ export default function Dashboard() {
                 </div>
                 <div className="grid grid-cols-2 gap-4">
                   <div>
-                    <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1 flex justify-between">Empresa {!isOwner && <Lock className="w-3 h-3 text-orange-500"/>}</label>
+                    <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1 flex justify-between">{t('form.company') || 'Empresa'} {!isOwner && <Lock className="w-3 h-3 text-orange-500"/>}</label>
                     <div className="relative">
                       <Building2 className="w-4 h-4 absolute left-3 top-3 text-gray-400" />
                       <input type="text" value={editForm.companyName} onChange={(e) => setEditForm({...editForm, companyName: e.target.value})} disabled={!isOwner} className={`w-full pl-9 p-3 border rounded-lg outline-none ${!isOwner ? 'bg-gray-100 text-gray-500 cursor-not-allowed dark:bg-gray-800' : 'dark:bg-gray-900 dark:text-white focus:ring-2 focus:ring-blue-500'}`} />
                     </div>
                   </div>
                   <div>
-                    <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Código</label>
+                    <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">{t('form.code') || 'Código'}</label>
                     <div className="relative">
                       <span className="absolute left-3 top-3 text-gray-400 font-mono text-xs">#</span>
                       <input type="text" value={editForm.companyCode} disabled className="w-full pl-8 p-3 border rounded-lg bg-gray-100 text-gray-500 cursor-not-allowed dark:bg-gray-800 dark:border-gray-700 font-mono" />
                     </div>
                   </div>
                 </div>
-                {!isOwner && <p className="text-xs text-orange-600 bg-orange-50 p-2 rounded flex items-center gap-2"><AlertTriangle className="w-4 h-4" /> Funcionários não podem mudar o nome da empresa.</p>}
               </div>
               <div className="flex gap-3 justify-end mt-8">
-                <button onClick={() => setIsProfileModalOpen(false)} className="px-4 py-2 text-gray-600 hover:bg-gray-100 dark:text-gray-300 rounded-lg font-medium">Cancelar</button>
-                <button onClick={handleSaveProfile} disabled={savingProfile} className="px-6 py-2 bg-blue-600 text-white rounded-lg font-bold hover:bg-blue-700 flex items-center gap-2 shadow-lg disabled:opacity-50">{savingProfile ? 'A Guardar...' : <><Save className="w-4 h-4" /> Guardar</>}</button>
+                <button onClick={() => setIsProfileModalOpen(false)} className="px-4 py-2 text-gray-600 hover:bg-gray-100 dark:text-gray-300 rounded-lg font-medium">{t('common.cancel') || 'Cancelar'}</button>
+                <button onClick={handleSaveProfile} disabled={savingProfile} className="px-6 py-2 bg-blue-600 text-white rounded-lg font-bold hover:bg-blue-700 flex items-center gap-2 shadow-lg disabled:opacity-50">{savingProfile ? (t('common.saving') || 'A Guardar...') : <><Save className="w-4 h-4" /> {t('common.save') || 'Guardar'}</>}</button>
               </div>
+            </div>
+          </div>
+        )}
+        
+        {/* --- NOVO MODAL: EDITAR CARGO DE FUNCIONÁRIO (PATRÃO) --- */}
+        {isEditMemberModalOpen && memberToEdit && (
+          <div className="fixed inset-0 z-[100] flex items-center justify-center bg-black/50 backdrop-blur-sm p-4">
+            <div className="bg-white dark:bg-gray-800 rounded-2xl p-6 w-full max-w-sm shadow-2xl border dark:border-gray-700 animate-in fade-in zoom-in-95 duration-200">
+               <h3 className="text-lg font-bold text-gray-900 dark:text-white mb-4">
+                 {t('team.edit_role') || 'Editar Cargo'} - {memberToEdit.name}
+               </h3>
+               <div className="mb-4">
+                 <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">{t('form.jobtitle') || 'Novo Cargo'}</label>
+                 <input 
+                   type="text" 
+                   value={memberToEdit.jobTitle} 
+                   onChange={(e) => setMemberToEdit({...memberToEdit, jobTitle: e.target.value})}
+                   className="w-full p-3 border rounded-lg dark:bg-gray-900 dark:text-white dark:border-gray-600 focus:ring-2 focus:ring-blue-500 outline-none" 
+                 />
+               </div>
+               <div className="flex gap-3 justify-end">
+                 <button onClick={() => setIsEditMemberModalOpen(false)} className="px-4 py-2 text-gray-600 hover:bg-gray-100 dark:text-gray-300 rounded-lg">{t('common.cancel') || 'Cancelar'}</button>
+                 <button onClick={saveMemberRole} className="px-4 py-2 bg-blue-600 text-white rounded-lg font-bold hover:bg-blue-700">{t('common.save') || 'Guardar'}</button>
+               </div>
             </div>
           </div>
         )}
@@ -429,64 +481,89 @@ export default function Dashboard() {
                 <div className="bg-white dark:bg-gray-800 rounded-2xl shadow-sm border dark:border-gray-700 p-8">
                   <h2 className="text-2xl font-bold text-gray-900 dark:text-white mb-6 flex items-center gap-3">
                     <Building2 className="w-6 h-6 text-blue-600" />
-                    Gestão da Empresa
+                    {t('settings.company_title') || 'Gestão da Empresa'}
                   </h2>
                   
                   {isOwner ? (
                     <>
                       <div className="mb-8 p-4 bg-blue-50 dark:bg-blue-900/20 rounded-xl border border-blue-100 dark:border-blue-800">
-                        <h4 className="font-bold text-blue-800 dark:text-blue-300 mb-2">Código de Convite da Equipa</h4>
-                        <div className="flex items-center gap-4">
+                        <h4 className="font-bold text-blue-800 dark:text-blue-300 mb-2">{t('settings.invite_code') || 'Código de Convite da Equipa'}</h4>
+                        <div className="flex flex-col sm:flex-row items-start sm:items-center gap-4">
                           <code className="bg-white dark:bg-gray-900 px-4 py-2 rounded-lg font-mono text-lg border dark:border-gray-700 select-all">
                             {userData?.user_metadata?.company_code}
                           </code>
-                          <p className="text-sm text-blue-600 dark:text-blue-400">Partilha este código com os teus funcionários para eles se juntarem à empresa.</p>
+                          <p className="text-sm text-blue-600 dark:text-blue-400">{t('settings.invite_text') || 'Partilha este código com os funcionários para se juntarem.'}</p>
                         </div>
                       </div>
 
                       <h3 className="text-lg font-bold text-gray-900 dark:text-white mb-4 flex items-center gap-2">
                         <Users className="w-5 h-5" />
-                        Membros da Equipa
+                        {t('settings.team_members') || 'Membros da Equipa'}
                       </h3>
                       <div className="overflow-x-auto">
                         <table className="w-full text-left border-collapse">
                           <thead>
                             <tr className="border-b dark:border-gray-700 text-sm text-gray-500 uppercase">
-                              <th className="py-3 px-2">Nome</th>
-                              <th className="py-3 px-2">Email</th>
-                              <th className="py-3 px-2">Cargo</th>
-                              <th className="py-3 px-2">Entrou em</th>
+                              <th className="py-3 px-2">{t('table.name') || 'Nome'}</th>
+                              <th className="py-3 px-2">{t('table.email') || 'Email'}</th>
+                              <th className="py-3 px-2">{t('table.role') || 'Cargo'}</th>
+                              <th className="py-3 px-2 text-right">{t('table.actions') || 'Ações'}</th>
                             </tr>
                           </thead>
                           <tbody>
+                            {/* LINHA DO PATRÃO (Você) */}
+                            <tr className="border-b dark:border-gray-700 hover:bg-gray-50 dark:hover:bg-gray-800/50 bg-blue-50/50 dark:bg-blue-900/10">
+                               <td className="py-3 px-2 font-bold dark:text-white flex items-center gap-2">
+                                 {userData?.user_metadata?.full_name} <span className="text-[10px] bg-blue-200 text-blue-800 px-1 rounded">YOU</span>
+                               </td>
+                               <td className="py-3 px-2 text-gray-600 dark:text-gray-400">{userData?.email}</td>
+                               <td className="py-3 px-2"><span className="px-2 py-1 rounded-full text-xs font-bold bg-purple-100 text-purple-700">{userData?.user_metadata?.job_title || 'Owner'}</span></td>
+                               <td className="py-3 px-2 text-right text-gray-400 text-xs italic">Admin</td>
+                            </tr>
+
+                            {/* LISTA DE FUNCIONÁRIOS (Mock ou Real) */}
                             {teamMembers.map((member) => (
-                              <tr key={member.id} className="border-b dark:border-gray-700 last:border-0 hover:bg-gray-50 dark:hover:bg-gray-800/50">
+                              <tr key={member.id} className="border-b dark:border-gray-700 last:border-0 hover:bg-gray-50 dark:hover:bg-gray-800/50 transition-colors group">
                                 <td className="py-3 px-2 font-medium dark:text-white">{member.name}</td>
                                 <td className="py-3 px-2 text-gray-600 dark:text-gray-400">{member.email}</td>
                                 <td className="py-3 px-2">
-                                  <span className={`px-2 py-1 rounded-full text-xs font-bold ${member.role.includes('CEO') || member.role.includes('Patrão') ? 'bg-purple-100 text-purple-700' : 'bg-gray-100 text-gray-700'}`}>
-                                    {member.role}
+                                  <span className="px-2 py-1 rounded-full text-xs font-bold bg-gray-100 text-gray-700 dark:bg-gray-700 dark:text-gray-300">
+                                    {member.jobTitle}
                                   </span>
                                 </td>
-                                <td className="py-3 px-2 text-gray-500 text-sm">{member.joined}</td>
+                                <td className="py-3 px-2 text-right">
+                                  <div className="flex items-center justify-end gap-2">
+                                    <button onClick={() => openEditMember(member)} className="p-1.5 text-blue-600 hover:bg-blue-50 rounded-lg transition-colors" title={t('action.edit') || "Editar Cargo"}>
+                                      <Pencil className="w-4 h-4" />
+                                    </button>
+                                    <button onClick={() => deleteMember(member.id)} className="p-1.5 text-red-600 hover:bg-red-50 rounded-lg transition-colors" title={t('action.remove') || "Remover da Empresa"}>
+                                      <UserMinus className="w-4 h-4" />
+                                    </button>
+                                  </div>
+                                </td>
                               </tr>
                             ))}
                           </tbody>
                         </table>
+                        {teamMembers.length === 0 && (
+                          <div className="text-center py-8 text-gray-500 text-sm">
+                            {t('settings.no_members') || 'Ainda não tens funcionários registados.'}
+                          </div>
+                        )}
                       </div>
                     </>
                   ) : (
                     <div className="text-center py-12 text-gray-500">
                       <ShieldCheck className="w-16 h-16 mx-auto mb-4 text-gray-300" />
-                      <h3 className="text-lg font-bold text-gray-900 dark:text-white">Acesso Restrito</h3>
-                      <p>Apenas o administrador da empresa pode gerir as definições e ver a equipa.</p>
+                      <h3 className="text-lg font-bold text-gray-900 dark:text-white">{t('settings.restricted_title') || 'Acesso Restrito'}</h3>
+                      <p>{t('settings.restricted_text') || 'Apenas o administrador da empresa pode gerir as definições e ver a equipa.'}</p>
                     </div>
                   )}
                 </div>
               </div>
             } />
             
-            {/* Outras rotas vazias para não dar erro */}
+            {/* Outras rotas vazias */}
             <Route path="chat" element={<div className="h-full flex items-center justify-center text-gray-400">Chat IA...</div>} />
             <Route path="communication" element={<div className="h-full flex items-center justify-center text-gray-400">Comunicação...</div>} />
             <Route path="accounting" element={<div className="h-full flex items-center justify-center text-gray-400">Contabilidade...</div>} />
@@ -496,19 +573,19 @@ export default function Dashboard() {
         </div>
       </main>
 
-      {/* MODAL APAGAR (Fim do return) */}
+      {/* MODAL APAGAR CONTA PRÓPRIA */}
       {isDeleteModalOpen && (
           <div className="fixed inset-0 z-[100] flex items-center justify-center bg-black/50 backdrop-blur-sm p-4">
             <div className="bg-white dark:bg-gray-800 rounded-2xl p-6 w-full max-w-md shadow-2xl border dark:border-gray-700">
               <div className="flex items-center gap-3 text-red-600 mb-4">
                 <AlertTriangle className="w-6 h-6" />
-                <h3 className="text-xl font-bold text-gray-900 dark:text-white">Zona de Perigo</h3>
+                <h3 className="text-xl font-bold text-gray-900 dark:text-white">{t('delete.title') || 'Zona de Perigo'}</h3>
               </div>
-              <p className="text-gray-600 dark:text-gray-300 mb-4">Apagar conta permanentemente? Escreve ELIMINAR:</p>
-              <input type="text" value={deleteConfirmation} onChange={(e) => setDeleteConfirmation(e.target.value)} className="w-full p-3 border rounded-lg mb-6 uppercase" />
+              <p className="text-gray-600 dark:text-gray-300 mb-4">{t('delete.text') || 'Apagar conta permanentemente? Escreve ELIMINAR:'}</p>
+              <input type="text" value={deleteConfirmation} onChange={(e) => setDeleteConfirmation(e.target.value)} className="w-full p-3 border rounded-lg mb-6 uppercase dark:bg-gray-900 dark:text-white dark:border-gray-600" />
               <div className="flex gap-3 justify-end">
-                <button onClick={() => setIsDeleteModalOpen(false)} className="px-4 py-2 rounded-lg bg-gray-100">Cancelar</button>
-                <button onClick={handleDeleteAccount} className="px-4 py-2 bg-red-600 text-white rounded-lg font-bold">Apagar</button>
+                <button onClick={() => setIsDeleteModalOpen(false)} className="px-4 py-2 rounded-lg bg-gray-100 dark:bg-gray-700 dark:text-white">{t('common.cancel') || 'Cancelar'}</button>
+                <button onClick={handleDeleteAccount} className="px-4 py-2 bg-red-600 text-white rounded-lg font-bold">{t('common.delete') || 'Apagar'}</button>
               </div>
             </div>
           </div>
