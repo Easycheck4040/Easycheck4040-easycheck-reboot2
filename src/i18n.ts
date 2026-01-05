@@ -30,7 +30,18 @@ const resources = {
       "contact.greeting.morning": "Good morning!", "contact.greeting.afternoon": "Good afternoon!", "contact.greeting.night": "Good evening!",
       "contact.status.title": "System Status", "contact.status.online": "ONLINE", "contact.status.servers": "Servers", "contact.status.response": "Response Time", "contact.status.caffeine": "Caffeine Level",
       "contact.direct_email.title": "Direct Email", "contact.direct_email.subtitle": "For urgent matters",
-      "contact.form.name": "Name", "contact.form.name_placeholder": "Ex: John Doe", "contact.form.email": "Email", "contact.form.email_placeholder": "Ex: john@company.com", "contact.form.subject": "Subject", "contact.subjects.general": "General Inquiry",
+      
+      "contact.form.name": "Name", "contact.form.name_placeholder": "Ex: John Doe", 
+      "contact.form.email": "Email", "contact.form.email_placeholder": "Ex: john@company.com", 
+      "contact.form.subject": "Subject", 
+      
+      // ADICIONADO: As opções do menu dropdown
+      "contact.subjects.general": "General Inquiry",
+      "contact.subjects.tech": "Technical Support",
+      "contact.subjects.sales": "Sales",
+      "contact.subjects.partners": "Partnerships",
+      "contact.subjects.other": "Other Inquiries",
+
       "contact.form.message": "Message", "contact.form.message_placeholder": "How can we help you today?",
       "contact.form.send": "Send Message", "contact.form.success": "Message sent!",
 
@@ -81,7 +92,19 @@ const resources = {
       "contact.greeting.morning": "Bom dia!", "contact.greeting.afternoon": "Boa tarde!", "contact.greeting.night": "Boa noite!",
       "contact.status.title": "Estado do Sistema", "contact.status.online": "ONLINE", "contact.status.servers": "Servidores", "contact.status.response": "Tempo de Resposta", "contact.status.caffeine": "Nível de Cafeína",
       "contact.direct_email.title": "Email Direto", "contact.direct_email.subtitle": "Para assuntos urgentes",
-      "contact.form.name": "Nome", "contact.form.name_placeholder": "Ex: João Silva", "contact.form.email": "Email", "contact.form.email_placeholder": "Ex: joao@empresa.com", "contact.form.subject": "Assunto", "contact.subjects.general": "Informação Geral", "contact.form.message": "Mensagem", "contact.form.message_placeholder": "Como podemos ajudar?", "contact.form.send": "Enviar Mensagem", "contact.form.success": "Mensagem enviada!",
+      
+      "contact.form.name": "Nome", "contact.form.name_placeholder": "Ex: João Silva", 
+      "contact.form.email": "Email", "contact.form.email_placeholder": "Ex: joao@empresa.com", 
+      "contact.form.subject": "Assunto", 
+      
+      // ADICIONADO: As opções do menu dropdown
+      "contact.subjects.general": "Informação Geral", 
+      "contact.subjects.tech": "Suporte Técnico",
+      "contact.subjects.sales": "Vendas / Comercial",
+      "contact.subjects.partners": "Parcerias",
+      "contact.subjects.other": "Outros Assuntos",
+
+      "contact.form.message": "Mensagem", "contact.form.message_placeholder": "Como podemos ajudar?", "contact.form.send": "Enviar Mensagem", "contact.form.success": "Mensagem enviada!",
 
       "footer.slogan": "Gestão empresarial com IA.", "footer.company": "Empresa", "footer.legal": "Legal", "footer.privacy": "Privacidade", "footer.terms": "Termos", "footer.complaints": "Livro de Reclamações", "footer.rights": "Todos os direitos reservados.",
 
@@ -127,7 +150,16 @@ const resources = {
       "contact.greeting.morning": "Bonjour !", "contact.greeting.afternoon": "Bon après-midi !", "contact.greeting.night": "Bonsoir !",
       "contact.status.title": "Statut Système", "contact.status.online": "EN LIGNE", "contact.status.servers": "Serveurs", "contact.status.response": "Temps de Réponse", "contact.status.caffeine": "Niveau de Caféine",
       "contact.direct_email.title": "Email Direct", "contact.direct_email.subtitle": "Pour urgences",
-      "contact.form.name": "Nom", "contact.form.name_placeholder": "Ex: Pierre Dupont", "contact.form.email": "Email", "contact.form.email_placeholder": "Ex: pierre@societe.com", "contact.form.subject": "Sujet", "contact.subjects.general": "Général", "contact.form.message": "Message", "contact.form.message_placeholder": "Comment pouvons-nous aider ?", "contact.form.send": "Envoyer", "contact.form.success": "Message envoyé avec succès !",
+      "contact.form.name": "Nom", "contact.form.name_placeholder": "Ex: Pierre Dupont", "contact.form.email": "Email", "contact.form.email_placeholder": "Ex: pierre@societe.com", "contact.form.subject": "Sujet", 
+      
+      // ADICIONADO: Opções do menu em Francês
+      "contact.subjects.general": "Général", 
+      "contact.subjects.tech": "Support Technique",
+      "contact.subjects.sales": "Ventes",
+      "contact.subjects.partners": "Partenariats",
+      "contact.subjects.other": "Autres",
+      
+      "contact.form.message": "Message", "contact.form.message_placeholder": "Comment pouvons-nous aider ?", "contact.form.send": "Envoyer", "contact.form.success": "Message envoyé avec succès !",
 
       "footer.slogan": "Gestion d'entreprise par IA.", "footer.company": "Entreprise", "footer.legal": "Légal", "footer.privacy": "Confidentialité", "footer.terms": "Conditions", "footer.complaints": "Réclamations", "footer.rights": "Tous droits réservés.",
 
@@ -171,7 +203,16 @@ const resources = {
       "contact.greeting.morning": "¡Buenos días!", "contact.greeting.afternoon": "¡Buenas tardes!", "contact.greeting.night": "¡Buenas noches!",
       "contact.status.title": "Estado del Sistema", "contact.status.online": "EN LÍNEA", "contact.status.servers": "Servidores", "contact.status.response": "Tiempo Respuesta", "contact.status.caffeine": "Nivel Cafeína",
       "contact.direct_email.title": "Email Directo", "contact.direct_email.subtitle": "Urgencias",
-      "contact.form.name": "Nombre", "contact.form.name_placeholder": "Ej: Juan Pérez", "contact.form.email": "Email", "contact.form.email_placeholder": "Ej: juan@empresa.com", "contact.form.subject": "Asunto", "contact.subjects.general": "General", "contact.form.message": "Mensaje", "contact.form.message_placeholder": "¿Cómo podemos ayudar?", "contact.form.send": "Enviar", "contact.form.success": "¡Mensaje enviado!",
+      "contact.form.name": "Nombre", "contact.form.name_placeholder": "Ej: Juan Pérez", "contact.form.email": "Email", "contact.form.email_placeholder": "Ej: juan@empresa.com", "contact.form.subject": "Asunto", 
+      
+      // ADICIONADO: Opções do menu em Espanhol
+      "contact.subjects.general": "General", 
+      "contact.subjects.tech": "Soporte Técnico",
+      "contact.subjects.sales": "Ventas",
+      "contact.subjects.partners": "Alianzas",
+      "contact.subjects.other": "Otros",
+
+      "contact.form.message": "Mensaje", "contact.form.message_placeholder": "¿Cómo podemos ayudar?", "contact.form.send": "Enviar", "contact.form.success": "¡Mensaje enviado!",
 
       "footer.slogan": "Gestión empresarial con IA.", "footer.company": "Empresa", "footer.legal": "Legal", "footer.privacy": "Privacidad", "footer.terms": "Términos", "footer.complaints": "Quejas", "footer.rights": "Derechos reservados.",
 
@@ -190,7 +231,7 @@ const resources = {
   },
 
   // ============================================================
-  // 🇩🇪 ALEMÃO (DE) - EXPANDIDO
+  // 🇩🇪 ALEMÃO (DE)
   // ============================================================
   de: {
     translation: {
@@ -217,7 +258,16 @@ const resources = {
       "contact.greeting.morning": "Guten Morgen!", "contact.greeting.afternoon": "Guten Tag!", "contact.greeting.night": "Guten Abend!",
       "contact.status.title": "Systemstatus", "contact.status.online": "ONLINE", "contact.status.servers": "Server", "contact.status.response": "Reaktionszeit", "contact.status.caffeine": "Koffeinpegel",
       "contact.direct_email.title": "Direkt-E-Mail", "contact.direct_email.subtitle": "Für Notfälle",
-      "contact.form.name": "Name", "contact.form.name_placeholder": "z.B. Max Mustermann", "contact.form.email": "E-Mail", "contact.form.email_placeholder": "z.B. max@firma.de", "contact.form.subject": "Betreff", "contact.subjects.general": "Allgemein", "contact.form.message": "Nachricht", "contact.form.message_placeholder": "Wie können wir heute helfen?", "contact.form.send": "Senden", "contact.form.success": "Nachricht gesendet!",
+      "contact.form.name": "Name", "contact.form.name_placeholder": "z.B. Max Mustermann", "contact.form.email": "E-Mail", "contact.form.email_placeholder": "z.B. max@firma.de", "contact.form.subject": "Betreff", 
+      
+      // ADICIONADO: Opções do menu em Alemão
+      "contact.subjects.general": "Allgemein",
+      "contact.subjects.tech": "Technischer Support",
+      "contact.subjects.sales": "Vertrieb",
+      "contact.subjects.partners": "Partnerschaften",
+      "contact.subjects.other": "Sonstiges",
+
+      "contact.form.message": "Nachricht", "contact.form.message_placeholder": "Wie können wir heute helfen?", "contact.form.send": "Senden", "contact.form.success": "Nachricht gesendet!",
 
       "footer.slogan": "KI-gestützte Unternehmensführung für die Moderne.", "footer.company": "Firma", "footer.legal": "Rechtliches", "footer.privacy": "Datenschutz", "footer.terms": "AGB", "footer.complaints": "Beschwerden", "footer.rights": "Alle Rechte vorbehalten.",
 
@@ -236,7 +286,7 @@ const resources = {
   },
 
   // ============================================================
-  // 🇮🇹 ITALIANO (IT) - EXPANDIDO
+  // 🇮🇹 ITALIANO (IT)
   // ============================================================
   it: {
     translation: {
@@ -263,7 +313,16 @@ const resources = {
       "contact.greeting.morning": "Buongiorno!", "contact.greeting.afternoon": "Buon pomeriggio!", "contact.greeting.night": "Buonasera!",
       "contact.status.title": "Stato Sistema", "contact.status.online": "ONLINE", "contact.status.servers": "Server", "contact.status.response": "Tempo Risposta", "contact.status.caffeine": "Livello Caffeina",
       "contact.direct_email.title": "Email Diretta", "contact.direct_email.subtitle": "Per urgenze",
-      "contact.form.name": "Nome", "contact.form.name_placeholder": "Es: Mario Rossi", "contact.form.email": "Email", "contact.form.email_placeholder": "Es: mario@azienda.it", "contact.form.subject": "Oggetto", "contact.subjects.general": "Generale", "contact.form.message": "Messaggio", "contact.form.message_placeholder": "Come possiamo aiutare?", "contact.form.send": "Invia", "contact.form.success": "Messaggio inviato!",
+      "contact.form.name": "Nome", "contact.form.name_placeholder": "Es: Mario Rossi", "contact.form.email": "Email", "contact.form.email_placeholder": "Es: mario@azienda.it", "contact.form.subject": "Oggetto", 
+      
+      // ADICIONADO: Opções do menu em Italiano
+      "contact.subjects.general": "Generale", 
+      "contact.subjects.tech": "Supporto Tecnico",
+      "contact.subjects.sales": "Vendite",
+      "contact.subjects.partners": "Partnership",
+      "contact.subjects.other": "Altro",
+
+      "contact.form.message": "Messaggio", "contact.form.message_placeholder": "Come possiamo aiutare?", "contact.form.send": "Invia", "contact.form.success": "Messaggio inviato!",
 
       "footer.slogan": "Gestione aziendale basata sull'IA per l'era moderna.", "footer.company": "Azienda", "footer.legal": "Legale", "footer.privacy": "Privacy", "footer.terms": "Termini", "footer.complaints": "Reclami", "footer.rights": "Tutti i diritti riservati.",
 
