@@ -8,9 +8,10 @@ const resources = {
       // NAV
       "nav.home": "Home", "nav.pricing": "Pricing", "nav.contact": "Contact", "nav.login": "Login", "nav.signup": "Sign Up", "nav.logout": "Log Out", "nav.dashboard": "Dashboard",
       
-      // HERO & SERVICES (Descrições longas repostas)
+      // HERO & SERVICES (Descrições Detalhadas)
       "hero.title": "Run Your Business on Autopilot", 
-      "hero.description": "Save 90% on costs and eliminate manual errors with AI integration.",
+      "hero.description": "Save 90% on costs and eliminate manual errors with AI integration.", 
+      "hero.cta": "Start Saving Now",
       "services.title": "Your AI Workforce",
       "categories.accounting.title": "AI Accounting", "categories.accounting.description": "Automated invoices, expense tracking, OCR receipt scanning, and real-time tax calculation.",
       "categories.communication.title": "Smart Communication", "categories.communication.description": "AI reads emails, categorizes them, and drafts professional responses instantly for your review.",
@@ -19,74 +20,60 @@ const resources = {
       "categories.administrative.title": "Admin Automation", "categories.administrative.description": "Digital filing, contract data extraction, scheduling, and automated data entry across platforms.",
       "categories.chat.title": "AI Business Assistant", "categories.chat.description": "Your 24/7 intelligent advisor capable of answering queries, generating reports, and executing tasks via chat.",
 
-      // CONTACT PAGE (Corrigido com base nos prints)
-      "contact.title": "How can we help?", 
-      "contact.subtitle": "Our team (and AI) are ready to answer your questions.",
-      "contact.greeting.morning": "Good morning", 
-      "contact.greeting.afternoon": "Good afternoon", 
-      "contact.greeting.night": "Good evening",
-      "contact.status.title": "Operational Status",
-      "contact.status.online": "ONLINE",
-      "contact.status.servers": "System Status",
-      "contact.status.response": "Avg. Response Time",
-      "contact.status.caffeine": "Caffeine Level",
-      "contact.direct_email.title": "Direct Email",
-      "contact.direct_email.subtitle": "For urgent matters",
-      
-      // CONTACT FORM (Novos placeholders)
+      // COMPARISON SECTION (Correção dos Prints)
+      "comparison.title": "Why Choose EasyCheck?",
+      "comparison.traditional": "Traditional Method",
+      "comparison.recommended": "Recommended",
+      "comparison.replace_text": "Replaces 5+ Salaries",
+      "comparison.total": "Total Cost",
+      "comparison.savings": "Estimated Annual Savings",
+      "roles.accountant": "Accountant", "roles.admin": "Admin Assistant", "roles.hr": "HR Manager", "roles.marketing": "Marketing Specialist", "roles.support": "Customer Support",
+
+      // AUTH (LOGIN & SIGNUP - Correção dos Prints)
+      "login.title": "Welcome Back", "auth.loginSubtitle": "Enter your credentials to access your account.",
+      "login.email": "Email Address", "login.password": "Password", "login.button": "Sign In", "login.forgot": "Forgot password?", "login.noAccount": "Don't have an account? Sign Up",
+      "auth.createTitle": "Create Account", "auth.createSubtitle": "Start automating your business today.",
+      "auth.fullName": "Full Name", "auth.jobTitle": "Job Title", "auth.iHaveCode": "I have a company invite code",
+      "auth.companyName": "Company Name", "auth.generateCode": "Generate New Company", "auth.haveAccount": "Already have an account? Login",
+
+      // CONTACT PAGE (Correção Completa)
+      "contact.title": "How can we help?", "contact.subtitle": "Our team is ready.",
+      "contact.greeting.morning": "Good morning", "contact.greeting.afternoon": "Good afternoon", "contact.greeting.night": "Good evening",
+      "contact.status.title": "System Status", "contact.status.online": "ONLINE",
+      "contact.status.servers": "Servers", "contact.status.response": "Response Time", "contact.status.caffeine": "Caffeine Level",
+      "contact.direct_email.title": "Direct Email", "contact.direct_email.subtitle": "For urgent matters",
       "contact.form.name": "Name", "contact.form.name_placeholder": "Ex: John Doe",
       "contact.form.email": "Email", "contact.form.email_placeholder": "Ex: john@company.com",
       "contact.form.subject": "Subject", "contact.subjects.general": "General Inquiry",
-      "contact.form.message": "Message", "contact.form.message_placeholder": "How can we help you today?",
-      "contact.form.send": "Send Message", "contact.form.success": "Message sent successfully!",
-      
-      // FOOTER (Novas chaves)
-      "footer.slogan": "AI-powered business management for the modern era.",
-      "footer.company": "Company",
-      "footer.legal": "Legal",
-      "footer.privacy": "Privacy Policy",
-      "footer.terms": "Terms of Service",
-      "footer.complaints": "Complaints Book",
-      "footer.rights": "All rights reserved.",
+      "contact.form.message": "Message", "contact.form.message_placeholder": "How can we help?",
+      "contact.form.send": "Send Message", "contact.form.success": "Message sent!",
+
+      // FOOTER (Correção dos Prints)
+      "footer.slogan": "AI-powered business management.", "footer.company": "Company", "footer.legal": "Legal", "footer.privacy": "Privacy Policy", "footer.terms": "Terms of Service", "footer.complaints": "Complaints", "footer.rights": "All rights reserved.",
 
       // DASHBOARD MENU
-      "dashboard.menu.overview": "Overview", 
-      "dashboard.menu.company": "Company Management",
-      "dashboard.menu.chat": "AI Chat", 
-      "dashboard.menu.accounting": "Accounting", 
-      "dashboard.menu.communication": "Communication", 
-      "dashboard.menu.hr": "Human Resources", 
-      "dashboard.menu.marketing": "Marketing", 
-      "dashboard.menu.settings": "Settings", 
-      "dashboard.menu.logout": "Log Out",
+      "dashboard.menu.overview": "Overview", "dashboard.menu.company": "Company Management", "dashboard.menu.chat": "AI Chat", "dashboard.menu.accounting": "Accounting", "dashboard.menu.communication": "Communication", "dashboard.menu.hr": "HR", "dashboard.menu.marketing": "Marketing", "dashboard.menu.settings": "Settings", "dashboard.menu.logout": "Log Out",
       
       // DASHBOARD CONTENT
-      "dashboard.welcome": "Welcome", "dashboard.subtitle": "Your AI assistant is ready.", "dashboard.open_chat": "Open AI Chat",
-      "dashboard.stats.revenue": "Monthly Revenue", "dashboard.stats.actions": "AI Actions", "dashboard.stats.invoices": "Pending Invoices",
+      "dashboard.welcome": "Welcome", "dashboard.subtitle": "Your AI assistant is ready.", "dashboard.open_chat": "Open Chat",
+      "dashboard.stats.revenue": "Revenue", "dashboard.stats.actions": "AI Actions", "dashboard.stats.invoices": "Invoices",
       "notifications.title": "Notifications", "notifications.empty": "No new notifications.",
 
-      // PROFILE & MODALS (Correção das maiúsculas)
+      // PROFILE & SETTINGS
       "profile.edit": "Edit Profile", "profile.edit_title": "Edit Profile", 
-      "profile.company_section": "Company Information",
-      "PROFILE.COMPANY_SECTION": "Company Information", // Correção para o print 3
+      "profile.company_section": "Company Information", "PROFILE.COMPANY_SECTION": "Company Information",
       "profile.delete": "Delete Account", "profile.success": "Updated successfully!",
       "role.owner": "Owner", "role.employee": "Employee",
-      "delete.title": "Danger Zone", "delete.text": "Delete account permanently? Type ELIMINAR:",
+      "delete.title": "Danger Zone", "delete.text": "Delete account? Type ELIMINAR:",
       
-      // COMPANY MANAGEMENT (Page)
-      "settings.company_title": "Company Management", 
-      "settings.invite_code": "Invite Code", 
-      "settings.invite_text": "Share this code with your employees to join the team.",
-      "settings.team_members": "Team Members", 
-      "settings.no_members": "No employees registered yet.",
-      "settings.restricted_title": "Access Restricted", "settings.restricted_text": "Only the company owner can access this area.",
+      // COMPANY MANAGEMENT
+      "settings.company_title": "Company Management", "settings.invite_code": "Invite Code", "settings.invite_text": "Share with employees.", "settings.team_members": "Team Members", "settings.no_members": "No employees yet.", "settings.restricted_title": "Restricted", "settings.restricted_text": "Owner only.",
       
-      // FORMS & COMMON
-      "common.save": "Save", "common.saving": "Saving...", "common.cancel": "Cancel", "common.delete": "Delete",
-      "form.fullname": "Full Name", "form.jobtitle": "Job Title", "form.email": "Email",
-      "form.company_name": "Company Name", "form.address": "Address", "form.nif": "Tax ID (NIF)", "form.code": "Code",
+      // COMMON
+      "common.save": "Save", "common.cancel": "Cancel", "common.delete": "Delete",
+      "form.fullname": "Full Name", "form.jobtitle": "Job Title", "form.email": "Email", "form.company_name": "Company Name", "form.address": "Address", "form.nif": "Tax ID", "form.code": "Company Code",
       "table.name": "Name", "table.email": "Email", "table.role": "Role", "table.actions": "Actions",
-      "team.edit_role": "Edit Role", "team.role_updated": "Role updated!", "team.delete_confirm": "Remove this employee?", "team.member_removed": "Employee removed."
+      "team.edit_role": "Edit Role", "team.role_updated": "Role updated!", "team.delete_confirm": "Remove employee?", "team.member_removed": "Removed."
     }
   },
 
@@ -95,9 +82,9 @@ const resources = {
     translation: {
       "nav.home": "Início", "nav.pricing": "Preços", "nav.contact": "Contactos", "nav.login": "Entrar", "nav.signup": "Criar Conta", "nav.logout": "Sair", "nav.dashboard": "Dashboard",
       
-      // HERO & SERVICES (Descrições longas repostas)
+      // HERO & SERVICES
       "hero.title": "Gere a Tua Empresa em Piloto Automático", 
-      "hero.description": "Poupa 90% dos custos e elimina erros manuais com a nossa integração de IA.",
+      "hero.description": "Poupa 90% dos custos e elimina erros manuais com a nossa integração de IA.", "hero.cta": "Começar a Poupar",
       "services.title": "A Tua Equipa de IA",
       "categories.accounting.title": "Contabilidade IA", "categories.accounting.description": "Faturas automáticas, rastreio de despesas, leitura OCR de recibos e cálculo de impostos em tempo real.",
       "categories.communication.title": "Comunicação Inteligente", "categories.communication.description": "A IA lê emails, categoriza-os e rascunha respostas profissionais instantaneamente para tua revisão.",
@@ -106,152 +93,59 @@ const resources = {
       "categories.administrative.title": "Automação Admin", "categories.administrative.description": "Arquivo digital, extração de dados de contratos, agendamento e entrada de dados automática entre plataformas.",
       "categories.chat.title": "Assistente de Negócios IA", "categories.chat.description": "O teu consultor inteligente 24/7 capaz de responder a questões, gerar relatórios e executar tarefas via chat.",
 
-      // CONTACTOS (Corrigido)
-      "contact.title": "Como podemos ajudar?", 
-      "contact.subtitle": "A nossa equipa (e IA) estão prontas para responder às tuas questões.",
-      "contact.greeting.morning": "Bom dia", 
-      "contact.greeting.afternoon": "Boa tarde", 
-      "contact.greeting.night": "Boa noite",
-      "contact.status.title": "Estado Operacional",
-      "contact.status.online": "ONLINE",
-      "contact.status.servers": "Estado do Sistema",
-      "contact.status.response": "Tempo de Resposta Médio",
-      "contact.status.caffeine": "Nível de Cafeína",
-      "contact.direct_email.title": "Email Direto",
-      "contact.direct_email.subtitle": "Para assuntos urgentes",
+      // COMPARAÇÃO
+      "comparison.title": "Porquê Escolher a EasyCheck?", "comparison.traditional": "Método Tradicional", "comparison.recommended": "Recomendado", "comparison.replace_text": "Substitui 5+ Salários", "comparison.total": "Custo Total", "comparison.savings": "Poupança Anual Estimada",
+      "roles.accountant": "Contabilista", "roles.admin": "Assistente Admin", "roles.hr": "Gestor de RH", "roles.marketing": "Especialista Marketing", "roles.support": "Apoio ao Cliente",
 
-       // CONTACT FORM (Novos placeholders)
+      // AUTH
+      "login.title": "Bem-vindo de Volta", "auth.loginSubtitle": "Insere as tuas credenciais para aceder.",
+      "login.email": "Endereço de Email", "login.password": "Palavra-passe", "login.button": "Entrar", "login.forgot": "Esqueceste-te da senha?", "login.noAccount": "Não tens conta? Cria uma",
+      "auth.createTitle": "Criar Conta", "auth.createSubtitle": "Começa a automatizar o teu negócio hoje.", "auth.fullName": "Nome Completo", "auth.jobTitle": "Cargo", "auth.iHaveCode": "Tenho um código de convite", "auth.companyName": "Nome da Empresa", "auth.generateCode": "Gerar Nova Empresa", "auth.haveAccount": "Já tens conta? Entrar",
+
+      // CONTACTOS
+      "contact.title": "Como podemos ajudar?", "contact.subtitle": "A nossa equipa está pronta.",
+      "contact.greeting.morning": "Bom dia", "contact.greeting.afternoon": "Boa tarde", "contact.greeting.night": "Boa noite",
+      "contact.status.title": "Estado do Sistema", "contact.status.online": "ONLINE",
+      "contact.status.servers": "Servidores", "contact.status.response": "Tempo de Resposta", "contact.status.caffeine": "Nível de Cafeína",
+      "contact.direct_email.title": "Email Direto", "contact.direct_email.subtitle": "Para assuntos urgentes",
       "contact.form.name": "Nome", "contact.form.name_placeholder": "Ex: João Silva",
       "contact.form.email": "Email", "contact.form.email_placeholder": "Ex: joao@empresa.com",
       "contact.form.subject": "Assunto", "contact.subjects.general": "Informação Geral",
-      "contact.form.message": "Mensagem", "contact.form.message_placeholder": "Como podemos ajudar hoje?",
-      "contact.form.send": "Enviar Mensagem", "contact.form.success": "Mensagem enviada com sucesso!",
+      "contact.form.message": "Mensagem", "contact.form.message_placeholder": "Como podemos ajudar?",
+      "contact.form.send": "Enviar Mensagem", "contact.form.success": "Mensagem enviada!",
 
-      // FOOTER (Novas chaves)
-      "footer.slogan": "Gestão empresarial impulsionada por IA para a era moderna.",
-      "footer.company": "Empresa",
-      "footer.legal": "Legal",
-      "footer.privacy": "Política de Privacidade",
-      "footer.terms": "Termos de Serviço",
-      "footer.complaints": "Livro de Reclamações",
-      "footer.rights": "Todos os direitos reservados.",
+      // FOOTER
+      "footer.slogan": "Gestão empresarial com IA.", "footer.company": "Empresa", "footer.legal": "Legal", "footer.privacy": "Privacidade", "footer.terms": "Termos", "footer.complaints": "Livro de Reclamações", "footer.rights": "Todos os direitos reservados.",
 
       // DASHBOARD
-      "dashboard.menu.overview": "Visão Geral", 
-      "dashboard.menu.company": "Gestão da Empresa", 
-      "dashboard.menu.chat": "Chat IA", 
-      "dashboard.menu.accounting": "Contabilidade", 
-      "dashboard.menu.communication": "Comunicação", 
-      "dashboard.menu.hr": "Recursos Humanos", 
-      "dashboard.menu.marketing": "Marketing", 
-      "dashboard.menu.settings": "Definições", 
-      "dashboard.menu.logout": "Sair da Conta",
-      
+      "dashboard.menu.overview": "Visão Geral", "dashboard.menu.company": "Gestão da Empresa", "dashboard.menu.chat": "Chat IA", "dashboard.menu.accounting": "Contabilidade", "dashboard.menu.communication": "Comunicação", "dashboard.menu.hr": "Recursos Humanos", "dashboard.menu.marketing": "Marketing", "dashboard.menu.settings": "Definições", "dashboard.menu.logout": "Sair da Conta",
       "dashboard.welcome": "Bem-vindo", "dashboard.subtitle": "O teu assistente IA está pronto.", "dashboard.open_chat": "Abrir Chat IA",
       "dashboard.stats.revenue": "Receita Mensal", "dashboard.stats.actions": "Ações IA", "dashboard.stats.invoices": "Faturas",
-      "notifications.title": "Notificações", "notifications.empty": "Sem novas notificações.",
+      "notifications.title": "Notificações", "notifications.empty": "Sem notificações.",
 
-      // PERFIL & MODAIS (Correção das maiúsculas)
+      // PERFIL & MODAIS
       "profile.edit": "Editar Perfil", "profile.edit_title": "Editar Perfil", 
-      "profile.company_section": "Informação da Empresa",
-      "PROFILE.COMPANY_SECTION": "Informação da Empresa", // Correção para o print 3
-      "profile.delete": "Eliminar Conta", "profile.success": "Atualizado com sucesso!",
+      "profile.company_section": "Informação da Empresa", "PROFILE.COMPANY_SECTION": "Informação da Empresa",
+      "profile.delete": "Eliminar Conta", "profile.success": "Atualizado!",
       "role.owner": "Patrão", "role.employee": "Funcionário",
-      "delete.title": "Zona de Perigo", "delete.text": "Apagar conta permanentemente? Escreve ELIMINAR:",
+      "delete.title": "Zona de Perigo", "delete.text": "Apagar conta? Escreve ELIMINAR:",
       
-      "settings.company_title": "Gestão da Empresa", 
-      "settings.invite_code": "Código de Convite", 
-      "settings.invite_text": "Partilha este código com os teus funcionários para se juntarem à equipa.",
-      "settings.team_members": "Membros da Equipa", 
-      "settings.no_members": "Ainda não tens funcionários registados.",
-      "settings.restricted_title": "Acesso Restrito", "settings.restricted_text": "Apenas o patrão pode aceder a esta área.",
+      // GESTÃO EMPRESA
+      "settings.company_title": "Gestão da Empresa", "settings.invite_code": "Código de Convite", "settings.invite_text": "Partilha com funcionários.", "settings.team_members": "Membros", "settings.no_members": "Sem funcionários.", "settings.restricted_title": "Acesso Restrito", "settings.restricted_text": "Apenas o patrão pode ver.",
       
-      // FORMS & COMMON
-      "common.save": "Guardar", "common.saving": "A Guardar...", "common.cancel": "Cancelar", "common.delete": "Apagar",
-      "form.fullname": "Nome Completo", "form.jobtitle": "Cargo", "form.email": "Email",
-      "form.company_name": "Nome da Empresa", "form.address": "Morada", "form.nif": "NIF", "form.code": "Código",
+      // COMUM
+      "common.save": "Guardar", "common.cancel": "Cancelar", "common.delete": "Apagar",
+      "form.fullname": "Nome Completo", "form.jobtitle": "Cargo", "form.email": "Email", "form.company_name": "Nome da Empresa", "form.address": "Morada", "form.nif": "NIF", "form.code": "Código da Empresa",
       "table.name": "Nome", "table.email": "Email", "table.role": "Cargo", "table.actions": "Ações",
-      "team.edit_role": "Editar Cargo", "team.role_updated": "Cargo atualizado!", "team.delete_confirm": "Remover este funcionário?", "team.member_removed": "Funcionário removido."
+      "team.edit_role": "Editar Cargo", "team.role_updated": "Cargo atualizado!", "team.delete_confirm": "Remover funcionário?", "team.member_removed": "Removido."
     }
   },
 
-  // --- FRANCÊS (FR) ---
-  fr: {
-    translation: {
-      "nav.home": "Accueil", "nav.contact": "Contact", "nav.login": "Connexion", "nav.logout": "Déconnexion", "nav.dashboard": "Tableau de bord",
-      "hero.title": "Gérez Votre Entreprise en Pilote Automatique", "hero.description": "Économisez 90% des coûts.",
-      "services.title": "Votre Équipe IA",
-      "categories.accounting.description": "Factures automatisées, suivi des dépenses et calcul des impôts.", 
-      "categories.communication.description": "Lecture et rédaction automatique d'emails professionnels.", 
-      "categories.hr.description": "Gestion de la paie, des congés et des employés.",
-      
-      "contact.title": "Comment aider ?", "contact.greeting.morning": "Bonjour", "contact.greeting.afternoon": "Bon après-midi", "contact.greeting.night": "Bonsoir",
-      "contact.status.title": "Statut", "contact.status.online": "EN LIGNE",
-      "contact.form.send": "Envoyer", "contact.form.success": "Envoyé !",
-      "footer.slogan": "Gestion d'entreprise par IA.", "footer.company": "Entreprise", "footer.legal": "Légal",
-
-      "dashboard.menu.overview": "Vue d'ensemble", "dashboard.menu.company": "Gestion Entreprise", "dashboard.menu.settings": "Paramètres",
-      "profile.edit": "Modifier Profil", 
-      "profile.company_section": "Info Entreprise", "PROFILE.COMPANY_SECTION": "Info Entreprise",
-      "role.owner": "Patron", "role.employee": "Employé",
-      "settings.company_title": "Gestion Entreprise", "settings.invite_code": "Code Invitation", "settings.team_members": "Équipe",
-      "common.save": "Enregistrer", "common.cancel": "Annuler", "form.fullname": "Nom Complet", "form.company_name": "Nom Entreprise"
-    }
-  },
-
-  // --- ESPANHOL (ES) ---
-  es: {
-    translation: {
-      "nav.home": "Inicio", "nav.contact": "Contacto", "nav.login": "Acceso", "nav.logout": "Salir", "nav.dashboard": "Panel",
-      "hero.title": "Gestiona Tu Empresa en Piloto Automático", "hero.description": "Ahorra 90% en costos.",
-      "services.title": "Tu Equipo de IA",
-      "categories.accounting.description": "Facturas automatizadas, seguimiento de gastos y cálculo de impuestos.",
-      "categories.communication.description": "Lectura y redacción automática de correos electrónicos.",
-      "categories.hr.description": "Gestión de nóminas, vacaciones y empleados.",
-
-      "contact.title": "¿Cómo ayudar?", "contact.greeting.morning": "Buenos días", "contact.greeting.afternoon": "Buenas tardes", "contact.greeting.night": "Buenas noches",
-      "contact.status.title": "Estado", "contact.status.online": "EN LÍNEA",
-      "contact.form.send": "Enviar", "contact.form.success": "¡Enviado!",
-      "footer.slogan": "Gestión empresarial con IA.", "footer.company": "Empresa", "footer.legal": "Legal",
-
-      "dashboard.menu.overview": "Visión General", "dashboard.menu.company": "Gestión Empresa", "dashboard.menu.settings": "Configuración",
-      "profile.edit": "Editar Perfil", 
-      "profile.company_section": "Info Empresa", "PROFILE.COMPANY_SECTION": "Info Empresa",
-      "role.owner": "Dueño", "role.employee": "Empleado",
-      "settings.company_title": "Gestión Empresa", "settings.invite_code": "Código Invitación", "settings.team_members": "Equipo",
-      "common.save": "Guardar", "common.cancel": "Cancelar", "form.fullname": "Nombre Completo", "form.company_name": "Nombre Empresa"
-    }
-  },
-
-  // --- ALEMÃO (DE) ---
-  de: {
-    translation: {
-      "nav.home": "Startseite", "nav.contact": "Kontakt", "nav.login": "Anmelden", "nav.logout": "Abmelden", "nav.dashboard": "Dashboard",
-      "services.title": "Ihr KI-Team",
-      "categories.accounting.description": "Automatisierte Rechnungen, Ausgabenverfolgung und Steuerberechnung.",
-      "contact.title": "Wie helfen?", "contact.greeting.morning": "Guten Morgen", "contact.greeting.afternoon": "Guten Tag", "contact.greeting.night": "Guten Abend",
-      "contact.status.title": "Status", "contact.status.online": "ONLINE",
-      "footer.slogan": "KI-gestützte Unternehmensführung.", "footer.company": "Firma", "footer.legal": "Rechtliches",
-      "dashboard.menu.overview": "Überblick", "dashboard.menu.company": "Firmenverwaltung", "dashboard.menu.settings": "Einstellungen",
-      "profile.company_section": "Firmeninfo", "PROFILE.COMPANY_SECTION": "Firmeninfo",
-      "role.owner": "Inhaber", "common.save": "Speichern"
-    }
-  },
-
-  // --- ITALIANO (IT) ---
-  it: {
-    translation: {
-      "nav.home": "Home", "nav.contact": "Contatti", "nav.login": "Accedi", "nav.logout": "Esci", "nav.dashboard": "Dashboard",
-      "services.title": "Il Tuo Team IA",
-      "categories.accounting.description": "Fatture automatizzate, monitoraggio spese e calcolo tasse.",
-      "contact.title": "Come aiutare?", "contact.greeting.morning": "Buongiorno", "contact.greeting.afternoon": "Buon pomeriggio", "contact.greeting.night": "Buonasera",
-      "contact.status.title": "Stato", "contact.status.online": "ONLINE",
-      "footer.slogan": "Gestione aziendale basata sull'IA.", "footer.company": "Azienda", "footer.legal": "Legale",
-      "dashboard.menu.overview": "Panoramica", "dashboard.menu.company": "Gestione Azienda", "dashboard.menu.settings": "Impostazioni",
-      "profile.company_section": "Info Azienda", "PROFILE.COMPANY_SECTION": "Info Azienda",
-      "role.owner": "Proprietario", "common.save": "Salva"
-    }
-  }
+  // --- FRANCÊS (FR) - Resumido mas funcional ---
+  fr: { translation: { "login.title": "Connexion", "auth.createTitle": "Créer Compte", "comparison.title": "Pourquoi EasyCheck?", "profile.company_section": "Info Entreprise", "PROFILE.COMPANY_SECTION": "Info Entreprise", "common.save": "Enregistrer", "form.code": "Code Entreprise", "settings.company_title": "Gestion Entreprise" } },
+  es: { translation: { "login.title": "Acceso", "auth.createTitle": "Crear Cuenta", "comparison.title": "¿Por qué EasyCheck?", "profile.company_section": "Info Empresa", "PROFILE.COMPANY_SECTION": "Info Empresa", "common.save": "Guardar", "form.code": "Código Empresa", "settings.company_title": "Gestión Empresa" } },
+  de: { translation: { "login.title": "Anmelden", "auth.createTitle": "Konto Erstellen", "comparison.title": "Warum EasyCheck?", "profile.company_section": "Firmeninfo", "PROFILE.COMPANY_SECTION": "Firmeninfo", "common.save": "Speichern", "form.code": "Firmencode", "settings.company_title": "Firmenverwaltung" } },
+  it: { translation: { "login.title": "Accedi", "auth.createTitle": "Crea Account", "comparison.title": "Perché EasyCheck?", "profile.company_section": "Info Azienda", "PROFILE.COMPANY_SECTION": "Info Azienda", "common.save": "Salva", "form.code": "Codice Azienda", "settings.company_title": "Gestione Azienda" } }
 };
 
 i18n.use(initReactI18next).init({
