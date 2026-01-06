@@ -11,17 +11,19 @@ export default function Dashboard() {
   const location = useLocation();
   const navigate = useNavigate();
   
-  // ✅ 1. CONFIGURAÇÃO DA API
-  const API_URL = window.location.hostname === 'easycheckglobal.com' 
-    ? 'https://easycheck-api.onrender.com' 
-    : 'http://localhost:3000';
+  // ✅ CORREÇÃO DO PLANO A: Lógica à prova de falhas
+  // Se estiveres no computador (localhost), usa o local.
+  // Se estiveres em QUALQUER outro sítio (Render, www, telemóvel), usa a API Online.
+  const API_URL = window.location.hostname === 'localhost' 
+    ? 'http://localhost:3000'
+    : 'https://easycheck-api.onrender.com';
 
   // --- ESTADOS GERAIS ---
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
   const [isProfileDropdownOpen, setIsProfileDropdownOpen] = useState(false);
   const [isLangMenuOpen, setIsLangMenuOpen] = useState(false);
   
-  // ✅ 2. ESTADOS DO CHAT (Tipados para TS)
+  // --- ESTADOS DO CHAT ---
   const [messages, setMessages] = useState([
     { role: 'assistant', content: 'Olá! Sou a IA do EasyCheck. Em que posso ajudar na gestão da sua empresa?' }
   ]);
@@ -61,7 +63,7 @@ export default function Dashboard() {
     { code: 'it', label: 'Italiano', flag: '🇮🇹' },
   ];
 
-  // ✅ 3. EFEITO DE SCROLL
+  // EFEITO DE SCROLL DO CHAT
   useEffect(() => {
     if (scrollRef.current) {
       scrollRef.current.scrollTop = scrollRef.current.scrollHeight;
@@ -90,7 +92,7 @@ export default function Dashboard() {
     fetchUser();
   }, []);
 
-  // ✅ 4. FUNÇÃO DE ENVIO (Com tipagem 'e: React.FormEvent')
+  // FUNÇÃO DE ENVIO DE MENSAGEM
   const handleSendChatMessage = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!chatInput.trim() || isChatLoading) return;
@@ -101,6 +103,7 @@ export default function Dashboard() {
     setIsChatLoading(true);
 
     try {
+      // Aqui ele usa o API_URL correto
       const response = await fetch(`${API_URL}/api/chat`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -114,7 +117,7 @@ export default function Dashboard() {
         throw new Error();
       }
     } catch (error) {
-      setMessages(prev => [...prev, { role: 'assistant', content: '⚠️ Erro ao ligar ao servidor. Tente novamente.' }]);
+      setMessages(prev => [...prev, { role: 'assistant', content: '⚠️ Erro ao ligar ao servidor. Verifique a sua internet.' }]);
     } finally {
       setIsChatLoading(false);
     }
@@ -258,7 +261,7 @@ export default function Dashboard() {
               </div>
             } />
 
-            {/* ✅ ROTA DO CHAT */}
+            {/* ROTA DO CHAT */}
             <Route path="chat" element={
               <div className="flex flex-col h-full bg-white dark:bg-gray-800 m-4 rounded-2xl border dark:border-gray-700 shadow-sm overflow-hidden">
                 <div ref={scrollRef} className="flex-1 overflow-y-auto p-6 space-y-4">
