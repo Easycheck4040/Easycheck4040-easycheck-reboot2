@@ -13,13 +13,19 @@ const app = express();
 const upload = multer();
 const port = process.env.PORT || 3000;
 
+// Configuração da Groq (Garante que a chave está no Environment do Render)
 const groq = new Groq({
   apiKey: process.env.GROQ_API_KEY,
 });
 
-// ✅ Configuração de CORS para Produção
+// ✅ CONFIGURAÇÃO DE CORS PARA PRODUÇÃO
 app.use(cors({
-  origin: ["http://localhost:5173", "http://localhost:5174", "https://easycheckglobal.com"],
+  origin: [
+    "http://localhost:5173", 
+    "http://localhost:5174", 
+    "https://easycheckglobal.com",
+    "https://www.easycheckglobal.com"
+  ],
   methods: ["GET", "POST"],
   allowedHeaders: ["Content-Type"]
 }));
@@ -34,6 +40,7 @@ app.get("/", (_, res) => res.send("🚀 EasyCheck API Online!"));
 app.post('/api/chat', async (req, res) => {
   try {
     const { message } = req.body;
+    
     if (!message) return res.status(400).json({ error: "Mensagem vazia." });
 
     const completion = await groq.chat.completions.create({
@@ -49,11 +56,21 @@ app.post('/api/chat', async (req, res) => {
 
     res.json({ reply: completion.choices[0].message.content });
   } catch (error) {
-    console.error("Erro Groq:", error.message);
-    res.status(500).json({ error: "Erro na IA." });
+    console.error("❌ Erro Groq:", error.message);
+    res.status(500).json({ error: "Erro ao processar a resposta da IA." });
   }
 });
 
+// --- RESTANTES ROTAS (Mantidas como originais) ---
+app.post("/invoices/scan", upload.single("file"), async (req, res) => {
+  try {
+    const file = req.file;
+    if (!file) throw new Error("Ficheiro não enviado.");
+    const { text, fields } = await scanInvoiceFile({ buffer: file.buffer, mimetype: file.mimetype });
+    res.json({ ok: true, extracted_text: text, fields });
+  } catch (e) { res.status(400).json({ ok: false, error: e.message }); }
+});
+
 app.listen(port, () => {
-  console.log(`✅ Servidor na porta ${port}`);
+  console.log(`✅ Servidor EasyCheck na porta ${port}`);
 });
