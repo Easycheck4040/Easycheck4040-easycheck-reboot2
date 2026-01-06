@@ -13,11 +13,11 @@ export default function Dashboard() {
   
   const API_URL = window.location.hostname === 'localhost' ? 'http://localhost:3000' : 'https://easycheck-api.onrender.com';
 
-  // --- ESTADOS GERAIS (DA VERSÃO ROBUSTA) ---
+  // --- ESTADOS GERAIS ---
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
   const [isProfileDropdownOpen, setIsProfileDropdownOpen] = useState(false);
   const [isLangMenuOpen, setIsLangMenuOpen] = useState(false);
-  const [isNotifOpen, setIsNotifOpen] = useState(false);
+  const [notifications, setNotifications] = useState([]); // Array vazio = sem ponto vermelho
   
   // --- PRIVACIDADE E UI ---
   const [showFinancials, setShowFinancials] = useState(true); 
@@ -29,9 +29,8 @@ export default function Dashboard() {
   const [userData, setUserData] = useState<any>(null);
   const [profileData, setProfileData] = useState<any>(null);
   const [loadingUser, setLoadingUser] = useState(true);
-  const [teamMembers, setTeamMembers] = useState<any[]>([]); // Mock de equipa
   
-  // --- CONTABILIDADE (NOVA LÓGICA) ---
+  // --- CONTABILIDADE ---
   const [accountingTab, setAccountingTab] = useState('overview'); 
   const [transactions, setTransactions] = useState<any[]>([]);
   const [clients, setClients] = useState<any[]>([]);
@@ -40,7 +39,6 @@ export default function Dashboard() {
   const [isDeleteModalOpen, setIsDeleteModalOpen] = useState(false);
   const [isProfileModalOpen, setIsProfileModalOpen] = useState(false);
   const [showTransactionModal, setShowTransactionModal] = useState(false);
-  const [showClientModal, setShowClientModal] = useState(false);
   const [deleteConfirmation, setDeleteConfirmation] = useState('');
   const [isDeleting, setIsDeleting] = useState(false);
   
@@ -48,7 +46,6 @@ export default function Dashboard() {
   const [editForm, setEditForm] = useState({ fullName: '', jobTitle: '', email: '' });
   const [companyForm, setCompanyForm] = useState({ name: '', country: 'Portugal', currency: 'EUR', address: '', nif: '' });
   const [newTransaction, setNewTransaction] = useState({ description: '', amount: '', type: 'expense', category: 'Geral' });
-  const [newClient, setNewClient] = useState({ name: '', nif: '', email: '', country: '' });
   const [savingProfile, setSavingProfile] = useState(false);
 
   // --- CHAT IA ---
@@ -78,6 +75,13 @@ export default function Dashboard() {
   };
   const currencySymbol = getCurrencySymbol(profileData?.country || 'Portugal');
 
+  // ✅ CÁLCULOS AUTOMÁTICOS (Dashboard Home)
+  const totalRevenue = transactions
+    .filter(t => t.type === 'income')
+    .reduce((acc, curr) => acc + curr.amount, 0);
+
+  const totalInvoicesCount = transactions.filter(t => t.type === 'income').length;
+
   useEffect(() => {
     if (document.documentElement.classList.contains('dark')) setIsDark(true);
     const fetchData = async () => {
@@ -92,10 +96,9 @@ export default function Dashboard() {
                 name: profile.company_name, 
                 country: profile.country || 'Portugal', 
                 currency: profile.currency || 'EUR',
-                address: '', nif: '' // Futuro
+                address: '', nif: '' 
             });
         }
-        // Buscar Transações e Clientes
         const { data: tr } = await supabase.from('transactions').select('*').order('date', { ascending: false });
         if (tr) setTransactions(tr);
         const { data: cl } = await supabase.from('clients').select('*');
@@ -106,18 +109,14 @@ export default function Dashboard() {
     fetchData();
   }, []);
 
-  // SCROLL CHAT
   useEffect(() => { if (scrollRef.current) scrollRef.current.scrollTop = scrollRef.current.scrollHeight; }, [messages]);
 
-  // FUNÇÕES AUXILIARES
   const toggleTheme = () => { document.documentElement.classList.toggle('dark'); setIsDark(!isDark); };
   const toggleFinancials = () => setShowFinancials(!showFinancials);
   const selectLanguage = (code: string) => { i18n.changeLanguage(code); setIsLangMenuOpen(false); };
   const getInitials = (name: string) => name ? (name.split(' ').length > 1 ? (name.split(' ')[0][0] + name.split(' ')[name.split(' ').length - 1][0]) : name.substring(0, 2)).toUpperCase() : 'EC';
   const handleLogout = async () => { await supabase.auth.signOut(); navigate('/'); };
   const copyCode = () => { navigator.clipboard.writeText(profileData?.company_code); alert("Código copiado!"); };
-
-  // --- ACTIONS ---
 
   const handleSendChatMessage = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -150,6 +149,19 @@ export default function Dashboard() {
          setShowTransactionModal(false);
          setNewTransaction({ description: '', amount: '', type: 'expense', category: 'Geral' });
      }
+  };
+
+  // ✅ NOVA FUNÇÃO: APAGAR TRANSAÇÃO
+  const handleDeleteTransaction = async (id: string) => {
+    if (!window.confirm("Tem a certeza que quer apagar este movimento?")) return;
+    
+    const { error } = await supabase.from('transactions').delete().eq('id', id);
+    if (error) {
+        alert("Erro ao apagar.");
+    } else {
+        // Atualiza a lista removendo o item apagado
+        setTransactions(prev => prev.filter(t => t.id !== id));
+    }
   };
 
   const handleSaveProfile = async () => {
@@ -189,7 +201,7 @@ export default function Dashboard() {
   return (
     <div className="flex h-screen bg-gray-50 dark:bg-gray-900 transition-colors duration-300 font-sans text-gray-900 dark:text-gray-100">
       
-      {/* SIDEBAR ROBUSTA */}
+      {/* SIDEBAR */}
       <aside className={`fixed inset-y-0 left-0 z-50 w-64 bg-white dark:bg-gray-800 border-r dark:border-gray-700 transform md:translate-x-0 transition-transform ${isMobileMenuOpen ? 'translate-x-0' : '-translate-x-full'}`}>
         <div className="h-20 flex items-center px-6 border-b dark:border-gray-700">
             <Link to="/" className="flex items-center gap-3"><img src="/logopequena.PNG" className="h-8 w-auto"/><span className="font-bold text-xl">EasyCheck</span></Link>
@@ -212,7 +224,6 @@ export default function Dashboard() {
 
       {/* MAIN CONTENT */}
       <main className="flex-1 md:ml-64 flex flex-col h-screen overflow-hidden relative">
-        {/* HEADER ROBUSTO */}
         <header className="h-20 bg-white dark:bg-gray-800 border-b dark:border-gray-700 flex justify-between px-8 shadow-sm z-20 items-center">
           <div className="flex items-center gap-4">
             <button onClick={() => setIsMobileMenuOpen(!isMobileMenuOpen)} className="md:hidden"><Menu /></button>
@@ -222,7 +233,6 @@ export default function Dashboard() {
             </h2>
           </div>
           <div className="flex items-center gap-4">
-            {/* LÍNGUAS */}
             <div className="relative">
               <button onClick={() => setIsLangMenuOpen(!isLangMenuOpen)} className="p-2 flex gap-2 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-lg"><Globe className="w-5 h-5"/><ChevronDown className="w-3 h-3"/></button>
               {isLangMenuOpen && <div className="absolute right-0 mt-2 w-48 bg-white dark:bg-gray-800 rounded-xl shadow-xl border dark:border-gray-700 z-40">
@@ -231,9 +241,13 @@ export default function Dashboard() {
             </div>
             
             <button onClick={toggleTheme} className="p-2 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-lg">{isDark ? <Sun className="w-5 h-5"/> : <Moon className="w-5 h-5"/>}</button>
-            <button className="p-2 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-lg relative"><Bell className="w-5 h-5"/><span className="absolute top-1 right-1 w-2 h-2 bg-red-500 rounded-full"></span></button>
             
-            {/* PERFIL */}
+            {/* ✅ NOTIFICAÇÕES (Sem ponto vermelho) */}
+            <button className="p-2 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-lg relative">
+                <Bell className="w-5 h-5"/>
+                {notifications.length > 0 && <span className="absolute top-1 right-1 w-2 h-2 bg-red-500 rounded-full"></span>}
+            </button>
+            
             <div className="relative">
               <button onClick={() => setIsProfileDropdownOpen(!isProfileDropdownOpen)} className="w-10 h-10 bg-gradient-to-tr from-blue-600 to-purple-600 rounded-full text-white font-bold shadow-md cursor-pointer hover:opacity-90">{getInitials(profileData?.full_name)}</button>
               {isProfileDropdownOpen && (
@@ -256,18 +270,21 @@ export default function Dashboard() {
 
         <div className="flex-1 overflow-y-auto bg-gray-50 dark:bg-gray-900 p-8">
           <Routes>
-            {/* DASHBOARD PRINCIPAL (Estilo antigo + lógica nova) */}
+            {/* DASHBOARD PRINCIPAL (Agora com Dados Reais) */}
             <Route path="/" element={
               <div className="space-y-6">
                 <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+                  {/* ✅ RECEITA MENSAL REAL */}
                   <div className="bg-white dark:bg-gray-800 p-6 rounded-2xl shadow-sm border dark:border-gray-700">
                     <div className="flex justify-between"><h3 className="text-gray-500 text-sm font-medium">{t('dashboard.stats.revenue')}</h3><button onClick={toggleFinancials} className="text-gray-400">{showFinancials ? <Eye className="w-4 h-4"/> : <EyeOff className="w-4 h-4"/>}</button></div>
-                    <p className="text-3xl font-bold dark:text-white">{showFinancials ? `${currencySymbol} 0,00` : '••••••'}</p>
+                    <p className="text-3xl font-bold dark:text-white">
+                        {showFinancials ? `${currencySymbol} ${totalRevenue.toFixed(2)}` : '••••••'}
+                    </p>
                   </div>
                   <div className="bg-white dark:bg-gray-800 p-6 rounded-2xl shadow-sm border dark:border-gray-700"><h3 className="text-gray-500 text-sm font-medium">{t('dashboard.stats.actions')}</h3><p className="text-3xl font-bold text-blue-600 mt-2">0</p></div>
                   <div className="bg-white dark:bg-gray-800 p-6 rounded-2xl shadow-sm border dark:border-gray-700">
                     <div className="flex justify-between"><h3 className="text-gray-500 text-sm font-medium">{t('dashboard.stats.invoices')}</h3><button onClick={toggleFinancials} className="text-gray-400">{showFinancials ? <Eye className="w-4 h-4"/> : <EyeOff className="w-4 h-4"/>}</button></div>
-                    <p className="text-3xl font-bold text-orange-500">{showFinancials ? '0' : '•••'}</p>
+                    <p className="text-3xl font-bold text-orange-500">{showFinancials ? totalInvoicesCount : '•••'}</p>
                   </div>
                 </div>
                 <div className="bg-blue-50 dark:bg-blue-900/20 border border-blue-100 dark:border-blue-800 rounded-2xl p-8 text-center shadow-lg">
@@ -277,7 +294,6 @@ export default function Dashboard() {
               </div>
             } />
 
-            {/* CONTABILIDADE COMPLETA (O "Bob50") */}
             <Route path="accounting" element={
                 <div className="h-full flex flex-col">
                     <div className="flex gap-2 border-b dark:border-gray-700 pb-2 mb-6 overflow-x-auto">
@@ -306,16 +322,20 @@ export default function Dashboard() {
                                 <div className="bg-white dark:bg-gray-800 rounded-2xl border dark:border-gray-700 shadow-sm overflow-hidden">
                                     <table className="w-full text-sm text-left">
                                         <thead className="bg-gray-50 dark:bg-gray-700 text-gray-500 uppercase text-xs">
-                                            <tr><th className="px-6 py-3">Data</th><th className="px-6 py-3">Descrição</th><th className="px-6 py-3">Categoria</th><th className="px-6 py-3 text-right">Valor</th></tr>
+                                            <tr><th className="px-6 py-3">Data</th><th className="px-6 py-3">Descrição</th><th className="px-6 py-3">Categoria</th><th className="px-6 py-3 text-right">Valor</th><th className="px-6 py-3 text-right">Ação</th></tr>
                                         </thead>
                                         <tbody>
-                                            {transactions.length === 0 ? <tr><td colSpan={4} className="text-center py-8 text-gray-400">Sem movimentos.</td></tr> :
+                                            {transactions.length === 0 ? <tr><td colSpan={5} className="text-center py-8 text-gray-400">Sem movimentos.</td></tr> :
                                                 transactions.map(t => (
-                                                    <tr key={t.id} className="border-b dark:border-gray-700">
+                                                    <tr key={t.id} className="border-b dark:border-gray-700 hover:bg-gray-50 dark:hover:bg-gray-800">
                                                         <td className="px-6 py-4">{new Date(t.date).toLocaleDateString()}</td>
                                                         <td className="px-6 py-4 font-medium">{t.description}</td>
                                                         <td className="px-6 py-4"><span className="px-2 py-1 bg-gray-100 dark:bg-gray-700 rounded-full text-xs">{t.category}</span></td>
                                                         <td className={`px-6 py-4 text-right font-bold ${t.type === 'income' ? 'text-green-600' : 'text-red-500'}`}>{t.type === 'income' ? '+' : '-'} {currencySymbol} {t.amount}</td>
+                                                        {/* ✅ BOTÃO APAGAR */}
+                                                        <td className="px-6 py-4 text-right">
+                                                            <button onClick={() => handleDeleteTransaction(t.id)} className="text-red-400 hover:text-red-600 p-2"><Trash2 size={16}/></button>
+                                                        </td>
                                                     </tr>
                                                 ))
                                             }
@@ -328,14 +348,13 @@ export default function Dashboard() {
                             <div className="flex flex-col items-center justify-center py-20 bg-white dark:bg-gray-800 rounded-2xl border dark:border-gray-700">
                                 <Archive className="w-16 h-16 text-gray-300 mb-4"/>
                                 <h3 className="text-xl font-bold">Módulo {accountingTab.toUpperCase()}</h3>
-                                <p className="text-gray-500">Pronto para {profileData?.country}. (Formulários em desenvolvimento)</p>
+                                <p className="text-gray-500">Pronto para {profileData?.country}.</p>
                             </div>
                         )}
                     </div>
                 </div>
             } />
 
-            {/* CHAT IA */}
             <Route path="chat" element={
               <div className="flex flex-col h-full bg-white dark:bg-gray-800 rounded-2xl border dark:border-gray-700 shadow-sm overflow-hidden">
                 <div ref={scrollRef} className="flex-1 overflow-y-auto p-6 space-y-4">
@@ -355,7 +374,6 @@ export default function Dashboard() {
               </div>
             } />
 
-            {/* COMPANY PAGE (Recuperada) */}
             <Route path="company" element={isOwner ? (
                 <div className="bg-white dark:bg-gray-800 rounded-2xl shadow-sm border dark:border-gray-700 p-8 m-4 overflow-y-auto">
                   <h2 className="text-2xl font-bold dark:text-white mb-6 flex gap-3"><Building2 className="text-blue-600"/> {t('settings.company_title')}</h2>
@@ -374,7 +392,6 @@ export default function Dashboard() {
               ) : <div className="text-center py-12"><Shield className="w-16 h-16 mx-auto mb-4 text-gray-300"/><h3 className="text-xl font-bold dark:text-white">Acesso Restrito</h3></div>
             } />
 
-            {/* SETTINGS (Com Seletor de País) */}
             <Route path="settings" element={
                  <div className="max-w-2xl mx-auto bg-white dark:bg-gray-800 rounded-2xl shadow-sm border dark:border-gray-700 p-8">
                     <h2 className="text-2xl font-bold mb-6 flex gap-2 items-center"><Settings/> Configuração</h2>
@@ -391,7 +408,6 @@ export default function Dashboard() {
                  </div>
             } />
             
-            {/* PLACEHOLDERS ROBUSTOS */}
             <Route path="hr" element={<div className="text-center py-20 text-gray-500"><Users className="w-16 h-16 mx-auto mb-4 opacity-50"/><h3>Gestão de Recursos Humanos</h3><p>Processamento de salários e férias em breve.</p></div>} />
             <Route path="communication" element={<div className="text-center py-20 text-gray-500"><Mail className="w-16 h-16 mx-auto mb-4 opacity-50"/><h3>Centro de Comunicação</h3><p>E-mails e mensagens internas.</p></div>} />
             <Route path="marketing" element={<div className="text-center py-20 text-gray-500"><BarChart3 className="w-16 h-16 mx-auto mb-4 opacity-50"/><h3>Marketing & CRM</h3><p>Gestão de campanhas e leads.</p></div>} />
@@ -400,7 +416,7 @@ export default function Dashboard() {
         </div>
       </main>
 
-      {/* MODAL PERFIL ROBUSTO */}
+      {/* MODAL PERFIL */}
       {isProfileModalOpen && (
         <div className="fixed inset-0 z-[100] flex items-center justify-center bg-black/50 backdrop-blur-sm p-4">
           <div className="bg-white dark:bg-gray-800 rounded-2xl p-6 w-full max-w-lg shadow-2xl border dark:border-gray-700 max-h-[90vh] overflow-y-auto">
