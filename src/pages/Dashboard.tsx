@@ -33,7 +33,7 @@ export default function Dashboard() {
   // --- CONTABILIDADE ---
   const [accountingTab, setAccountingTab] = useState('overview'); 
   const [transactions, setTransactions] = useState<any[]>([]);
-  const [realInvoices, setRealInvoices] = useState<any[]>([]); // ✅ ESTADO PARA FATURAS REAIS
+  const [realInvoices, setRealInvoices] = useState<any[]>([]); 
   const [clients, setClients] = useState<any[]>([]);
   
   // --- MODAIS ---
@@ -65,11 +65,14 @@ export default function Dashboard() {
 
   const countries = ["Portugal", "Brasil", "Angola", "Moçambique", "Cabo Verde", "France", "Deutschland", "United Kingdom", "España", "United States", "Italia", "Belgique", "Suisse", "Luxembourg"];
   
+  // ✅ LISTA COMPLETA DE LÍNGUAS (DE + IT ADICIONADOS)
   const languages = [
     { code: 'pt', label: 'Português', flag: '🇵🇹' },
     { code: 'en', label: 'English', flag: '🇬🇧' },
     { code: 'fr', label: 'Français', flag: '🇫🇷' },
     { code: 'es', label: 'Español', flag: '🇪🇸' },
+    { code: 'de', label: 'Deutsch', flag: '🇩🇪' },
+    { code: 'it', label: 'Italiano', flag: '🇮🇹' },
   ];
 
   // DETECTAR MOEDA
@@ -84,12 +87,11 @@ export default function Dashboard() {
   };
   const currencySymbol = getCurrencySymbol(profileData?.country || 'Portugal');
 
-  // ✅ CÁLCULOS REAIS
+  // CÁLCULOS
   const totalRevenue = transactions
     .filter(t => t.type === 'income')
     .reduce((acc, curr) => acc + curr.amount, 0);
 
-  // ✅ CONTAGEM DE FATURAS (Agora conta a tabela 'invoices' e não transações)
   const totalInvoicesCount = realInvoices.length;
 
   useEffect(() => {
@@ -110,12 +112,9 @@ export default function Dashboard() {
             });
         }
         
-        // Buscar Transações (Diário)
         const { data: tr } = await supabase.from('transactions').select('*').order('date', { ascending: false });
         if (tr) setTransactions(tr);
         
-        // ✅ BUSCAR FATURAS REAIS (Para a contagem correta)
-        // Nota: Se ainda não criaste a tabela 'invoices' no SQL, isto retorna vazio e não dá erro.
         const { data: inv } = await supabase.from('invoices').select('*');
         if (inv) setRealInvoices(inv);
 
@@ -249,7 +248,7 @@ export default function Dashboard() {
           <div className="flex items-center gap-4">
             <button onClick={() => setIsMobileMenuOpen(!isMobileMenuOpen)} className="md:hidden"><Menu /></button>
             <h2 className="text-xl font-bold flex items-center gap-2">
-                {profileData?.country && <span className="text-2xl">{profileData.country === 'Portugal' ? '🇵🇹' : profileData.country === 'Brasil' ? '🇧🇷' : '🌍'}</span>}
+                {/* ✅ REMOVIDO: Lógica da bandeira/terra. Agora mostra só o nome da página. */}
                 {menuItems.find(i => i.path === location.pathname)?.label || 'Dashboard'}
             </h2>
           </div>
@@ -263,6 +262,7 @@ export default function Dashboard() {
             
             <button onClick={toggleTheme} className="p-2 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-lg">{isDark ? <Sun className="w-5 h-5"/> : <Moon className="w-5 h-5"/>}</button>
             
+            {/* SINO SEM PONTO VERMELHO */}
             <button className="p-2 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-lg relative">
                 <Bell className="w-5 h-5"/>
                 {notifications.length > 0 && <span className="absolute top-1 right-1 w-2 h-2 bg-red-500 rounded-full"></span>}
@@ -303,7 +303,7 @@ export default function Dashboard() {
                   </div>
                   <div className="bg-white dark:bg-gray-800 p-6 rounded-2xl shadow-sm border dark:border-gray-700"><h3 className="text-gray-500 text-sm font-medium">{t('dashboard.stats.actions')}</h3><p className="text-3xl font-bold text-blue-600 mt-2">0</p></div>
                   
-                  {/* ✅ FATURAS (Invoices) - Agora só conta as reais */}
+                  {/* FATURAS */}
                   <div className="bg-white dark:bg-gray-800 p-6 rounded-2xl shadow-sm border dark:border-gray-700">
                     <div className="flex justify-between"><h3 className="text-gray-500 text-sm font-medium">{t('dashboard.stats.invoices')}</h3><button onClick={toggleFinancials} className="text-gray-400">{showFinancials ? <Eye className="w-4 h-4"/> : <EyeOff className="w-4 h-4"/>}</button></div>
                     <p className="text-3xl font-bold text-orange-500">{showFinancials ? totalInvoicesCount : '•••'}</p>
@@ -321,7 +321,6 @@ export default function Dashboard() {
                     <div className="flex gap-2 border-b dark:border-gray-700 pb-2 mb-6 overflow-x-auto">
                         {[
                             { id: 'overview', label: 'Visão Geral', icon: PieChart },
-                            // ✅ MUDANÇA: 'Vendas' -> 'Faturas' (para ser específico)
                             { id: 'invoices', label: 'Faturas', icon: FileText }, 
                             { id: 'purchases', label: 'Compras', icon: TrendingDown },
                             { id: 'banking', label: 'Bancos', icon: Landmark },
@@ -367,7 +366,6 @@ export default function Dashboard() {
                             </div>
                         )}
                         
-                        {/* ✅ NOVA SUBCATEGORIA: FATURAS (Onde vamos criar faturas reais) */}
                         {accountingTab === 'invoices' && (
                             <div className="text-center py-20 bg-white dark:bg-gray-800 rounded-2xl border dark:border-gray-700">
                                 <Printer className="w-16 h-16 text-blue-200 mx-auto mb-4"/>
