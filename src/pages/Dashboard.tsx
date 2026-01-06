@@ -11,6 +11,12 @@ export default function Dashboard() {
   const location = useLocation();
   const navigate = useNavigate();
   
+  // --- CONFIGURAÇÃO DE AMBIENTE ---
+  // Se o site estiver no domínio oficial, usa a URL do Render. Caso contrário, usa localhost.
+  const API_URL = window.location.hostname === 'easycheckglobal.com' 
+    ? 'https://easycheck4040-easycheck-reboot2.onrender.com' // Substitui pelo teu URL real do Render se for diferente
+    : 'http://localhost:3000';
+
   // --- ESTADOS GERAIS ---
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
   const [isProfileDropdownOpen, setIsProfileDropdownOpen] = useState(false);
@@ -86,7 +92,7 @@ export default function Dashboard() {
     fetchUser();
   }, []);
 
-  // --- FUNÇÃO DE CONEXÃO COM A IA ---
+  // --- FUNÇÃO DE CONEXÃO COM A IA CORRIGIDA ---
   const handleSendChatMessage = async (e) => {
     e.preventDefault();
     if (!chatInput.trim() || isChatLoading) return;
@@ -97,18 +103,24 @@ export default function Dashboard() {
     setIsChatLoading(true);
 
     try {
-      const response = await fetch('http://localhost:3000/api/chat', {
+      const response = await fetch(`${API_URL}/api/chat`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ message: chatInput }),
       });
+
+      if (!response.ok) throw new Error('Falha na resposta do servidor');
 
       const data = await response.json();
       if (data.reply) {
         setMessages(prev => [...prev, { role: 'assistant', content: data.reply }]);
       }
     } catch (error) {
-      setMessages(prev => [...prev, { role: 'assistant', content: 'Erro ao conectar ao servidor de IA.' }]);
+      console.error("Chat Error:", error);
+      setMessages(prev => [...prev, { 
+        role: 'assistant', 
+        content: '⚠️ Erro ao ligar ao servidor de IA. Por favor, garante que o backend está ativo no Render.' 
+      }]);
     } finally {
       setIsChatLoading(false);
     }
@@ -253,10 +265,8 @@ export default function Dashboard() {
               </div>
             } />
 
-            {/* --- INTEGRANDO O CHAT IA NO LAYOUT --- */}
             <Route path="chat" element={
               <div className="flex flex-col h-full bg-white dark:bg-gray-800 m-4 rounded-3xl shadow-sm border dark:border-gray-700 overflow-hidden">
-                {/* Header do Chat */}
                 <div className="px-6 py-4 border-b dark:border-gray-700 flex items-center justify-between bg-gray-50/50 dark:bg-gray-800/50">
                    <div className="flex items-center gap-3">
                       <div className="w-3 h-3 bg-green-500 rounded-full animate-pulse"></div>
@@ -265,7 +275,6 @@ export default function Dashboard() {
                    <button onClick={() => setMessages([{ role: 'assistant', content: 'Chat reiniciado. Como posso ajudar?' }])} className="text-xs text-gray-400 hover:text-blue-600 font-medium">Limpar conversa</button>
                 </div>
 
-                {/* Log de Mensagens */}
                 <div ref={scrollRef} className="flex-1 overflow-y-auto p-6 space-y-4 scroll-smooth">
                   {messages.map((msg, i) => (
                     <div key={i} className={`flex ${msg.role === 'user' ? 'justify-end' : 'justify-start'}`}>
@@ -289,25 +298,23 @@ export default function Dashboard() {
                   )}
                 </div>
 
-                {/* Input Area */}
                 <div className="p-4 border-t dark:border-gray-700 bg-white dark:bg-gray-800">
                   <form onSubmit={handleSendChatMessage} className="flex gap-2 relative">
                     <input 
                       type="text"
                       value={chatInput}
                       onChange={(e) => setChatInput(e.target.value)}
-                      placeholder="Escreva a sua dúvida sobre RH, Marketing ou Contabilidade..."
-                      className="flex-1 bg-gray-50 dark:bg-gray-900 border border-gray-200 dark:border-gray-700 rounded-2xl px-5 py-4 text-sm focus:ring-2 focus:ring-blue-500 outline-none dark:text-white transition-all pr-14"
+                      placeholder="Escreva a sua dúvida..."
+                      className="flex-1 bg-gray-50 dark:bg-gray-900 border border-gray-200 dark:border-gray-700 rounded-2xl px-5 py-4 text-sm focus:ring-2 focus:ring-blue-500 outline-none dark:text-white pr-14"
                     />
                     <button 
                       type="submit" 
                       disabled={isChatLoading || !chatInput.trim()}
-                      className="absolute right-2 top-2 bottom-2 bg-blue-600 text-white p-3 rounded-xl hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed transition-all"
+                      className="absolute right-2 top-2 bottom-2 bg-blue-600 text-white p-3 rounded-xl hover:bg-blue-700 disabled:opacity-50 transition-all"
                     >
                       <Send className="w-5 h-5" />
                     </button>
                   </form>
-                  <p className="text-[10px] text-center text-gray-400 mt-2">A IA do EasyCheck pode cometer erros. Verifique informações importantes.</p>
                 </div>
               </div>
             } />
@@ -324,11 +331,9 @@ export default function Dashboard() {
                         <button onClick={copyCode} className="p-2 text-gray-400 hover:text-blue-600"><Copy className="w-4 h-4"/></button>
                       </div>
                     </div>
-                    <h3 className="text-lg font-bold dark:text-white mb-4 flex gap-2"><Users className="w-5 h-5"/> {t('settings.team_members')}</h3>
-                    <div className="text-center py-12 border-2 border-dashed rounded-2xl border-gray-200 dark:border-gray-700 text-gray-500">{t('settings.no_members')}</div>
                   </div>
                 </div>
-              ) : <div className="text-center py-12 h-full flex flex-col items-center justify-center bg-gray-50 dark:bg-gray-900"><Shield className="w-16 h-16 mb-4 text-gray-300"/><h3 className="text-xl font-bold dark:text-white">Acesso Restrito ao Gestor</h3></div>
+              ) : <div className="text-center py-12 h-full flex flex-col items-center justify-center bg-gray-50 dark:bg-gray-900"><Shield className="w-16 h-16 mb-4 text-gray-300"/><h3 className="text-xl font-bold dark:text-white">Acesso Restrito</h3></div>
             } />
 
             <Route path="*" element={<div className="flex flex-col items-center justify-center h-full text-gray-400 gap-4 opacity-50"><AlertTriangle className="w-12 h-12"/><h3>Página em desenvolvimento...</h3></div>} />
@@ -362,38 +367,12 @@ export default function Dashboard() {
                         </div>
                      </div>
                   </div>
-                  <div className="space-y-4">
-                    <div><label className="block text-xs font-bold text-gray-500 uppercase mb-1">{t('form.company_name')}</label><input type="text" value={companyForm.name} onChange={e => setCompanyForm({...companyForm, name: e.target.value})} className="w-full p-4 border rounded-2xl dark:bg-gray-900 dark:text-white outline-none focus:ring-2 focus:ring-blue-500 text-sm"/></div>
-                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                      <div><label className="block text-xs font-bold text-gray-500 uppercase mb-1">{t('form.address')}</label><input type="text" value={companyForm.address} onChange={e => setCompanyForm({...companyForm, address: e.target.value})} className="w-full p-4 border rounded-2xl dark:bg-gray-900 dark:text-white outline-none focus:ring-2 focus:ring-blue-500 text-sm"/></div>
-                      <div><label className="block text-xs font-bold text-gray-500 uppercase mb-1">{t('form.nif')}</label><input type="text" value={companyForm.nif} onChange={e => setCompanyForm({...companyForm, nif: e.target.value})} className="w-full p-4 border rounded-2xl dark:bg-gray-900 dark:text-white outline-none focus:ring-2 focus:ring-blue-500 text-sm"/></div>
-                    </div>
-                  </div>
                 </>
               )}
             </div>
             <div className="flex justify-end gap-3 mt-8 pt-6 border-t dark:border-gray-700">
               <button onClick={() => setIsProfileModalOpen(false)} className="px-6 py-3 border rounded-2xl dark:text-gray-300 font-medium hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors">{t('common.cancel')}</button>
               <button onClick={handleSaveProfile} disabled={savingProfile} className="px-6 py-3 bg-blue-600 text-white rounded-2xl font-bold hover:bg-blue-700 shadow-lg active:scale-95 transition-all">{t('common.save')}</button>
-            </div>
-          </div>
-        </div>
-      )}
-
-      {/* MODAL APAGAR CONTA */}
-      {isDeleteModalOpen && (
-        <div className="fixed inset-0 z-[100] flex items-center justify-center bg-black/60 backdrop-blur-sm p-4">
-          <div className="bg-white dark:bg-gray-800 rounded-3xl p-8 w-full max-w-md shadow-2xl border dark:border-gray-700">
-            <div className="w-16 h-16 bg-red-100 dark:bg-red-900/30 rounded-full flex items-center justify-center mx-auto mb-4"><AlertTriangle className="text-red-600 w-8 h-8"/></div>
-            <h3 className="text-xl font-bold text-red-600 mb-2 text-center">{t('delete.title')}</h3>
-            <p className="text-gray-600 dark:text-gray-300 mb-6 text-center text-sm">{t('delete.text')}</p>
-            <div className="space-y-4">
-              <p className="text-[10px] uppercase font-bold text-gray-400 mb-1 text-center">Escreva "ELIMINAR" para confirmar</p>
-              <input type="text" value={deleteConfirmation} onChange={(e) => setDeleteConfirmation(e.target.value)} placeholder="ELIMINAR" className="w-full p-4 border rounded-2xl mb-4 text-center uppercase font-bold dark:bg-gray-900 dark:text-white focus:ring-2 focus:ring-red-500 outline-none"/>
-            </div>
-            <div className="flex gap-3 mt-4">
-              <button onClick={() => setIsDeleteModalOpen(false)} className="flex-1 py-4 bg-gray-100 dark:bg-gray-700 dark:text-white rounded-2xl font-bold hover:bg-gray-200 transition-colors">{t('common.cancel')}</button>
-              <button onClick={handleDeleteAccount} className="flex-1 py-4 bg-red-600 text-white rounded-2xl font-bold hover:bg-red-700 shadow-lg active:scale-95 transition-all">{t('common.delete')}</button>
             </div>
           </div>
         </div>
