@@ -1,9 +1,9 @@
-import { useState, useEffect, useRef } from 'react';
+import { useState, useEffect } from 'react';
 import { Routes, Route, Link, useLocation, useNavigate } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
 import { supabase } from '../supabase/client';
 import { 
-  LayoutDashboard, MessageSquare, FileText, Users, BarChart3, Settings, LogOut, Menu, X, Bell, Mail, User, Trash2, AlertTriangle, Building2, Globe, Moon, Sun, ChevronDown, Eye, EyeOff, Pencil, UserMinus, Shield, Copy, Send
+  LayoutDashboard, MessageSquare, FileText, Users, BarChart3, Settings, LogOut, Menu, X, Bell, Mail, User, Trash2, AlertTriangle, Building2, Globe, Moon, Sun, ChevronDown, Eye, EyeOff, Pencil, UserMinus, Shield, Copy
 } from 'lucide-react';
 
 export default function Dashboard() {
@@ -11,28 +11,16 @@ export default function Dashboard() {
   const location = useLocation();
   const navigate = useNavigate();
   
-  // ✅ URL DINÂMICA: Corrigida para o teu novo link do Render
-  const API_URL = window.location.hostname === 'easycheckglobal.com' 
-    ? 'https://gera-o-zip-final-pronto.onrender.com' 
-    : 'http://localhost:3000';
-
   // --- ESTADOS GERAIS ---
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
   const [isProfileDropdownOpen, setIsProfileDropdownOpen] = useState(false);
+  const [isNotifOpen, setIsNotifOpen] = useState(false);
   const [isLangMenuOpen, setIsLangMenuOpen] = useState(false);
   
-  // --- ESTADOS DE CHAT IA ---
-  const [messages, setMessages] = useState([
-    { role: 'assistant', content: 'Olá! Sou a IA do EasyCheck. Como posso ajudar a sua empresa hoje?' }
-  ]);
-  const [chatInput, setChatInput] = useState('');
-  const [isChatLoading, setIsChatLoading] = useState(false);
-  const scrollRef = useRef<HTMLDivElement>(null);
-
   // --- ESTADOS DE PRIVACIDADE ---
   const [showFinancials, setShowFinancials] = useState(true); 
-  const [showModalCode, setShowModalCode] = useState(false);
-  const [showPageCode, setShowPageCode] = useState(false);
+  const [showModalCode, setShowModalCode] = useState(false); // Olho dentro do Modal Perfil
+  const [showPageCode, setShowPageCode] = useState(false);   // Olho na página Empresa
 
   const [isDark, setIsDark] = useState(false);
   const [userData, setUserData] = useState<any>(null);
@@ -42,6 +30,8 @@ export default function Dashboard() {
   // --- MODAIS ---
   const [isDeleteModalOpen, setIsDeleteModalOpen] = useState(false);
   const [isProfileModalOpen, setIsProfileModalOpen] = useState(false);
+  const [isEditMemberModalOpen, setIsEditMemberModalOpen] = useState(false);
+  const [memberToEdit, setMemberToEdit] = useState<any>(null);
   const [deleteConfirmation, setDeleteConfirmation] = useState('');
   const [isDeleting, setIsDeleting] = useState(false);
   const [savingProfile, setSavingProfile] = useState(false);
@@ -58,13 +48,6 @@ export default function Dashboard() {
     { code: 'de', label: 'Deutsch', flag: '🇩🇪' },
     { code: 'it', label: 'Italiano', flag: '🇮🇹' },
   ];
-
-  // Auto-scroll do chat
-  useEffect(() => {
-    if (scrollRef.current) {
-      scrollRef.current.scrollTop = scrollRef.current.scrollHeight;
-    }
-  }, [messages]);
 
   useEffect(() => {
     if (document.documentElement.classList.contains('dark')) setIsDark(true);
@@ -87,36 +70,6 @@ export default function Dashboard() {
     };
     fetchUser();
   }, []);
-
-  // ✅ FUNÇÃO DE ENVIO CORRIGIDA
-  const handleSendChatMessage = async (e: React.FormEvent) => {
-    e.preventDefault();
-    if (!chatInput.trim() || isChatLoading) return;
-
-    const userMessage = { role: 'user', content: chatInput };
-    setMessages(prev => [...prev, userMessage]);
-    setChatInput('');
-    setIsChatLoading(true);
-
-    try {
-      const response = await fetch(`${API_URL}/api/chat`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ message: chatInput }),
-      });
-
-      const data = await response.json();
-      if (data.reply) {
-        setMessages(prev => [...prev, { role: 'assistant', content: data.reply }]);
-      } else {
-        throw new Error();
-      }
-    } catch (error) {
-      setMessages(prev => [...prev, { role: 'assistant', content: '⚠️ Erro ao ligar ao servidor de IA.' }]);
-    } finally {
-      setIsChatLoading(false);
-    }
-  };
 
   const toggleTheme = () => { document.documentElement.classList.toggle('dark'); setIsDark(!isDark); };
   const toggleFinancials = () => setShowFinancials(!showFinancials);
@@ -150,6 +103,10 @@ export default function Dashboard() {
     finally { setIsDeleting(false); }
   };
 
+  // Lógica de Equipa (Mock)
+  const openEditMember = (member: any) => { setMemberToEdit({ ...member }); setIsEditMemberModalOpen(true); };
+  const saveMemberRole = () => { setTeamMembers(prev => prev.map(m => m.id === memberToEdit.id ? memberToEdit : m)); setIsEditMemberModalOpen(false); };
+  const deleteMember = (id: number) => { if (window.confirm(t('team.delete_confirm'))) setTeamMembers(prev => prev.filter(m => m.id !== id)); };
   const copyCode = () => { navigator.clipboard.writeText(userData?.user_metadata?.company_code); alert("Código copiado!"); };
 
   if (loadingUser) return <div className="h-screen flex items-center justify-center bg-gray-50 dark:bg-gray-900">Loading...</div>;
@@ -162,6 +119,7 @@ export default function Dashboard() {
     { icon: Mail, label: t('dashboard.menu.communication'), path: '/dashboard/communication' },
     { icon: Users, label: t('dashboard.menu.hr'), path: '/dashboard/hr' },
     { icon: BarChart3, label: t('dashboard.menu.marketing'), path: '/dashboard/marketing' },
+    // GESTÃO EMPRESA (Só Patrão)
     { icon: Building2, label: t('dashboard.menu.company'), path: '/dashboard/company', hidden: !isOwner, special: true },
     { icon: Settings, label: t('dashboard.menu.settings'), path: '/dashboard/settings' },
   ];
@@ -172,7 +130,7 @@ export default function Dashboard() {
       {/* SIDEBAR */}
       <aside className={`fixed inset-y-0 left-0 z-50 w-64 bg-white dark:bg-gray-800 border-r dark:border-gray-700 transform transition-transform duration-200 md:translate-x-0 ${isMobileMenuOpen ? 'translate-x-0' : '-translate-x-full'}`}>
         <div className="h-20 flex items-center px-6 border-b dark:border-gray-700">
-          <Link to="/" className="flex items-center gap-3"><img src="/logopequena.PNG" className="h-8 w-auto"/><span className="font-bold text-xl dark:text-white uppercase tracking-tight">EasyCheck</span></Link>
+          <Link to="/" className="flex items-center gap-3"><img src="/logopequena.PNG" className="h-8 w-auto"/><span className="font-bold text-xl dark:text-white">EasyCheck</span></Link>
         </div>
         <nav className="flex-1 px-4 py-6 space-y-2 overflow-y-auto">
           {menuItems.map((item) => {
@@ -221,6 +179,9 @@ export default function Dashboard() {
                     <div className="px-4 py-4 border-b dark:border-gray-700 bg-gray-50 dark:bg-gray-800/50">
                       <p className="font-bold dark:text-white truncate">{userData?.user_metadata?.full_name}</p>
                       <p className="text-xs text-gray-500 dark:text-gray-400 truncate mb-2">{userData?.email}</p>
+                      <span className="text-[10px] uppercase tracking-wider font-bold bg-blue-100 text-blue-700 px-2 py-0.5 rounded-full inline-block">
+                        {isOwner ? t('role.owner') : t('role.employee')}
+                      </span>
                     </div>
                     <button onClick={() => {setIsProfileModalOpen(true); setIsProfileDropdownOpen(false)}} className="w-full text-left px-4 py-3 hover:bg-gray-50 dark:hover:bg-gray-700 flex gap-2 dark:text-gray-300 text-sm font-medium"><User className="w-4 h-4"/> {t('profile.edit')}</button>
                     <button onClick={() => {setIsDeleteModalOpen(true); setIsProfileDropdownOpen(false)}} className="w-full text-left px-4 py-3 text-red-600 hover:bg-red-50 dark:hover:bg-red-900/20 flex gap-2 border-t dark:border-gray-700 text-sm font-medium"><Trash2 className="w-4 h-4"/> {t('profile.delete')}</button>
@@ -231,87 +192,107 @@ export default function Dashboard() {
           </div>
         </header>
 
-        <div className="flex-1 overflow-hidden flex flex-col bg-gray-50 dark:bg-gray-900">
+        <div className="flex-1 overflow-y-auto p-8 bg-gray-50 dark:bg-gray-900">
           <Routes>
             <Route path="/" element={
-              <div className="p-8 space-y-6 overflow-y-auto h-full">
+              <div className="space-y-6">
                 <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
                   <div className="bg-white dark:bg-gray-800 p-6 rounded-2xl shadow-sm border dark:border-gray-700">
                     <div className="flex justify-between"><h3 className="text-gray-500 text-sm font-medium">{t('dashboard.stats.revenue')}</h3><button onClick={toggleFinancials} className="text-gray-400">{showFinancials ? <Eye className="w-4 h-4"/> : <EyeOff className="w-4 h-4"/>}</button></div>
                     <p className="text-3xl font-bold dark:text-white">{showFinancials ? '€0,00' : '••••••'}</p>
                   </div>
+                  <div className="bg-white dark:bg-gray-800 p-6 rounded-2xl shadow-sm border dark:border-gray-700"><h3 className="text-gray-500 text-sm font-medium">{t('dashboard.stats.actions')}</h3><p className="text-3xl font-bold text-blue-600 mt-2">0</p></div>
+                  <div className="bg-white dark:bg-gray-800 p-6 rounded-2xl shadow-sm border dark:border-gray-700">
+                    <div className="flex justify-between"><h3 className="text-gray-500 text-sm font-medium">{t('dashboard.stats.invoices')}</h3><button onClick={toggleFinancials} className="text-gray-400">{showFinancials ? <Eye className="w-4 h-4"/> : <EyeOff className="w-4 h-4"/>}</button></div>
+                    <p className="text-3xl font-bold text-orange-500">{showFinancials ? '0' : '•••'}</p>
+                  </div>
                 </div>
-                <div className="bg-blue-50 dark:bg-blue-900/20 border border-blue-100 dark:border-blue-800 rounded-2xl p-8 text-center shadow-lg">
+                <div className="bg-blue-50 dark:bg-blue-900/20 border border-blue-100 dark:border-blue-800 rounded-2xl p-8 text-center">
                   <h3 className="text-xl font-bold text-blue-800 dark:text-blue-300 mb-2">{t('dashboard.welcome')}, {userData?.user_metadata?.full_name?.split(' ')[0]}! 👋</h3>
                   <Link to="/dashboard/chat" className="inline-flex items-center gap-2 bg-blue-600 text-white px-6 py-3 rounded-xl font-bold hover:bg-blue-700 shadow-lg"><MessageSquare className="w-5 h-5" />{t('dashboard.open_chat')}</Link>
                 </div>
               </div>
             } />
 
-            {/* ABA DE CHAT IA FUNCIONAL */}
-            <Route path="chat" element={
-              <div className="flex flex-col h-full bg-white dark:bg-gray-800 m-4 rounded-2xl border dark:border-gray-700 overflow-hidden shadow-sm">
-                <div ref={scrollRef} className="flex-1 overflow-y-auto p-6 space-y-4">
-                  {messages.map((msg, i) => (
-                    <div key={i} className={`flex ${msg.role === 'user' ? 'justify-end' : 'justify-start'}`}>
-                      <div className={`max-w-[80%] px-4 py-3 rounded-2xl text-sm shadow-sm ${
-                        msg.role === 'user' 
-                        ? 'bg-blue-600 text-white rounded-tr-none' 
-                        : 'bg-gray-100 dark:bg-gray-700 dark:text-white rounded-tl-none'
-                      }`}>
-                        {msg.content}
-                      </div>
+            <Route path="company" element={isOwner ? (
+                <div className="bg-white dark:bg-gray-800 rounded-2xl shadow-sm border dark:border-gray-700 p-8">
+                  <h2 className="text-2xl font-bold dark:text-white mb-6 flex gap-3"><Building2 className="text-blue-600"/> {t('settings.company_title')}</h2>
+                  
+                  <div className="mb-8 p-6 bg-blue-50 dark:bg-blue-900/20 rounded-2xl border border-blue-100 dark:border-blue-800 flex flex-col md:flex-row items-center justify-between gap-6">
+                    <div><h4 className="font-bold text-blue-900 dark:text-blue-200 mb-1">{t('settings.invite_code')}</h4><p className="text-sm text-blue-600 dark:text-blue-400">{t('settings.invite_text')}</p></div>
+                    <div className="flex items-center gap-3 bg-white dark:bg-gray-900 p-3 rounded-xl shadow-sm border border-gray-200 dark:border-gray-700">
+                      <code className="px-2 font-mono text-lg font-bold text-gray-700 dark:text-gray-300">
+                        {showPageCode ? userData?.user_metadata?.company_code : '••••••••'}
+                      </code>
+                      <button onClick={() => setShowPageCode(!showPageCode)} className="p-2 text-gray-400 hover:text-blue-600">{showPageCode ? <EyeOff className="w-4 h-4"/> : <Eye className="w-4 h-4"/>}</button>
+                      <button onClick={copyCode} className="p-2 text-gray-400 hover:text-blue-600"><Copy className="w-4 h-4"/></button>
                     </div>
-                  ))}
-                  {isChatLoading && (
-                    <div className="flex justify-start">
-                      <div className="bg-gray-100 dark:bg-gray-700 px-4 py-2 rounded-2xl rounded-tl-none animate-pulse text-xs">
-                        EasyCheck está a pensar...
-                      </div>
-                    </div>
-                  )}
-                </div>
+                  </div>
 
-                <div className="p-4 border-t dark:border-gray-700">
-                  <form onSubmit={handleSendChatMessage} className="flex gap-2 relative">
-                    <input 
-                      type="text"
-                      value={chatInput}
-                      onChange={(e) => setChatInput(e.target.value)}
-                      placeholder="Escreva aqui..."
-                      className="flex-1 bg-gray-50 dark:bg-gray-900 border border-gray-200 dark:border-gray-700 rounded-2xl px-5 py-3 text-sm outline-none dark:text-white pr-12"
-                    />
-                    <button 
-                      type="submit" 
-                      disabled={isChatLoading || !chatInput.trim()}
-                      className="absolute right-2 top-2 bottom-2 bg-blue-600 text-white p-2 rounded-xl"
-                    >
-                      <Send size={18} />
-                    </button>
-                  </form>
+                  <h3 className="text-lg font-bold dark:text-white mb-4 flex gap-2"><Users className="w-5 h-5"/> {t('settings.team_members')}</h3>
+                  {teamMembers.length === 0 ? <div className="text-center py-12 border-2 border-dashed rounded-xl text-gray-500">{t('settings.no_members')}</div> : <div>Tabela aqui...</div>}
                 </div>
-              </div>
+              ) : <div className="text-center py-12"><Shield className="w-16 h-16 mx-auto mb-4 text-gray-300"/><h3 className="text-xl font-bold dark:text-white">Acesso Restrito</h3></div>
             } />
 
-            <Route path="company" element={isOwner ? ( <div className="p-8">Gestão Empresa</div> ) : <div>Acesso Restrito</div>} />
+            <Route path="settings" element={<div className="text-center py-12 text-gray-500"><Settings className="w-16 h-16 mx-auto mb-4 opacity-50"/><h3>{t('dashboard.menu.settings')}</h3></div>} />
             <Route path="*" element={<div className="flex justify-center py-10 text-gray-400">Em desenvolvimento...</div>} />
           </Routes>
         </div>
       </main>
 
-      {/* MODAL EDITAR PERFIL (Restaurado Completo) */}
       {isProfileModalOpen && (
-        <div className="fixed inset-0 z-[100] flex items-center justify-center bg-black/50 backdrop-blur-sm p-4 text-left">
-          <div className="bg-white dark:bg-gray-800 rounded-2xl p-6 w-full max-w-lg shadow-2xl border dark:border-gray-700">
-            <h3 className="text-xl font-bold dark:text-white mb-6">Editar Perfil</h3>
+        <div className="fixed inset-0 z-[100] flex items-center justify-center bg-black/50 backdrop-blur-sm p-4">
+          <div className="bg-white dark:bg-gray-800 rounded-2xl p-6 w-full max-w-lg shadow-2xl border dark:border-gray-700 max-h-[90vh] overflow-y-auto">
+            <div className="flex justify-between items-center mb-6 pb-4 border-b dark:border-gray-700">
+              <h3 className="text-xl font-bold dark:text-white flex items-center gap-2"><User className="text-blue-600"/> {t('profile.edit_title')}</h3>
+              <button onClick={() => setIsProfileModalOpen(false)}><X className="text-gray-400"/></button>
+            </div>
             <div className="space-y-4">
-              <input type="text" value={editForm.fullName} onChange={e => setEditForm({...editForm, fullName: e.target.value})} className="w-full p-3 border rounded-xl dark:bg-gray-900 dark:text-white"/>
-              <input type="text" value={editForm.jobTitle} onChange={e => setEditForm({...editForm, jobTitle: e.target.value})} className="w-full p-3 border rounded-xl dark:bg-gray-900 dark:text-white"/>
+              <div><label className="block text-sm dark:text-gray-300 mb-1">{t('form.email')}</label><input type="email" value={editForm.email} disabled className="w-full p-3 border rounded-xl bg-gray-50 dark:bg-gray-900 cursor-not-allowed dark:text-gray-400"/></div>
+              <div><label className="block text-sm dark:text-gray-300 mb-1">{t('form.fullname')}</label><input type="text" value={editForm.fullName} onChange={e => setEditForm({...editForm, fullName: e.target.value})} className="w-full p-3 border rounded-xl dark:bg-gray-900 dark:text-white"/></div>
+              <div><label className="block text-sm dark:text-gray-300 mb-1">{t('form.jobtitle')}</label><input type="text" value={editForm.jobTitle} onChange={e => setEditForm({...editForm, jobTitle: e.target.value})} className="w-full p-3 border rounded-xl dark:bg-gray-900 dark:text-white"/></div>
+              
+              {isOwner && (
+                <>
+                  <div className="pt-4 border-t dark:border-gray-700"><h4 className="text-xs font-bold text-purple-600 uppercase mb-3 flex items-center gap-2"><Building2 className="w-4 h-4"/> {t('PROFILE.COMPANY_SECTION')}</h4></div>
+                  <div className="bg-purple-50 dark:bg-purple-900/20 p-3 rounded-xl border border-purple-100 dark:border-purple-800 mb-4">
+                     <label className="text-xs font-bold text-purple-700 dark:text-purple-300 mb-1 block">{t('form.code') || 'Código'}</label>
+                     <div className="flex items-center justify-between">
+                        <span className="font-mono font-medium text-purple-900 dark:text-white text-lg">
+                           {showModalCode ? userData?.user_metadata?.company_code : '••••••••'}
+                        </span>
+                        <div className="flex gap-2">
+                           <button onClick={() => setShowModalCode(!showModalCode)} className="text-purple-400 hover:text-purple-600 p-1">
+                              {showModalCode ? <EyeOff className="w-4 h-4"/> : <Eye className="w-4 h-4"/>}
+                           </button>
+                           <button onClick={copyCode} className="text-purple-400 hover:text-purple-600 p-1"><Copy className="w-4 h-4"/></button>
+                        </div>
+                     </div>
+                  </div>
+                  <div><label className="block text-sm dark:text-gray-300 mb-1">{t('form.company_name')}</label><input type="text" value={companyForm.name} onChange={e => setCompanyForm({...companyForm, name: e.target.value})} className="w-full p-3 border rounded-xl dark:bg-gray-900 dark:text-white"/></div>
+                  <div className="grid grid-cols-2 gap-4">
+                    <div><label className="block text-sm dark:text-gray-300 mb-1">{t('form.address')}</label><input type="text" value={companyForm.address} onChange={e => setCompanyForm({...companyForm, address: e.target.value})} className="w-full p-3 border rounded-xl dark:bg-gray-900 dark:text-white"/></div>
+                    <div><label className="block text-sm dark:text-gray-300 mb-1">{t('form.nif')}</label><input type="text" value={companyForm.nif} onChange={e => setCompanyForm({...companyForm, nif: e.target.value})} className="w-full p-3 border rounded-xl dark:bg-gray-900 dark:text-white"/></div>
+                  </div>
+                </>
+              )}
             </div>
-            <div className="flex justify-end gap-3 mt-8">
-              <button onClick={() => setIsProfileModalOpen(false)} className="px-5 py-2.5 border rounded-xl dark:text-gray-300">Cancelar</button>
-              <button onClick={handleSaveProfile} disabled={savingProfile} className="px-5 py-2.5 bg-blue-600 text-white rounded-xl">Guardar</button>
+            <div className="flex justify-end gap-3 mt-8 pt-4 border-t dark:border-gray-700">
+              <button onClick={() => setIsProfileModalOpen(false)} className="px-5 py-2.5 border rounded-xl dark:text-gray-300">{t('common.cancel')}</button>
+              <button onClick={handleSaveProfile} disabled={savingProfile} className="px-5 py-2.5 bg-blue-600 text-white rounded-xl font-bold">{t('common.save')}</button>
             </div>
+          </div>
+        </div>
+      )}
+
+      {isDeleteModalOpen && (
+        <div className="fixed inset-0 z-[100] flex items-center justify-center bg-black/50 backdrop-blur-sm p-4">
+          <div className="bg-white dark:bg-gray-800 rounded-2xl p-6 w-full max-w-md shadow-2xl border dark:border-gray-700">
+            <h3 className="text-xl font-bold text-red-600 mb-4 flex gap-2"><AlertTriangle/> {t('delete.title')}</h3>
+            <p className="text-gray-600 dark:text-gray-300 mb-4">{t('delete.text')}</p>
+            <input type="text" value={deleteConfirmation} onChange={(e) => setDeleteConfirmation(e.target.value)} className="w-full p-3 border rounded mb-4 uppercase dark:bg-gray-900 dark:text-white"/>
+            <div className="flex justify-end gap-2"><button onClick={() => setIsDeleteModalOpen(false)} className="px-4 py-2 bg-gray-100 dark:bg-gray-700 rounded">{t('common.cancel')}</button><button onClick={handleDeleteAccount} className="px-4 py-2 bg-red-600 text-white rounded">{t('common.delete')}</button></div>
           </div>
         </div>
       )}
