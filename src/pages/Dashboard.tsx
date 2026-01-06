@@ -3,7 +3,7 @@ import { Routes, Route, Link, useLocation, useNavigate } from 'react-router-dom'
 import { useTranslation } from 'react-i18next';
 import { supabase } from '../supabase/client';
 import { 
-  LayoutDashboard, MessageSquare, FileText, Users, BarChart3, Settings, LogOut, Menu, X, Globe, Moon, Sun, ChevronDown, Eye, EyeOff, User, Trash2, AlertTriangle, Building2, Copy, Send, Shield, Mail, Plus, Search, FileCheck, Calculator, TrendingUp, Archive, TrendingDown, Landmark, PieChart, FileSpreadsheet, Bell
+  LayoutDashboard, MessageSquare, FileText, Users, BarChart3, Settings, LogOut, Menu, X, Globe, Moon, Sun, ChevronDown, Eye, EyeOff, User, Trash2, AlertTriangle, Building2, Copy, Send, Shield, Mail, Plus, Search, FileCheck, Calculator, TrendingUp, Archive, TrendingDown, Landmark, PieChart, FileSpreadsheet, Bell, Calendar, Printer
 } from 'lucide-react';
 
 export default function Dashboard() {
@@ -17,7 +17,7 @@ export default function Dashboard() {
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
   const [isProfileDropdownOpen, setIsProfileDropdownOpen] = useState(false);
   const [isLangMenuOpen, setIsLangMenuOpen] = useState(false);
-  const [notifications, setNotifications] = useState([]); // Array vazio = sem ponto vermelho
+  const [notifications, setNotifications] = useState([]); 
   
   // --- PRIVACIDADE E UI ---
   const [showFinancials, setShowFinancials] = useState(true); 
@@ -33,6 +33,7 @@ export default function Dashboard() {
   // --- CONTABILIDADE ---
   const [accountingTab, setAccountingTab] = useState('overview'); 
   const [transactions, setTransactions] = useState<any[]>([]);
+  const [realInvoices, setRealInvoices] = useState<any[]>([]); // ✅ ESTADO PARA FATURAS REAIS
   const [clients, setClients] = useState<any[]>([]);
   
   // --- MODAIS ---
@@ -45,7 +46,15 @@ export default function Dashboard() {
   // --- FORMULÁRIOS ---
   const [editForm, setEditForm] = useState({ fullName: '', jobTitle: '', email: '' });
   const [companyForm, setCompanyForm] = useState({ name: '', country: 'Portugal', currency: 'EUR', address: '', nif: '' });
-  const [newTransaction, setNewTransaction] = useState({ description: '', amount: '', type: 'expense', category: 'Geral' });
+  
+  const [newTransaction, setNewTransaction] = useState({ 
+    description: '', 
+    amount: '', 
+    type: 'expense', 
+    category: '',
+    date: new Date().toISOString().split('T')[0]
+  });
+
   const [savingProfile, setSavingProfile] = useState(false);
 
   // --- CHAT IA ---
@@ -75,12 +84,13 @@ export default function Dashboard() {
   };
   const currencySymbol = getCurrencySymbol(profileData?.country || 'Portugal');
 
-  // ✅ CÁLCULOS AUTOMÁTICOS (Dashboard Home)
+  // ✅ CÁLCULOS REAIS
   const totalRevenue = transactions
     .filter(t => t.type === 'income')
     .reduce((acc, curr) => acc + curr.amount, 0);
 
-  const totalInvoicesCount = transactions.filter(t => t.type === 'income').length;
+  // ✅ CONTAGEM DE FATURAS (Agora conta a tabela 'invoices' e não transações)
+  const totalInvoicesCount = realInvoices.length;
 
   useEffect(() => {
     if (document.documentElement.classList.contains('dark')) setIsDark(true);
@@ -99,8 +109,16 @@ export default function Dashboard() {
                 address: '', nif: '' 
             });
         }
+        
+        // Buscar Transações (Diário)
         const { data: tr } = await supabase.from('transactions').select('*').order('date', { ascending: false });
         if (tr) setTransactions(tr);
+        
+        // ✅ BUSCAR FATURAS REAIS (Para a contagem correta)
+        // Nota: Se ainda não criaste a tabela 'invoices' no SQL, isto retorna vazio e não dá erro.
+        const { data: inv } = await supabase.from('invoices').select('*');
+        if (inv) setRealInvoices(inv);
+
         const { data: cl } = await supabase.from('clients').select('*');
         if (cl) setClients(cl);
       }
@@ -135,31 +153,34 @@ export default function Dashboard() {
   };
 
   const handleCreateTransaction = async () => {
-     if (!newTransaction.amount || !newTransaction.description) return alert("Dados em falta.");
+     if (!newTransaction.amount || !newTransaction.description) return alert("Preencha o valor e a descrição.");
+     
      const { data, error } = await supabase.from('transactions').insert([{
          user_id: userData.id,
          description: newTransaction.description,
          amount: parseFloat(newTransaction.amount),
          type: newTransaction.type,
-         category: newTransaction.category,
-         date: new Date()
+         category: newTransaction.category || 'Geral',
+         date: newTransaction.date
      }]).select();
+     
      if (data) {
          setTransactions([data[0], ...transactions]);
          setShowTransactionModal(false);
-         setNewTransaction({ description: '', amount: '', type: 'expense', category: 'Geral' });
+         setNewTransaction({ 
+            description: '', 
+            amount: '', 
+            type: 'expense', 
+            category: '',
+            date: new Date().toISOString().split('T')[0]
+         });
      }
   };
 
-  // ✅ NOVA FUNÇÃO: APAGAR TRANSAÇÃO
   const handleDeleteTransaction = async (id: string) => {
-    if (!window.confirm("Tem a certeza que quer apagar este movimento?")) return;
-    
+    if (!window.confirm("Tem a certeza que quer eliminar este registo?")) return;
     const { error } = await supabase.from('transactions').delete().eq('id', id);
-    if (error) {
-        alert("Erro ao apagar.");
-    } else {
-        // Atualiza a lista removendo o item apagado
+    if (!error) {
         setTransactions(prev => prev.filter(t => t.id !== id));
     }
   };
@@ -170,7 +191,7 @@ export default function Dashboard() {
       const updates = { full_name: editForm.fullName, company_name: companyForm.name, country: companyForm.country, currency: companyForm.currency, updated_at: new Date() };
       await supabase.from('profiles').update(updates).eq('id', userData.id);
       setProfileData({ ...profileData, ...updates });
-      alert(`Dados guardados! País fiscal: ${companyForm.country}`);
+      alert(`Dados guardados!`);
       setIsProfileModalOpen(false);
     } catch { alert("Erro ao guardar."); } 
     finally { setSavingProfile(false); }
@@ -242,7 +263,6 @@ export default function Dashboard() {
             
             <button onClick={toggleTheme} className="p-2 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-lg">{isDark ? <Sun className="w-5 h-5"/> : <Moon className="w-5 h-5"/>}</button>
             
-            {/* ✅ NOTIFICAÇÕES (Sem ponto vermelho) */}
             <button className="p-2 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-lg relative">
                 <Bell className="w-5 h-5"/>
                 {notifications.length > 0 && <span className="absolute top-1 right-1 w-2 h-2 bg-red-500 rounded-full"></span>}
@@ -270,11 +290,11 @@ export default function Dashboard() {
 
         <div className="flex-1 overflow-y-auto bg-gray-50 dark:bg-gray-900 p-8">
           <Routes>
-            {/* DASHBOARD PRINCIPAL (Agora com Dados Reais) */}
+            {/* DASHBOARD PRINCIPAL */}
             <Route path="/" element={
               <div className="space-y-6">
                 <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-                  {/* ✅ RECEITA MENSAL REAL */}
+                  {/* RECEITA MENSAL REAL */}
                   <div className="bg-white dark:bg-gray-800 p-6 rounded-2xl shadow-sm border dark:border-gray-700">
                     <div className="flex justify-between"><h3 className="text-gray-500 text-sm font-medium">{t('dashboard.stats.revenue')}</h3><button onClick={toggleFinancials} className="text-gray-400">{showFinancials ? <Eye className="w-4 h-4"/> : <EyeOff className="w-4 h-4"/>}</button></div>
                     <p className="text-3xl font-bold dark:text-white">
@@ -282,6 +302,8 @@ export default function Dashboard() {
                     </p>
                   </div>
                   <div className="bg-white dark:bg-gray-800 p-6 rounded-2xl shadow-sm border dark:border-gray-700"><h3 className="text-gray-500 text-sm font-medium">{t('dashboard.stats.actions')}</h3><p className="text-3xl font-bold text-blue-600 mt-2">0</p></div>
+                  
+                  {/* ✅ FATURAS (Invoices) - Agora só conta as reais */}
                   <div className="bg-white dark:bg-gray-800 p-6 rounded-2xl shadow-sm border dark:border-gray-700">
                     <div className="flex justify-between"><h3 className="text-gray-500 text-sm font-medium">{t('dashboard.stats.invoices')}</h3><button onClick={toggleFinancials} className="text-gray-400">{showFinancials ? <Eye className="w-4 h-4"/> : <EyeOff className="w-4 h-4"/>}</button></div>
                     <p className="text-3xl font-bold text-orange-500">{showFinancials ? totalInvoicesCount : '•••'}</p>
@@ -299,7 +321,8 @@ export default function Dashboard() {
                     <div className="flex gap-2 border-b dark:border-gray-700 pb-2 mb-6 overflow-x-auto">
                         {[
                             { id: 'overview', label: 'Visão Geral', icon: PieChart },
-                            { id: 'sales', label: 'Vendas', icon: TrendingUp },
+                            // ✅ MUDANÇA: 'Vendas' -> 'Faturas' (para ser específico)
+                            { id: 'invoices', label: 'Faturas', icon: FileText }, 
                             { id: 'purchases', label: 'Compras', icon: TrendingDown },
                             { id: 'banking', label: 'Bancos', icon: Landmark },
                             { id: 'assets', label: 'Ativos', icon: Calculator },
@@ -332,7 +355,6 @@ export default function Dashboard() {
                                                         <td className="px-6 py-4 font-medium">{t.description}</td>
                                                         <td className="px-6 py-4"><span className="px-2 py-1 bg-gray-100 dark:bg-gray-700 rounded-full text-xs">{t.category}</span></td>
                                                         <td className={`px-6 py-4 text-right font-bold ${t.type === 'income' ? 'text-green-600' : 'text-red-500'}`}>{t.type === 'income' ? '+' : '-'} {currencySymbol} {t.amount}</td>
-                                                        {/* ✅ BOTÃO APAGAR */}
                                                         <td className="px-6 py-4 text-right">
                                                             <button onClick={() => handleDeleteTransaction(t.id)} className="text-red-400 hover:text-red-600 p-2"><Trash2 size={16}/></button>
                                                         </td>
@@ -344,7 +366,21 @@ export default function Dashboard() {
                                 </div>
                             </div>
                         )}
-                        {['sales', 'purchases', 'banking', 'assets', 'taxes', 'reports'].includes(accountingTab) && (
+                        
+                        {/* ✅ NOVA SUBCATEGORIA: FATURAS (Onde vamos criar faturas reais) */}
+                        {accountingTab === 'invoices' && (
+                            <div className="text-center py-20 bg-white dark:bg-gray-800 rounded-2xl border dark:border-gray-700">
+                                <Printer className="w-16 h-16 text-blue-200 mx-auto mb-4"/>
+                                <h3 className="text-xl font-bold">Emissão de Faturas ({profileData?.country})</h3>
+                                <p className="text-gray-500 mb-6 max-w-md mx-auto">Crie faturas certificadas, orçamentos e recibos legais.</p>
+                                <button className="bg-blue-600 text-white px-6 py-3 rounded-xl font-bold shadow-lg hover:bg-blue-700 flex items-center gap-2 mx-auto">
+                                    <Plus size={20}/> Criar Nova Fatura
+                                </button>
+                                <p className="text-xs text-gray-400 mt-4">(Formulário completo em desenvolvimento)</p>
+                            </div>
+                        )}
+
+                        {['purchases', 'banking', 'assets', 'taxes', 'reports'].includes(accountingTab) && (
                             <div className="flex flex-col items-center justify-center py-20 bg-white dark:bg-gray-800 rounded-2xl border dark:border-gray-700">
                                 <Archive className="w-16 h-16 text-gray-300 mb-4"/>
                                 <h3 className="text-xl font-bold">Módulo {accountingTab.toUpperCase()}</h3>
@@ -456,22 +492,60 @@ export default function Dashboard() {
       {showTransactionModal && (
         <div className="fixed inset-0 z-[100] flex items-center justify-center bg-black/50 backdrop-blur-sm p-4">
             <div className="bg-white dark:bg-gray-800 rounded-2xl p-6 w-full max-w-md shadow-xl border dark:border-gray-700">
-                <h3 className="text-xl font-bold mb-4">Registar Movimento</h3>
-                <div className="space-y-3">
-                    <input placeholder="Descrição" value={newTransaction.description} onChange={e => setNewTransaction({...newTransaction, description: e.target.value})} className="w-full p-3 border rounded-xl dark:bg-gray-900"/>
-                    <div className="flex gap-2">
-                        <input type="number" placeholder="Valor" value={newTransaction.amount} onChange={e => setNewTransaction({...newTransaction, amount: e.target.value})} className="w-full p-3 border rounded-xl dark:bg-gray-900"/>
-                        <select value={newTransaction.type} onChange={e => setNewTransaction({...newTransaction, type: e.target.value})} className="w-32 p-3 border rounded-xl dark:bg-gray-900">
-                            <option value="expense">Despesa</option><option value="income">Receita</option>
-                        </select>
-                    </div>
-                    <select value={newTransaction.category} onChange={e => setNewTransaction({...newTransaction, category: e.target.value})} className="w-full p-3 border rounded-xl dark:bg-gray-900">
-                        <option value="Geral">Geral</option><option value="Alimentação">Alimentação</option><option value="Transporte">Transporte</option><option value="Serviços">Serviços</option><option value="Vendas">Vendas</option>
-                    </select>
+                <div className="flex justify-between items-center mb-4">
+                   <h3 className="text-xl font-bold flex gap-2 items-center text-gray-700 dark:text-white"><FileText size={20} className="text-blue-500"/> Nova Transação</h3>
                 </div>
-                <div className="flex justify-end gap-2 mt-6">
-                    <button onClick={() => setShowTransactionModal(false)} className="px-4 py-2 border rounded-xl">Cancelar</button>
-                    <button onClick={handleCreateTransaction} className="px-4 py-2 bg-blue-600 text-white rounded-xl font-bold">Gravar</button>
+                
+                {/* BOTÕES DE TIPO (TOGGLE) */}
+                <div className="grid grid-cols-2 gap-2 mb-6 p-1 bg-gray-100 dark:bg-gray-700 rounded-xl">
+                    <button 
+                        onClick={() => setNewTransaction({...newTransaction, type: 'income'})}
+                        className={`py-2 rounded-lg font-bold text-sm transition-all ${newTransaction.type === 'income' ? 'bg-white dark:bg-gray-800 text-green-600 shadow-sm' : 'text-gray-500 dark:text-gray-400'}`}
+                    >
+                        Receita (+)
+                    </button>
+                    <button 
+                        onClick={() => setNewTransaction({...newTransaction, type: 'expense'})}
+                        className={`py-2 rounded-lg font-bold text-sm transition-all ${newTransaction.type === 'expense' ? 'bg-red-500 text-white shadow-sm' : 'text-gray-500 dark:text-gray-400'}`}
+                    >
+                        Despesa (-)
+                    </button>
+                </div>
+
+                <div className="space-y-4">
+                    <div>
+                        <label className="text-xs font-bold text-gray-400 uppercase tracking-wider mb-1 block">Descrição</label>
+                        <input placeholder="Ex: Venda de Software" value={newTransaction.description} onChange={e => setNewTransaction({...newTransaction, description: e.target.value})} className="w-full p-3 border dark:border-gray-600 rounded-xl dark:bg-gray-900 bg-gray-50 focus:ring-2 focus:ring-blue-500 outline-none"/>
+                    </div>
+                    
+                    <div className="grid grid-cols-2 gap-4">
+                        <div>
+                             <label className="text-xs font-bold text-gray-400 uppercase tracking-wider mb-1 block">Valor ({currencySymbol})</label>
+                             <input type="number" placeholder="0.00" value={newTransaction.amount} onChange={e => setNewTransaction({...newTransaction, amount: e.target.value})} className="w-full p-3 border dark:border-gray-600 rounded-xl dark:bg-gray-900 bg-gray-50 focus:ring-2 focus:ring-blue-500 outline-none"/>
+                        </div>
+                        <div>
+                             <label className="text-xs font-bold text-gray-400 uppercase tracking-wider mb-1 block">Data</label>
+                             <input type="date" value={newTransaction.date} onChange={e => setNewTransaction({...newTransaction, date: e.target.value})} className="w-full p-3 border dark:border-gray-600 rounded-xl dark:bg-gray-900 bg-gray-50 focus:ring-2 focus:ring-blue-500 outline-none text-sm"/>
+                        </div>
+                    </div>
+
+                    <div>
+                        <label className="text-xs font-bold text-gray-400 uppercase tracking-wider mb-1 block">Categoria</label>
+                        <input placeholder="Sem categoria" list="categories" value={newTransaction.category} onChange={e => setNewTransaction({...newTransaction, category: e.target.value})} className="w-full p-3 border dark:border-gray-600 rounded-xl dark:bg-gray-900 bg-gray-50 focus:ring-2 focus:ring-blue-500 outline-none"/>
+                        <datalist id="categories">
+                            <option value="Geral"/>
+                            <option value="Alimentação"/>
+                            <option value="Transporte"/>
+                            <option value="Serviços"/>
+                            <option value="Vendas"/>
+                            <option value="Salários"/>
+                        </datalist>
+                    </div>
+                </div>
+                
+                <div className="flex justify-end gap-3 mt-8 pt-4 border-t dark:border-gray-700">
+                    <button onClick={() => setShowTransactionModal(false)} className="px-6 py-3 text-gray-500 font-medium hover:bg-gray-100 dark:hover:bg-gray-700 rounded-xl transition-colors">Cancelar</button>
+                    <button onClick={handleCreateTransaction} className="px-6 py-3 bg-blue-600 text-white rounded-xl font-bold hover:bg-blue-700 shadow-lg transition-transform active:scale-95">Registar</button>
                 </div>
             </div>
         </div>
