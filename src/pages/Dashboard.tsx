@@ -3,7 +3,7 @@ import { Routes, Route, Link, useLocation, useNavigate } from 'react-router-dom'
 import { useTranslation } from 'react-i18next';
 import { supabase } from '../supabase/client';
 import { 
-  LayoutDashboard, MessageSquare, FileText, Users, BarChart3, Settings, LogOut, Menu, X, Globe, Moon, Sun, ChevronDown, Eye, EyeOff, User, Trash2, AlertTriangle, Building2, Copy, Send, Shield, Mail, Plus, Search, FileCheck, Calculator, TrendingUp, Archive, TrendingDown, Landmark, PieChart, FileSpreadsheet, Bell, Calendar, Printer
+  LayoutDashboard, MessageSquare, FileText, Users, BarChart3, Settings, LogOut, Menu, X, Globe, Moon, Sun, ChevronDown, Eye, EyeOff, User, Trash2, AlertTriangle, Building2, Copy, Send, Shield, Mail, Plus, Search, FileCheck, Calculator, TrendingUp, Archive, TrendingDown, Landmark, PieChart, FileSpreadsheet, Bell, Calendar, Printer, Wallet
 } from 'lucide-react';
 
 export default function Dashboard() {
@@ -65,7 +65,6 @@ export default function Dashboard() {
 
   const countries = ["Portugal", "Brasil", "Angola", "Moçambique", "Cabo Verde", "France", "Deutschland", "United Kingdom", "España", "United States", "Italia", "Belgique", "Suisse", "Luxembourg"];
   
-  // ✅ LISTA COMPLETA DE LÍNGUAS (DE + IT ADICIONADOS)
   const languages = [
     { code: 'pt', label: 'Português', flag: '🇵🇹' },
     { code: 'en', label: 'English', flag: '🇬🇧' },
@@ -87,10 +86,16 @@ export default function Dashboard() {
   };
   const currencySymbol = getCurrencySymbol(profileData?.country || 'Portugal');
 
-  // CÁLCULOS
+  // ✅ CÁLCULOS FINANCEIROS COMPLETOS
   const totalRevenue = transactions
     .filter(t => t.type === 'income')
     .reduce((acc, curr) => acc + curr.amount, 0);
+
+  const totalExpenses = transactions
+    .filter(t => t.type === 'expense')
+    .reduce((acc, curr) => acc + curr.amount, 0);
+
+  const currentBalance = totalRevenue - totalExpenses;
 
   const totalInvoicesCount = realInvoices.length;
 
@@ -248,7 +253,7 @@ export default function Dashboard() {
           <div className="flex items-center gap-4">
             <button onClick={() => setIsMobileMenuOpen(!isMobileMenuOpen)} className="md:hidden"><Menu /></button>
             <h2 className="text-xl font-bold flex items-center gap-2">
-                {/* ✅ REMOVIDO: Lógica da bandeira/terra. Agora mostra só o nome da página. */}
+                {profileData?.country && <span className="text-2xl">{profileData.country === 'Portugal' ? '🇵🇹' : profileData.country === 'Brasil' ? '🇧🇷' : ''}</span>}
                 {menuItems.find(i => i.path === location.pathname)?.label || 'Dashboard'}
             </h2>
           </div>
@@ -262,7 +267,6 @@ export default function Dashboard() {
             
             <button onClick={toggleTheme} className="p-2 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-lg">{isDark ? <Sun className="w-5 h-5"/> : <Moon className="w-5 h-5"/>}</button>
             
-            {/* SINO SEM PONTO VERMELHO */}
             <button className="p-2 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-lg relative">
                 <Bell className="w-5 h-5"/>
                 {notifications.length > 0 && <span className="absolute top-1 right-1 w-2 h-2 bg-red-500 rounded-full"></span>}
@@ -293,22 +297,67 @@ export default function Dashboard() {
             {/* DASHBOARD PRINCIPAL */}
             <Route path="/" element={
               <div className="space-y-6">
+                {/* 1. SECÇÃO FINANCEIRA (3 Colunas) */}
                 <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-                  {/* RECEITA MENSAL REAL */}
+                  {/* RECEITA (VERDE) */}
                   <div className="bg-white dark:bg-gray-800 p-6 rounded-2xl shadow-sm border dark:border-gray-700">
-                    <div className="flex justify-between"><h3 className="text-gray-500 text-sm font-medium">{t('dashboard.stats.revenue')}</h3><button onClick={toggleFinancials} className="text-gray-400">{showFinancials ? <Eye className="w-4 h-4"/> : <EyeOff className="w-4 h-4"/>}</button></div>
-                    <p className="text-3xl font-bold dark:text-white">
+                    <div className="flex justify-between items-center mb-2">
+                        <h3 className="text-gray-500 text-sm font-medium uppercase tracking-wider">Receita Mensal</h3>
+                        <button onClick={toggleFinancials} className="text-gray-400">{showFinancials ? <Eye className="w-4 h-4"/> : <EyeOff className="w-4 h-4"/>}</button>
+                    </div>
+                    <p className="text-3xl font-bold text-green-600 dark:text-green-400">
                         {showFinancials ? `${currencySymbol} ${totalRevenue.toFixed(2)}` : '••••••'}
                     </p>
                   </div>
-                  <div className="bg-white dark:bg-gray-800 p-6 rounded-2xl shadow-sm border dark:border-gray-700"><h3 className="text-gray-500 text-sm font-medium">{t('dashboard.stats.actions')}</h3><p className="text-3xl font-bold text-blue-600 mt-2">0</p></div>
-                  
-                  {/* FATURAS */}
+
+                  {/* DESPESA (VERMELHO) */}
                   <div className="bg-white dark:bg-gray-800 p-6 rounded-2xl shadow-sm border dark:border-gray-700">
-                    <div className="flex justify-between"><h3 className="text-gray-500 text-sm font-medium">{t('dashboard.stats.invoices')}</h3><button onClick={toggleFinancials} className="text-gray-400">{showFinancials ? <Eye className="w-4 h-4"/> : <EyeOff className="w-4 h-4"/>}</button></div>
-                    <p className="text-3xl font-bold text-orange-500">{showFinancials ? totalInvoicesCount : '•••'}</p>
+                    <div className="flex justify-between items-center mb-2">
+                        <h3 className="text-gray-500 text-sm font-medium uppercase tracking-wider">Despesas</h3>
+                        <button onClick={toggleFinancials} className="text-gray-400">{showFinancials ? <Eye className="w-4 h-4"/> : <EyeOff className="w-4 h-4"/>}</button>
+                    </div>
+                    <p className="text-3xl font-bold text-red-500 dark:text-red-400">
+                        {showFinancials ? `${currencySymbol} ${totalExpenses.toFixed(2)}` : '••••••'}
+                    </p>
+                  </div>
+
+                  {/* SALDO (AZUL) */}
+                  <div className="bg-white dark:bg-gray-800 p-6 rounded-2xl shadow-sm border dark:border-gray-700">
+                    <div className="flex justify-between items-center mb-2">
+                        <h3 className="text-gray-500 text-sm font-medium uppercase tracking-wider">Saldo Atual</h3>
+                        <button onClick={toggleFinancials} className="text-gray-400">{showFinancials ? <Eye className="w-4 h-4"/> : <EyeOff className="w-4 h-4"/>}</button>
+                    </div>
+                    <p className={`text-3xl font-bold ${currentBalance >= 0 ? 'text-blue-600 dark:text-blue-400' : 'text-red-600 dark:text-red-400'}`}>
+                        {showFinancials ? `${currencySymbol} ${currentBalance.toFixed(2)}` : '••••••'}
+                    </p>
                   </div>
                 </div>
+
+                {/* 2. SECÇÃO OPERACIONAL (2 Colunas) */}
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                    {/* FATURAS */}
+                    <div className="bg-white dark:bg-gray-800 p-6 rounded-2xl shadow-sm border dark:border-gray-700 flex items-center justify-between">
+                        <div>
+                            <h3 className="text-gray-500 text-sm font-medium uppercase tracking-wider">Faturas Emitidas</h3>
+                            <p className="text-3xl font-bold text-orange-500 mt-1">{showFinancials ? totalInvoicesCount : '•••'}</p>
+                        </div>
+                        <div className="bg-orange-100 dark:bg-orange-900/30 p-3 rounded-xl">
+                            <FileText className="w-8 h-8 text-orange-500"/>
+                        </div>
+                    </div>
+
+                    {/* AÇÕES (IA) */}
+                    <div className="bg-white dark:bg-gray-800 p-6 rounded-2xl shadow-sm border dark:border-gray-700 flex items-center justify-between">
+                        <div>
+                            <h3 className="text-gray-500 text-sm font-medium uppercase tracking-wider">Ações Pendentes</h3>
+                            <p className="text-3xl font-bold text-blue-600 mt-1">0</p>
+                        </div>
+                        <div className="bg-blue-100 dark:bg-blue-900/30 p-3 rounded-xl">
+                            <Bell className="w-8 h-8 text-blue-600"/>
+                        </div>
+                    </div>
+                </div>
+
                 <div className="bg-blue-50 dark:bg-blue-900/20 border border-blue-100 dark:border-blue-800 rounded-2xl p-8 text-center shadow-lg">
                   <h3 className="text-xl font-bold text-blue-800 dark:text-blue-300 mb-2">{t('dashboard.welcome')}, {profileData?.full_name?.split(' ')[0]}! 👋</h3>
                   <Link to="/dashboard/chat" className="inline-flex items-center gap-2 bg-blue-600 text-white px-6 py-3 rounded-xl font-bold hover:bg-blue-700 shadow-lg"><MessageSquare className="w-5 h-5" />{t('dashboard.open_chat')}</Link>
