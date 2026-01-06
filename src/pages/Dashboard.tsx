@@ -1,9 +1,9 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { Routes, Route, Link, useLocation, useNavigate } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
 import { supabase } from '../supabase/client';
 import { 
-  LayoutDashboard, MessageSquare, FileText, Users, BarChart3, Settings, LogOut, Menu, X, Bell, Mail, User, Trash2, AlertTriangle, Building2, Globe, Moon, Sun, ChevronDown, Eye, EyeOff, Pencil, UserMinus, Shield, Copy
+  LayoutDashboard, MessageSquare, FileText, Users, BarChart3, Settings, LogOut, Menu, X, Globe, Moon, Sun, ChevronDown, Eye, EyeOff, User, Trash2, AlertTriangle, Building2, Copy, Send, Shield, Mail
 } from 'lucide-react';
 
 export default function Dashboard() {
@@ -11,16 +11,28 @@ export default function Dashboard() {
   const location = useLocation();
   const navigate = useNavigate();
   
+  // ✅ 1. CONFIGURAÇÃO DA API
+  const API_URL = window.location.hostname === 'easycheckglobal.com' 
+    ? 'https://easycheck-api.onrender.com' 
+    : 'http://localhost:3000';
+
   // --- ESTADOS GERAIS ---
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
   const [isProfileDropdownOpen, setIsProfileDropdownOpen] = useState(false);
-  const [isNotifOpen, setIsNotifOpen] = useState(false);
   const [isLangMenuOpen, setIsLangMenuOpen] = useState(false);
   
+  // ✅ 2. ESTADOS DO CHAT (Tipados para TS)
+  const [messages, setMessages] = useState([
+    { role: 'assistant', content: 'Olá! Sou a IA do EasyCheck. Em que posso ajudar na gestão da sua empresa?' }
+  ]);
+  const [chatInput, setChatInput] = useState('');
+  const [isChatLoading, setIsChatLoading] = useState(false);
+  const scrollRef = useRef<HTMLDivElement>(null);
+
   // --- ESTADOS DE PRIVACIDADE ---
   const [showFinancials, setShowFinancials] = useState(true); 
-  const [showModalCode, setShowModalCode] = useState(false); // Olho dentro do Modal Perfil
-  const [showPageCode, setShowPageCode] = useState(false);   // Olho na página Empresa
+  const [showModalCode, setShowModalCode] = useState(false);
+  const [showPageCode, setShowPageCode] = useState(false);
 
   const [isDark, setIsDark] = useState(false);
   const [userData, setUserData] = useState<any>(null);
@@ -49,6 +61,13 @@ export default function Dashboard() {
     { code: 'it', label: 'Italiano', flag: '🇮🇹' },
   ];
 
+  // ✅ 3. EFEITO DE SCROLL
+  useEffect(() => {
+    if (scrollRef.current) {
+      scrollRef.current.scrollTop = scrollRef.current.scrollHeight;
+    }
+  }, [messages]);
+
   useEffect(() => {
     if (document.documentElement.classList.contains('dark')) setIsDark(true);
     const fetchUser = async () => {
@@ -70,6 +89,36 @@ export default function Dashboard() {
     };
     fetchUser();
   }, []);
+
+  // ✅ 4. FUNÇÃO DE ENVIO (Com tipagem 'e: React.FormEvent')
+  const handleSendChatMessage = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!chatInput.trim() || isChatLoading) return;
+
+    const userMessage = { role: 'user', content: chatInput };
+    setMessages(prev => [...prev, userMessage]);
+    setChatInput('');
+    setIsChatLoading(true);
+
+    try {
+      const response = await fetch(`${API_URL}/api/chat`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ message: chatInput }),
+      });
+
+      const data = await response.json();
+      if (data.reply) {
+        setMessages(prev => [...prev, { role: 'assistant', content: data.reply }]);
+      } else {
+        throw new Error();
+      }
+    } catch (error) {
+      setMessages(prev => [...prev, { role: 'assistant', content: '⚠️ Erro ao ligar ao servidor. Tente novamente.' }]);
+    } finally {
+      setIsChatLoading(false);
+    }
+  };
 
   const toggleTheme = () => { document.documentElement.classList.toggle('dark'); setIsDark(!isDark); };
   const toggleFinancials = () => setShowFinancials(!showFinancials);
@@ -103,10 +152,6 @@ export default function Dashboard() {
     finally { setIsDeleting(false); }
   };
 
-  // Lógica de Equipa (Mock)
-  const openEditMember = (member: any) => { setMemberToEdit({ ...member }); setIsEditMemberModalOpen(true); };
-  const saveMemberRole = () => { setTeamMembers(prev => prev.map(m => m.id === memberToEdit.id ? memberToEdit : m)); setIsEditMemberModalOpen(false); };
-  const deleteMember = (id: number) => { if (window.confirm(t('team.delete_confirm'))) setTeamMembers(prev => prev.filter(m => m.id !== id)); };
   const copyCode = () => { navigator.clipboard.writeText(userData?.user_metadata?.company_code); alert("Código copiado!"); };
 
   if (loadingUser) return <div className="h-screen flex items-center justify-center bg-gray-50 dark:bg-gray-900">Loading...</div>;
@@ -119,7 +164,6 @@ export default function Dashboard() {
     { icon: Mail, label: t('dashboard.menu.communication'), path: '/dashboard/communication' },
     { icon: Users, label: t('dashboard.menu.hr'), path: '/dashboard/hr' },
     { icon: BarChart3, label: t('dashboard.menu.marketing'), path: '/dashboard/marketing' },
-    // GESTÃO EMPRESA (Só Patrão)
     { icon: Building2, label: t('dashboard.menu.company'), path: '/dashboard/company', hidden: !isOwner, special: true },
     { icon: Settings, label: t('dashboard.menu.settings'), path: '/dashboard/settings' },
   ];
@@ -192,10 +236,10 @@ export default function Dashboard() {
           </div>
         </header>
 
-        <div className="flex-1 overflow-y-auto p-8 bg-gray-50 dark:bg-gray-900">
+        <div className="flex-1 overflow-hidden bg-gray-50 dark:bg-gray-900">
           <Routes>
             <Route path="/" element={
-              <div className="space-y-6">
+              <div className="p-8 space-y-6 overflow-y-auto h-full">
                 <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
                   <div className="bg-white dark:bg-gray-800 p-6 rounded-2xl shadow-sm border dark:border-gray-700">
                     <div className="flex justify-between"><h3 className="text-gray-500 text-sm font-medium">{t('dashboard.stats.revenue')}</h3><button onClick={toggleFinancials} className="text-gray-400">{showFinancials ? <Eye className="w-4 h-4"/> : <EyeOff className="w-4 h-4"/>}</button></div>
@@ -207,15 +251,37 @@ export default function Dashboard() {
                     <p className="text-3xl font-bold text-orange-500">{showFinancials ? '0' : '•••'}</p>
                   </div>
                 </div>
-                <div className="bg-blue-50 dark:bg-blue-900/20 border border-blue-100 dark:border-blue-800 rounded-2xl p-8 text-center">
+                <div className="bg-blue-50 dark:bg-blue-900/20 border border-blue-100 dark:border-blue-800 rounded-2xl p-8 text-center shadow-lg">
                   <h3 className="text-xl font-bold text-blue-800 dark:text-blue-300 mb-2">{t('dashboard.welcome')}, {userData?.user_metadata?.full_name?.split(' ')[0]}! 👋</h3>
                   <Link to="/dashboard/chat" className="inline-flex items-center gap-2 bg-blue-600 text-white px-6 py-3 rounded-xl font-bold hover:bg-blue-700 shadow-lg"><MessageSquare className="w-5 h-5" />{t('dashboard.open_chat')}</Link>
                 </div>
               </div>
             } />
 
+            {/* ✅ ROTA DO CHAT */}
+            <Route path="chat" element={
+              <div className="flex flex-col h-full bg-white dark:bg-gray-800 m-4 rounded-2xl border dark:border-gray-700 shadow-sm overflow-hidden">
+                <div ref={scrollRef} className="flex-1 overflow-y-auto p-6 space-y-4">
+                  {messages.map((msg, i) => (
+                    <div key={i} className={`flex ${msg.role === 'user' ? 'justify-end' : 'justify-start'}`}>
+                      <div className={`max-w-[80%] px-5 py-3 rounded-2xl text-sm shadow-sm ${msg.role === 'user' ? 'bg-blue-600 text-white rounded-tr-none' : 'bg-gray-100 dark:bg-gray-700 dark:text-white rounded-tl-none'}`}>
+                        {msg.content}
+                      </div>
+                    </div>
+                  ))}
+                  {isChatLoading && <div className="text-xs text-gray-400 ml-4 animate-pulse">A EasyCheck está a escrever...</div>}
+                </div>
+                <div className="p-4 border-t dark:border-gray-700 bg-gray-50 dark:bg-gray-900">
+                  <form onSubmit={handleSendChatMessage} className="flex gap-2 relative">
+                    <input type="text" value={chatInput} onChange={(e) => setChatInput(e.target.value)} placeholder="Pergunte algo sobre a sua contabilidade..." className="flex-1 bg-white dark:bg-gray-800 border dark:border-gray-700 rounded-xl px-4 py-3 text-sm focus:ring-2 focus:ring-blue-500 outline-none dark:text-white shadow-sm"/>
+                    <button type="submit" disabled={isChatLoading || !chatInput.trim()} className="bg-blue-600 text-white p-3 rounded-xl hover:bg-blue-700 transition-colors shadow-md disabled:opacity-50"><Send size={18} /></button>
+                  </form>
+                </div>
+              </div>
+            } />
+
             <Route path="company" element={isOwner ? (
-                <div className="bg-white dark:bg-gray-800 rounded-2xl shadow-sm border dark:border-gray-700 p-8">
+                <div className="bg-white dark:bg-gray-800 rounded-2xl shadow-sm border dark:border-gray-700 p-8 m-4 overflow-y-auto">
                   <h2 className="text-2xl font-bold dark:text-white mb-6 flex gap-3"><Building2 className="text-blue-600"/> {t('settings.company_title')}</h2>
                   
                   <div className="mb-8 p-6 bg-blue-50 dark:bg-blue-900/20 rounded-2xl border border-blue-100 dark:border-blue-800 flex flex-col md:flex-row items-center justify-between gap-6">
@@ -241,6 +307,7 @@ export default function Dashboard() {
         </div>
       </main>
 
+      {/* MODAL PERFIL */}
       {isProfileModalOpen && (
         <div className="fixed inset-0 z-[100] flex items-center justify-center bg-black/50 backdrop-blur-sm p-4">
           <div className="bg-white dark:bg-gray-800 rounded-2xl p-6 w-full max-w-lg shadow-2xl border dark:border-gray-700 max-h-[90vh] overflow-y-auto">
@@ -286,6 +353,7 @@ export default function Dashboard() {
         </div>
       )}
 
+      {/* MODAL ELIMINAR */}
       {isDeleteModalOpen && (
         <div className="fixed inset-0 z-[100] flex items-center justify-center bg-black/50 backdrop-blur-sm p-4">
           <div className="bg-white dark:bg-gray-800 rounded-2xl p-6 w-full max-w-md shadow-2xl border dark:border-gray-700">
