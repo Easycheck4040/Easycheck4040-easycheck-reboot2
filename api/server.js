@@ -2,7 +2,7 @@ import "dotenv/config";
 import express from "express";
 import cors from "cors";
 import { Groq } from "groq-sdk";
-import { createClient } from '@supabase/supabase-client';
+import { createClient } from "@supabase/supabase-js"; // ✅ Corrigido aqui
 
 const app = express();
 const port = process.env.PORT || 3000;
@@ -36,7 +36,6 @@ app.post('/api/chat', async (req, res) => {
   try {
     const { message } = req.body;
     
-    // Aqui definimos a personalidade da IA
     const completion = await groq.chat.completions.create({
       messages: [
         { 
