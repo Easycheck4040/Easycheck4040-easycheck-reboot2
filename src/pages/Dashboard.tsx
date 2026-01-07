@@ -36,8 +36,6 @@ export default function Dashboard() {
   const [realInvoices, setRealInvoices] = useState<any[]>([]); 
   const [chartOfAccounts, setChartOfAccounts] = useState<any[]>([]); 
   const [assets, setAssets] = useState<any[]>([]); 
-  
-  // ESTADOS DE TERCEIROS (CRM)
   const [clients, setClients] = useState<any[]>([]);
   const [suppliers, setSuppliers] = useState<any[]>([]);
   
@@ -46,8 +44,8 @@ export default function Dashboard() {
   const [isProfileModalOpen, setIsProfileModalOpen] = useState(false);
   const [showTransactionModal, setShowTransactionModal] = useState(false);
   const [showAssetModal, setShowAssetModal] = useState(false);
-  const [showEntityModal, setShowEntityModal] = useState(false); // Modal para Clientes/Fornecedores
-  const [entityType, setEntityType] = useState<'client' | 'supplier'>('client'); // Define quem estamos a criar
+  const [showEntityModal, setShowEntityModal] = useState(false); 
+  const [entityType, setEntityType] = useState<'client' | 'supplier'>('client'); 
   const [deleteConfirmation, setDeleteConfirmation] = useState('');
   const [isDeleting, setIsDeleting] = useState(false);
   
@@ -57,8 +55,6 @@ export default function Dashboard() {
   
   const [newTransaction, setNewTransaction] = useState({ description: '', amount: '', type: 'expense', category: '', date: new Date().toISOString().split('T')[0] });
   const [newAsset, setNewAsset] = useState({ name: '', purchase_date: new Date().toISOString().split('T')[0], purchase_value: '', lifespan_years: 3 });
-  
-  // Formulário Genérico para Clientes/Fornecedores
   const [newEntity, setNewEntity] = useState({ name: '', nif: '', email: '', address: '', city: '', postal_code: '', country: 'Portugal' });
 
   const [savingProfile, setSavingProfile] = useState(false);
@@ -74,9 +70,23 @@ export default function Dashboard() {
   
   const languages = [ { code: 'pt', label: 'Português', flag: '🇵🇹' }, { code: 'en', label: 'English', flag: '🇬🇧' }, { code: 'fr', label: 'Français', flag: '🇫🇷' }, { code: 'es', label: 'Español', flag: '🇪🇸' }, { code: 'de', label: 'Deutsch', flag: '🇩🇪' }, { code: 'it', label: 'Italiano', flag: '🇮🇹' } ];
 
+  // DETECTAR SÍMBOLO (Para visualização)
   const getCurrencySymbol = (country: string) => { if (country === 'Brasil') return 'R$'; if (country === 'United States') return '$'; if (country === 'United Kingdom') return '£'; if (country === 'Angola') return 'Kz'; if (country === 'Moçambique') return 'MT'; if (country === 'Suisse') return 'CHF'; return '€'; };
+  
+  // DETECTAR CÓDIGO DA MOEDA (Para o formulário automático)
+  const getCurrencyCode = (country: string) => {
+      if (country === 'Brasil') return 'BRL';
+      if (country === 'United States') return 'USD';
+      if (country === 'United Kingdom') return 'GBP';
+      if (country === 'Angola') return 'AOA';
+      if (country === 'Moçambique') return 'MZN';
+      if (country === 'Suisse') return 'CHF';
+      return 'EUR';
+  };
+
   const currencySymbol = getCurrencySymbol(profileData?.country || 'Portugal');
 
+  // CÁLCULOS
   const totalRevenue = transactions.filter(t => t.type === 'income').reduce((acc, curr) => acc + curr.amount, 0);
   const totalExpenses = transactions.filter(t => t.type === 'expense').reduce((acc, curr) => acc + curr.amount, 0);
   const currentBalance = totalRevenue - totalExpenses;
@@ -91,7 +101,11 @@ export default function Dashboard() {
         const { data: profile } = await supabase.from('profiles').select('*').eq('id', user.id).single();
         if (profile) {
             setProfileData(profile);
-            setEditForm({ fullName: profile.full_name, jobTitle: profile.role, email: user.email || '' });
+            setEditForm({ 
+                fullName: profile.full_name, 
+                jobTitle: profile.job_title || '', // ✅ CARREGA O CARGO DA BD
+                email: user.email || '' 
+            });
             setCompanyForm({ name: profile.company_name, country: profile.country || 'Portugal', currency: profile.currency || 'EUR', address: profile.company_address || '', nif: profile.company_nif || '' });
         }
         const { data: tr } = await supabase.from('transactions').select('*').order('date', { ascending: false }); if (tr) setTransactions(tr);
@@ -114,6 +128,13 @@ export default function Dashboard() {
   const getInitials = (name: string) => name ? (name.split(' ').length > 1 ? (name.split(' ')[0][0] + name.split(' ')[name.split(' ').length - 1][0]) : name.substring(0, 2)).toUpperCase() : 'EC';
   const handleLogout = async () => { await supabase.auth.signOut(); navigate('/'); };
   const copyCode = () => { navigator.clipboard.writeText(profileData?.company_code); alert("Código copiado!"); };
+
+  // ✅ NOVA FUNÇÃO: Mudar país atualiza moeda automaticamente
+  const handleCountryChange = (e: React.ChangeEvent<HTMLSelectElement>) => {
+      const selectedCountry = e.target.value;
+      const newCurrency = getCurrencyCode(selectedCountry);
+      setCompanyForm({ ...companyForm, country: selectedCountry, currency: newCurrency });
+  };
 
   const handleSendChatMessage = async (e: React.FormEvent) => {
     e.preventDefault(); if (!chatInput.trim() || isChatLoading) return;
@@ -138,12 +159,10 @@ export default function Dashboard() {
     if (data) { setAssets([...assets, data[0]]); setShowAssetModal(false); setNewAsset({ name: '', purchase_date: new Date().toISOString().split('T')[0], purchase_value: '', lifespan_years: 3 }); }
   };
 
-  // ✅ CRIAR CLIENTE OU FORNECEDOR
   const handleCreateEntity = async () => {
       if (!newEntity.name) return alert("Nome obrigatório");
       const table = entityType === 'client' ? 'clients' : 'suppliers';
       const { data, error } = await supabase.from(table).insert([{ user_id: userData.id, ...newEntity }]).select();
-      
       if (!error && data) {
           if (entityType === 'client') setClients([data[0], ...clients]);
           else setSuppliers([data[0], ...suppliers]);
@@ -168,11 +187,17 @@ export default function Dashboard() {
     if (!error) setTransactions(prev => prev.filter(t => t.id !== id));
   };
 
+  // ✅ ATUALIZADO: Salvar perfil inclui agora o CARGO
   const handleSaveProfile = async () => {
     setSavingProfile(true);
     try {
-      await supabase.from('profiles').update({ full_name: editForm.fullName, updated_at: new Date() }).eq('id', userData.id);
-      setProfileData({ ...profileData, full_name: editForm.fullName });
+      const updates = { 
+          full_name: editForm.fullName,
+          job_title: editForm.jobTitle, // ✅ SALVA O CARGO
+          updated_at: new Date() 
+      };
+      await supabase.from('profiles').update(updates).eq('id', userData.id);
+      setProfileData({ ...profileData, ...updates });
       alert(`Perfil Pessoal atualizado!`); setIsProfileModalOpen(false);
     } catch { alert("Erro ao guardar."); } finally { setSavingProfile(false); }
   };
@@ -305,10 +330,10 @@ export default function Dashboard() {
                             { id: 'overview', label: 'Geral', icon: PieChart },
                             { id: 'chart', label: 'Plano de Contas', icon: List },
                             { id: 'journal', label: 'Lançamentos', icon: BookOpen },
-                            { id: 'clients', label: 'Clientes', icon: Briefcase }, // ✅ NOVA ABA
+                            { id: 'clients', label: 'Clientes', icon: Briefcase }, 
                             { id: 'invoices', label: 'Faturas', icon: FileText }, 
                             { id: 'purchases', label: 'Compras', icon: TrendingDown },
-                            { id: 'suppliers', label: 'Fornecedores', icon: Truck }, // ✅ NOVA ABA
+                            { id: 'suppliers', label: 'Fornecedores', icon: Truck }, 
                             { id: 'assets', label: 'Ativos', icon: Box },
                             { id: 'banking', label: 'Bancos', icon: Landmark },
                             { id: 'taxes', label: 'Impostos', icon: FileCheck },
@@ -333,7 +358,6 @@ export default function Dashboard() {
                             </div>
                         )}
 
-                        {/* ✅ ABA CLIENTES (CRM) */}
                         {accountingTab === 'clients' && (
                             <div className="bg-white dark:bg-gray-800 rounded-2xl border dark:border-gray-700 shadow-sm overflow-hidden">
                                 <div className="p-4 border-b dark:border-gray-700 flex justify-between items-center"><h3 className="font-bold flex items-center gap-2"><Briefcase size={18}/> Clientes</h3><button onClick={() => {setEntityType('client'); setShowEntityModal(true)}} className="bg-blue-600 text-white px-3 py-1.5 rounded-lg text-sm flex gap-2 items-center"><Plus size={16}/> Novo Cliente</button></div>
@@ -344,7 +368,6 @@ export default function Dashboard() {
                             </div>
                         )}
 
-                        {/* ✅ ABA FORNECEDORES */}
                         {accountingTab === 'suppliers' && (
                             <div className="bg-white dark:bg-gray-800 rounded-2xl border dark:border-gray-700 shadow-sm overflow-hidden">
                                 <div className="p-4 border-b dark:border-gray-700 flex justify-between items-center"><h3 className="font-bold flex items-center gap-2"><Truck size={18}/> Fornecedores</h3><button onClick={() => {setEntityType('supplier'); setShowEntityModal(true)}} className="bg-blue-600 text-white px-3 py-1.5 rounded-lg text-sm flex gap-2 items-center"><Plus size={16}/> Novo Fornecedor</button></div>
@@ -424,7 +447,9 @@ export default function Dashboard() {
                  <div className="max-w-2xl mx-auto bg-white dark:bg-gray-800 rounded-2xl shadow-sm border dark:border-gray-700 p-8">
                     <h2 className="text-2xl font-bold mb-6 flex gap-2 items-center"><Settings/> Configuração</h2>
                     <div className="space-y-4">
-                        <div><label className="block text-sm font-bold mb-1">País da Sede</label><select value={companyForm.country} onChange={e => setCompanyForm({...companyForm, country: e.target.value})} className="w-full p-3 border rounded-xl dark:bg-gray-900">{countries.map(c => <option key={c} value={c}>{c}</option>)}</select></div>
+                        <div><label className="block text-sm font-bold mb-1">País da Sede</label>
+                        {/* ✅ MUDANÇA AUTOMÁTICA DE MOEDA */}
+                        <select value={companyForm.country} onChange={handleCountryChange} className="w-full p-3 border rounded-xl dark:bg-gray-900">{countries.map(c => <option key={c} value={c}>{c}</option>)}</select></div>
                         <div><label className="block text-sm font-bold mb-1">Moeda Principal</label><input value={companyForm.currency} onChange={e => setCompanyForm({...companyForm, currency: e.target.value})} className="w-full p-3 border rounded-xl dark:bg-gray-900"/></div>
                     </div>
                     <div className="mt-8 flex justify-end"><button onClick={handleSaveCompany} className="bg-blue-600 text-white px-6 py-3 rounded-xl font-bold hover:bg-blue-700">Guardar Preferências</button></div>
@@ -457,7 +482,7 @@ export default function Dashboard() {
         </div>
       )}
 
-      {/* ✅ MODAL GENÉRICO PARA CLIENTES E FORNECEDORES */}
+      {/* MODAL GENÉRICO PARA CLIENTES E FORNECEDORES */}
       {showEntityModal && (
         <div className="fixed inset-0 z-[100] flex items-center justify-center bg-black/50 backdrop-blur-sm p-4">
             <div className="bg-white dark:bg-gray-800 rounded-2xl p-6 w-full max-w-lg shadow-xl border dark:border-gray-700">
