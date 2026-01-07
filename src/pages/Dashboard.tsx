@@ -3,7 +3,7 @@ import { Routes, Route, Link, useLocation, useNavigate } from 'react-router-dom'
 import { useTranslation } from 'react-i18next';
 import { supabase } from '../supabase/client';
 import { 
-  LayoutDashboard, MessageSquare, FileText, Users, BarChart3, Settings, LogOut, Menu, X, Globe, Moon, Sun, ChevronDown, Eye, EyeOff, User, Trash2, AlertTriangle, Building2, Copy, Send, Shield, Mail, Plus, Search, FileCheck, Calculator, TrendingUp, Archive, TrendingDown, Landmark, PieChart, FileSpreadsheet, Bell, Calendar, Printer, List, BookOpen, CreditCard, Box, Save, Briefcase, Truck, RefreshCw, CheckCircle, AlertCircle, ChevronRight
+  LayoutDashboard, MessageSquare, FileText, Users, BarChart3, Settings, LogOut, Menu, X, Globe, Moon, Sun, ChevronDown, Eye, EyeOff, User, Trash2, AlertTriangle, Building2, Copy, Send, Shield, Mail, Plus, Search, FileCheck, Calculator, TrendingUp, Archive, TrendingDown, Landmark, PieChart, FileSpreadsheet, Bell, Calendar, Printer, List, BookOpen, CreditCard, Box, Save, Briefcase, Truck, RefreshCw, CheckCircle, AlertCircle, Edit2
 } from 'lucide-react';
 
 // --- DADOS ESTÁTICOS ---
@@ -91,7 +91,6 @@ export default function Dashboard() {
   const [newAsset, setNewAsset] = useState({ name: '', purchase_date: new Date().toISOString().split('T')[0], purchase_value: '', lifespan_years: 3 });
   const [newEntity, setNewEntity] = useState({ name: '', nif: '', email: '', address: '', city: '', postal_code: '', country: 'Portugal' });
 
-  // ESTADO DA FATURA
   const [invoiceData, setInvoiceData] = useState({
       client_id: '',
       type: 'Fatura',
@@ -113,7 +112,6 @@ export default function Dashboard() {
   const getCurrencyCode = (country: string) => countryCurrencyMap[country] || 'EUR';
   const getCurrencySymbol = (code: string) => currencySymbols[code] || '€';
   
-  // Obter taxas de sugestão
   const getCurrentCountryVatRates = () => {
       const country = companyForm.country || "Portugal";
       return vatRatesByCountry[country] || [23, 0];
@@ -156,26 +154,25 @@ export default function Dashboard() {
 
   useEffect(() => { if (scrollRef.current) scrollRef.current.scrollTop = scrollRef.current.scrollHeight; }, [messages]);
 
-  // IVA INTELIGENTE (Define padrão inicial, mas não bloqueia edição)
+  // IVA INTELIGENTE (Define padrão inicial se estiver a 0, mas não força)
   useEffect(() => {
       if (!invoiceData.client_id) return;
       
       const defaultRate = getCurrentCountryVatRates()[0]; 
-      let newTax = defaultRate;
       let exemption = '';
 
-      if (invoiceData.type === 'Fatura Isenta / Autoliquidação') { newTax = 0; exemption = 'IVA - Autoliquidação'; } 
-      else if (invoiceData.type === 'Fatura Intracomunitária') { newTax = 0; exemption = 'Isento Artigo 14.º RITI'; }
+      if (invoiceData.type === 'Fatura Isenta / Autoliquidação') { exemption = 'IVA - Autoliquidação'; } 
+      else if (invoiceData.type === 'Fatura Intracomunitária') { exemption = 'Isento Artigo 14.º RITI'; }
 
-      // Só atualiza se a taxa atual for 0 (evita sobrescrever edições manuais se o tipo não mudou)
+      // Se a taxa for 0 e não for isento, sugere a taxa padrão
       const updatedItems = invoiceData.items.map(item => ({ 
           ...item, 
-          tax: item.tax === 0 && newTax !== 0 ? newTax : item.tax 
+          tax: item.tax === 0 && !exemption ? defaultRate : item.tax 
       }));
       
       setInvoiceData(prev => ({ ...prev, items: updatedItems, exemption_reason: exemption }));
 
-  }, [invoiceData.type]); // Removi client_id das deps para não resetar quando se muda cliente
+  }, [invoiceData.type]); 
 
   const toggleTheme = () => { document.documentElement.classList.toggle('dark'); setIsDark(!isDark); };
   const toggleFinancials = () => setShowFinancials(!showFinancials);
@@ -656,22 +653,32 @@ export default function Dashboard() {
                                                             <td className="py-3"><input type="number" className="w-full bg-transparent outline-none text-center" value={item.quantity} onChange={e => updateInvoiceItem(index, 'quantity', e.target.value)}/></td>
                                                             <td className="py-3"><input type="number" className="w-full bg-transparent outline-none text-right" value={item.price} onChange={e => updateInvoiceItem(index, 'price', e.target.value)}/></td>
                                                             
-                                                            {/* ✅ IVA HÍBRIDO (INPUT + SUGESTÕES) */}
-                                                            <td className="py-3 flex items-center justify-end gap-2">
+                                                            {/* ✅ IVA HÍBRIDO (INPUT + BOTÃO "LÁPIS") */}
+                                                            <td className="py-3 flex items-center justify-end gap-2 relative">
                                                                 <input 
                                                                     type="number" 
                                                                     className="w-16 bg-transparent outline-none text-right font-bold border-b border-dashed border-gray-300 focus:border-blue-500" 
                                                                     value={item.tax} 
                                                                     onChange={e => updateInvoiceItem(index, 'tax', e.target.value)}
                                                                 />
-                                                                {/* Botão de Sugestão Rápida */}
+                                                                {/* Botão Mágico de Sugestões */}
                                                                 <div className="relative group">
-                                                                    <button className="text-gray-400 hover:text-blue-600"><ChevronDown size={14}/></button>
-                                                                    <div className="absolute right-0 top-full mt-1 bg-white dark:bg-gray-900 border dark:border-gray-700 shadow-xl rounded-lg p-2 z-50 hidden group-hover:block min-w-[80px]">
-                                                                        <p className="text-[10px] uppercase text-gray-400 font-bold mb-1 px-2">{companyForm.country}</p>
-                                                                        {getCurrentCountryVatRates().map(rate => (
-                                                                            <button key={rate} onClick={() => updateInvoiceItem(index, 'tax', rate.toString())} className="block w-full text-right px-2 py-1 text-xs hover:bg-gray-100 dark:hover:bg-gray-800 rounded">{rate}%</button>
-                                                                        ))}
+                                                                    <button className="p-1 bg-gray-100 dark:bg-gray-700 rounded-full hover:bg-blue-100 dark:hover:bg-blue-900/50 text-gray-500 hover:text-blue-600 transition-colors">
+                                                                        <Edit2 size={12}/>
+                                                                    </button>
+                                                                    <div className="absolute right-0 top-full mt-2 w-48 bg-white dark:bg-gray-800 border dark:border-gray-700 shadow-xl rounded-xl p-2 z-50 hidden group-hover:block animate-fade-in-up">
+                                                                        <p className="text-[10px] uppercase text-gray-400 font-bold mb-2 px-2 border-b dark:border-gray-700 pb-1">Taxas {companyForm.country}</p>
+                                                                        <div className="grid grid-cols-2 gap-1">
+                                                                            {getCurrentCountryVatRates().map(rate => (
+                                                                                <button 
+                                                                                    key={rate} 
+                                                                                    onClick={() => updateInvoiceItem(index, 'tax', rate.toString())} 
+                                                                                    className="text-center px-2 py-1.5 text-xs hover:bg-blue-50 dark:hover:bg-blue-900/20 rounded-lg font-medium transition-colors"
+                                                                                >
+                                                                                    {rate}%
+                                                                                </button>
+                                                                            ))}
+                                                                        </div>
                                                                     </div>
                                                                 </div>
                                                             </td>
@@ -772,6 +779,7 @@ export default function Dashboard() {
                                     </div>
                                     <div className="flex items-center gap-2">
                                         <span className="text-gray-400 text-sm">1 € =</span>
+                                        {/* CORREÇÃO: Input em minúscula */}
                                         <input 
                                             type="number" 
                                             step="0.01" 
