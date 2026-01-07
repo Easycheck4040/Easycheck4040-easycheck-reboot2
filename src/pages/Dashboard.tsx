@@ -3,7 +3,7 @@ import { Routes, Route, Link, useLocation, useNavigate } from 'react-router-dom'
 import { useTranslation } from 'react-i18next';
 import { supabase } from '../supabase/client';
 import { 
-  LayoutDashboard, MessageSquare, FileText, Users, BarChart3, Settings, LogOut, Menu, X, Globe, Moon, Sun, ChevronDown, Eye, EyeOff, User, Trash2, AlertTriangle, Building2, Copy, Send, Shield, Mail, Plus, Search, FileCheck, Calculator, TrendingUp, Archive, TrendingDown, Landmark, PieChart, FileSpreadsheet, Bell, Calendar, Printer, List, BookOpen, CreditCard
+  LayoutDashboard, MessageSquare, FileText, Users, BarChart3, Settings, LogOut, Menu, X, Globe, Moon, Sun, ChevronDown, Eye, EyeOff, User, Trash2, AlertTriangle, Building2, Copy, Send, Shield, Mail, Plus, Search, FileCheck, Calculator, TrendingUp, Archive, TrendingDown, Landmark, PieChart, FileSpreadsheet, Bell, Calendar, Printer, List, BookOpen, CreditCard, Box, Save
 } from 'lucide-react';
 
 export default function Dashboard() {
@@ -30,17 +30,19 @@ export default function Dashboard() {
   const [profileData, setProfileData] = useState<any>(null);
   const [loadingUser, setLoadingUser] = useState(true);
   
-  // --- CONTABILIDADE (BOB50 ESTRUTURA) ---
+  // --- CONTABILIDADE ---
   const [accountingTab, setAccountingTab] = useState('overview'); 
-  const [transactions, setTransactions] = useState<any[]>([]); // Diário Rápido (Home)
-  const [realInvoices, setRealInvoices] = useState<any[]>([]); // Faturas Reais
-  const [chartOfAccounts, setChartOfAccounts] = useState<any[]>([]); // Plano de Contas
+  const [transactions, setTransactions] = useState<any[]>([]); 
+  const [realInvoices, setRealInvoices] = useState<any[]>([]); 
+  const [chartOfAccounts, setChartOfAccounts] = useState<any[]>([]); 
+  const [assets, setAssets] = useState<any[]>([]); 
   const [clients, setClients] = useState<any[]>([]);
   
   // --- MODAIS ---
   const [isDeleteModalOpen, setIsDeleteModalOpen] = useState(false);
   const [isProfileModalOpen, setIsProfileModalOpen] = useState(false);
   const [showTransactionModal, setShowTransactionModal] = useState(false);
+  const [showAssetModal, setShowAssetModal] = useState(false);
   const [deleteConfirmation, setDeleteConfirmation] = useState('');
   const [isDeleting, setIsDeleting] = useState(false);
   
@@ -48,16 +50,16 @@ export default function Dashboard() {
   const [editForm, setEditForm] = useState({ fullName: '', jobTitle: '', email: '' });
   const [companyForm, setCompanyForm] = useState({ name: '', country: 'Portugal', currency: 'EUR', address: '', nif: '' });
   
-  // Transação Rápida (Igual à imagem anterior)
   const [newTransaction, setNewTransaction] = useState({ 
-    description: '', 
-    amount: '', 
-    type: 'expense', 
-    category: '',
-    date: new Date().toISOString().split('T')[0]
+    description: '', amount: '', type: 'expense', category: '', date: new Date().toISOString().split('T')[0]
+  });
+
+  const [newAsset, setNewAsset] = useState({
+    name: '', purchase_date: new Date().toISOString().split('T')[0], purchase_value: '', lifespan_years: 3
   });
 
   const [savingProfile, setSavingProfile] = useState(false);
+  const [savingCompany, setSavingCompany] = useState(false);
 
   // --- CHAT IA ---
   const [messages, setMessages] = useState([{ role: 'assistant', content: 'Olá! Sou o seu Contabilista IA. Em que posso ajudar hoje?' }]);
@@ -76,7 +78,6 @@ export default function Dashboard() {
     { code: 'it', label: 'Italiano', flag: '🇮🇹' },
   ];
 
-  // DETECTAR MOEDA
   const getCurrencySymbol = (country: string) => {
     if (country === 'Brasil') return 'R$';
     if (country === 'United States') return '$';
@@ -88,15 +89,9 @@ export default function Dashboard() {
   };
   const currencySymbol = getCurrencySymbol(profileData?.country || 'Portugal');
 
-  // ✅ CÁLCULOS FINANCEIROS (Dashboard Home)
-  const totalRevenue = transactions
-    .filter(t => t.type === 'income')
-    .reduce((acc, curr) => acc + curr.amount, 0);
-
-  const totalExpenses = transactions
-    .filter(t => t.type === 'expense')
-    .reduce((acc, curr) => acc + curr.amount, 0);
-
+  // CÁLCULOS
+  const totalRevenue = transactions.filter(t => t.type === 'income').reduce((acc, curr) => acc + curr.amount, 0);
+  const totalExpenses = transactions.filter(t => t.type === 'expense').reduce((acc, curr) => acc + curr.amount, 0);
   const currentBalance = totalRevenue - totalExpenses;
   const totalInvoicesCount = realInvoices.length;
 
@@ -114,21 +109,22 @@ export default function Dashboard() {
                 name: profile.company_name, 
                 country: profile.country || 'Portugal', 
                 currency: profile.currency || 'EUR',
-                address: '', nif: '' 
+                address: profile.company_address || '', 
+                nif: profile.company_nif || '' 
             });
         }
         
-        // Transações (Diário Rápido)
         const { data: tr } = await supabase.from('transactions').select('*').order('date', { ascending: false });
         if (tr) setTransactions(tr);
         
-        // Faturas Reais
         const { data: inv } = await supabase.from('invoices').select('*');
         if (inv) setRealInvoices(inv);
 
-        // Plano de Contas (SNC)
-        const { data: acc } = await supabase.from('accounting_accounts').select('*').order('code', { ascending: true });
+        const { data: acc } = await supabase.from('accounting_accounts').select('*');
         if (acc) setChartOfAccounts(acc);
+
+        const { data: ass } = await supabase.from('accounting_assets').select('*');
+        if (ass) setAssets(ass);
 
         const { data: cl } = await supabase.from('clients').select('*');
         if (cl) setClients(cl);
@@ -155,7 +151,7 @@ export default function Dashboard() {
     setChatInput('');
     setIsChatLoading(true);
     try {
-      const context = `[Contexto: Empresa ${companyForm.name} situada em ${companyForm.country}. Moeda: ${currencySymbol}] ${chatInput}`;
+      const context = `[Empresa: ${companyForm.name}, País: ${companyForm.country}, Moeda: ${currencySymbol}] ${chatInput}`;
       const response = await fetch(`${API_URL}/api/chat`, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ message: context }) });
       const data = await response.json();
       if (data.reply) setMessages(prev => [...prev, { role: 'assistant', content: data.reply }]);
@@ -165,7 +161,6 @@ export default function Dashboard() {
 
   const handleCreateTransaction = async () => {
      if (!newTransaction.amount || !newTransaction.description) return alert("Preencha o valor e a descrição.");
-     
      const { data, error } = await supabase.from('transactions').insert([{
          user_id: userData.id,
          description: newTransaction.description,
@@ -174,38 +169,65 @@ export default function Dashboard() {
          category: newTransaction.category || 'Geral',
          date: newTransaction.date
      }]).select();
-     
      if (data) {
          setTransactions([data[0], ...transactions]);
          setShowTransactionModal(false);
-         setNewTransaction({ 
-            description: '', 
-            amount: '', 
-            type: 'expense', 
-            category: '',
-            date: new Date().toISOString().split('T')[0]
-         });
+         setNewTransaction({ description: '', amount: '', type: 'expense', category: '', date: new Date().toISOString().split('T')[0] });
      }
   };
 
-  const handleDeleteTransaction = async (id: string) => {
-    if (!window.confirm("Tem a certeza que quer eliminar este registo?")) return;
-    const { error } = await supabase.from('transactions').delete().eq('id', id);
-    if (!error) {
-        setTransactions(prev => prev.filter(t => t.id !== id));
+  const handleCreateAsset = async () => {
+    if (!newAsset.name || !newAsset.purchase_value) return alert("Preencha os dados do ativo.");
+    const { data, error } = await supabase.from('accounting_assets').insert([{
+        user_id: userData.id,
+        name: newAsset.name,
+        purchase_date: newAsset.purchase_date,
+        purchase_value: parseFloat(newAsset.purchase_value),
+        lifespan_years: newAsset.lifespan_years
+    }]).select();
+    if (data) {
+        setAssets([...assets, data[0]]);
+        setShowAssetModal(false);
+        setNewAsset({ name: '', purchase_date: new Date().toISOString().split('T')[0], purchase_value: '', lifespan_years: 3 });
     }
   };
 
+  const handleDeleteTransaction = async (id: string) => {
+    if (!window.confirm("Eliminar registo?")) return;
+    const { error } = await supabase.from('transactions').delete().eq('id', id);
+    if (!error) setTransactions(prev => prev.filter(t => t.id !== id));
+  };
+
+  // ✅ 1. GUARDAR PERFIL PESSOAL (Só Nome e Cargo)
   const handleSaveProfile = async () => {
     setSavingProfile(true);
     try {
-      const updates = { full_name: editForm.fullName, company_name: companyForm.name, country: companyForm.country, currency: companyForm.currency, updated_at: new Date() };
+      const updates = { full_name: editForm.fullName, updated_at: new Date() };
       await supabase.from('profiles').update(updates).eq('id', userData.id);
       setProfileData({ ...profileData, ...updates });
-      alert(`Dados guardados!`);
+      alert(`Perfil Pessoal atualizado!`);
       setIsProfileModalOpen(false);
-    } catch { alert("Erro ao guardar."); } 
+    } catch { alert("Erro ao guardar perfil."); } 
     finally { setSavingProfile(false); }
+  };
+
+  // ✅ 2. GUARDAR EMPRESA (Nome, NIF, Morada, País)
+  const handleSaveCompany = async () => {
+    setSavingCompany(true);
+    try {
+        const updates = { 
+            company_name: companyForm.name,
+            company_nif: companyForm.nif, 
+            company_address: companyForm.address,
+            country: companyForm.country,
+            currency: companyForm.currency,
+            updated_at: new Date()
+        };
+        await supabase.from('profiles').update(updates).eq('id', userData.id);
+        setProfileData({ ...profileData, ...updates });
+        alert(`Dados da Empresa atualizados com sucesso!`);
+    } catch { alert("Erro ao guardar empresa."); }
+    finally { setSavingCompany(false); }
   };
 
   const handleDeleteAccount = async () => {
@@ -273,12 +295,7 @@ export default function Dashboard() {
             </div>
             
             <button onClick={toggleTheme} className="p-2 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-lg">{isDark ? <Sun className="w-5 h-5"/> : <Moon className="w-5 h-5"/>}</button>
-            
-            <button className="p-2 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-lg relative">
-                <Bell className="w-5 h-5"/>
-                {notifications.length > 0 && <span className="absolute top-1 right-1 w-2 h-2 bg-red-500 rounded-full"></span>}
-            </button>
-            
+            <button className="p-2 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-lg relative"><Bell className="w-5 h-5"/>{notifications.length > 0 && <span className="absolute top-1 right-1 w-2 h-2 bg-red-500 rounded-full"></span>}</button>
             <div className="relative">
               <button onClick={() => setIsProfileDropdownOpen(!isProfileDropdownOpen)} className="w-10 h-10 bg-gradient-to-tr from-blue-600 to-purple-600 rounded-full text-white font-bold shadow-md cursor-pointer hover:opacity-90">{getInitials(profileData?.full_name)}</button>
               {isProfileDropdownOpen && (
@@ -310,13 +327,11 @@ export default function Dashboard() {
                     <div className="flex justify-between items-center mb-2"><h3 className="text-gray-500 text-sm font-medium uppercase tracking-wider">Receita Mensal</h3><button onClick={toggleFinancials} className="text-gray-400">{showFinancials ? <Eye className="w-4 h-4"/> : <EyeOff className="w-4 h-4"/>}</button></div>
                     <p className="text-3xl font-bold text-green-600 dark:text-green-400">{showFinancials ? `${currencySymbol} ${totalRevenue.toFixed(2)}` : '••••••'}</p>
                   </div>
-
                   {/* DESPESA */}
                   <div className="bg-white dark:bg-gray-800 p-6 rounded-2xl shadow-sm border dark:border-gray-700">
                     <div className="flex justify-between items-center mb-2"><h3 className="text-gray-500 text-sm font-medium uppercase tracking-wider">Despesas</h3><button onClick={toggleFinancials} className="text-gray-400">{showFinancials ? <Eye className="w-4 h-4"/> : <EyeOff className="w-4 h-4"/>}</button></div>
                     <p className="text-3xl font-bold text-red-500 dark:text-red-400">{showFinancials ? `${currencySymbol} ${totalExpenses.toFixed(2)}` : '••••••'}</p>
                   </div>
-
                   {/* SALDO */}
                   <div className="bg-white dark:bg-gray-800 p-6 rounded-2xl shadow-sm border dark:border-gray-700">
                     <div className="flex justify-between items-center mb-2"><h3 className="text-gray-500 text-sm font-medium uppercase tracking-wider">Saldo Atual</h3><button onClick={toggleFinancials} className="text-gray-400">{showFinancials ? <Eye className="w-4 h-4"/> : <EyeOff className="w-4 h-4"/>}</button></div>
@@ -325,12 +340,10 @@ export default function Dashboard() {
                 </div>
 
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                    {/* FATURAS */}
                     <div className="bg-white dark:bg-gray-800 p-6 rounded-2xl shadow-sm border dark:border-gray-700 flex items-center justify-between">
                         <div><h3 className="text-gray-500 text-sm font-medium uppercase tracking-wider">Faturas Emitidas</h3><p className="text-3xl font-bold text-orange-500 mt-1">{showFinancials ? totalInvoicesCount : '•••'}</p></div>
                         <div className="bg-orange-100 dark:bg-orange-900/30 p-3 rounded-xl"><FileText className="w-8 h-8 text-orange-500"/></div>
                     </div>
-                    {/* AÇÕES */}
                     <div className="bg-white dark:bg-gray-800 p-6 rounded-2xl shadow-sm border dark:border-gray-700 flex items-center justify-between">
                         <div><h3 className="text-gray-500 text-sm font-medium uppercase tracking-wider">Ações Pendentes</h3><p className="text-3xl font-bold text-blue-600 mt-1">0</p></div>
                         <div className="bg-blue-100 dark:bg-blue-900/30 p-3 rounded-xl"><Bell className="w-8 h-8 text-blue-600"/></div>
@@ -344,7 +357,7 @@ export default function Dashboard() {
               </div>
             } />
 
-            {/* CONTABILIDADE TIPO BOB50 */}
+            {/* CONTABILIDADE */}
             <Route path="accounting" element={
                 <div className="h-full flex flex-col">
                     <div className="flex gap-2 border-b dark:border-gray-700 pb-2 mb-6 overflow-x-auto">
@@ -352,10 +365,10 @@ export default function Dashboard() {
                             { id: 'overview', label: 'Geral', icon: PieChart },
                             { id: 'chart', label: 'Plano de Contas', icon: List },
                             { id: 'journal', label: 'Lançamentos', icon: BookOpen },
+                            { id: 'assets', label: 'Ativos (Amortizações)', icon: Box },
                             { id: 'invoices', label: 'Faturas', icon: FileText }, 
                             { id: 'purchases', label: 'Compras', icon: TrendingDown },
                             { id: 'banking', label: 'Bancos', icon: Landmark },
-                            { id: 'assets', label: 'Ativos', icon: Calculator },
                             { id: 'taxes', label: 'Impostos', icon: FileCheck },
                             { id: 'reports', label: 'Relatórios', icon: FileSpreadsheet },
                         ].map(tab => (
@@ -366,27 +379,17 @@ export default function Dashboard() {
                     </div>
 
                     <div className="flex-1">
-                        {/* 1. VISÃO GERAL (Diário Rápido) */}
                         {accountingTab === 'overview' && (
                             <div className="space-y-6">
-                                <div className="flex justify-between items-center">
-                                    <h3 className="font-bold text-lg">Diário de Movimentos</h3>
-                                    <button onClick={() => setShowTransactionModal(true)} className="bg-blue-600 text-white px-4 py-2 rounded-lg flex items-center gap-2 hover:bg-blue-700 shadow-lg"><Plus size={18}/> Nova Transação</button>
-                                </div>
+                                <div className="flex justify-between items-center"><h3 className="font-bold text-lg">Diário de Movimentos</h3><button onClick={() => setShowTransactionModal(true)} className="bg-blue-600 text-white px-4 py-2 rounded-lg flex items-center gap-2 hover:bg-blue-700 shadow-lg"><Plus size={18}/> Nova Transação</button></div>
                                 <div className="bg-white dark:bg-gray-800 rounded-2xl border dark:border-gray-700 shadow-sm overflow-hidden">
                                     <table className="w-full text-sm text-left">
-                                        <thead className="bg-gray-50 dark:bg-gray-700 text-gray-500 uppercase text-xs">
-                                            <tr><th className="px-6 py-3">Data</th><th className="px-6 py-3">Descrição</th><th className="px-6 py-3">Categoria</th><th className="px-6 py-3 text-right">Valor</th><th className="px-6 py-3 text-right">Ação</th></tr>
-                                        </thead>
+                                        <thead className="bg-gray-50 dark:bg-gray-700 text-gray-500 uppercase text-xs"><tr><th className="px-6 py-3">Data</th><th className="px-6 py-3">Descrição</th><th className="px-6 py-3">Categoria</th><th className="px-6 py-3 text-right">Valor</th><th className="px-6 py-3 text-right">Ação</th></tr></thead>
                                         <tbody>
                                             {transactions.length === 0 ? <tr><td colSpan={5} className="text-center py-8 text-gray-400">Sem movimentos.</td></tr> :
                                                 transactions.map(t => (
                                                     <tr key={t.id} className="border-b dark:border-gray-700 hover:bg-gray-50 dark:hover:bg-gray-800">
-                                                        <td className="px-6 py-4">{new Date(t.date).toLocaleDateString()}</td>
-                                                        <td className="px-6 py-4 font-medium">{t.description}</td>
-                                                        <td className="px-6 py-4"><span className="px-2 py-1 bg-gray-100 dark:bg-gray-700 rounded-full text-xs">{t.category}</span></td>
-                                                        <td className={`px-6 py-4 text-right font-bold ${t.type === 'income' ? 'text-green-600' : 'text-red-500'}`}>{t.type === 'income' ? '+' : '-'} {currencySymbol} {t.amount}</td>
-                                                        <td className="px-6 py-4 text-right"><button onClick={() => handleDeleteTransaction(t.id)} className="text-red-400 hover:text-red-600 p-2"><Trash2 size={16}/></button></td>
+                                                        <td className="px-6 py-4">{new Date(t.date).toLocaleDateString()}</td><td className="px-6 py-4 font-medium">{t.description}</td><td className="px-6 py-4"><span className="px-2 py-1 bg-gray-100 dark:bg-gray-700 rounded-full text-xs">{t.category}</span></td><td className={`px-6 py-4 text-right font-bold ${t.type === 'income' ? 'text-green-600' : 'text-red-500'}`}>{t.type === 'income' ? '+' : '-'} {currencySymbol} {t.amount}</td><td className="px-6 py-4 text-right"><button onClick={() => handleDeleteTransaction(t.id)} className="text-red-400 hover:text-red-600 p-2"><Trash2 size={16}/></button></td>
                                                     </tr>
                                                 ))
                                             }
@@ -396,44 +399,46 @@ export default function Dashboard() {
                             </div>
                         )}
 
-                        {/* 2. PLANO DE CONTAS */}
                         {accountingTab === 'chart' && (
                             <div className="bg-white dark:bg-gray-800 rounded-2xl border dark:border-gray-700 shadow-sm overflow-hidden">
                                 <div className="p-4 border-b dark:border-gray-700 flex justify-between items-center"><h3 className="font-bold flex items-center gap-2">Plano de Contas ({profileData?.country})</h3><button className="bg-blue-600 text-white px-3 py-1.5 rounded-lg text-sm flex gap-2 items-center"><Plus size={16}/> Criar Conta</button></div>
                                 <table className="w-full text-sm text-left">
                                     <thead className="bg-gray-50 dark:bg-gray-700 text-gray-500 uppercase text-xs"><tr><th className="px-6 py-3">Código</th><th className="px-6 py-3">Nome</th><th className="px-6 py-3">Tipo</th></tr></thead>
-                                    <tbody>
-                                        {chartOfAccounts.length === 0 ? <tr><td colSpan={3} className="text-center py-8 text-gray-400">Sem contas SNC. (Necessário Setup)</td></tr> :
-                                            chartOfAccounts.map(acc => (
-                                                <tr key={acc.id} className="border-b dark:border-gray-700"><td className="px-6 py-4 font-mono font-bold text-blue-600">{acc.code}</td><td className="px-6 py-4 font-medium">{acc.name}</td><td className="px-6 py-4 uppercase text-xs">{acc.type}</td></tr>
-                                            ))
-                                        }
-                                    </tbody>
+                                    <tbody>{chartOfAccounts.length === 0 ? <tr><td colSpan={3} className="text-center py-8 text-gray-400">Sem contas.</td></tr> : chartOfAccounts.map(acc => (<tr key={acc.id} className="border-b dark:border-gray-700"><td className="px-6 py-4 font-mono font-bold text-blue-600">{acc.code}</td><td className="px-6 py-4 font-medium">{acc.name}</td><td className="px-6 py-4 uppercase text-xs">{acc.type}</td></tr>))}</tbody>
                                 </table>
                             </div>
                         )}
+
+                        {accountingTab === 'assets' && (
+                            <div className="space-y-6">
+                                <div className="flex justify-between items-center">
+                                    <h3 className="font-bold text-lg">Mapa de Amortizações</h3>
+                                    <button onClick={() => setShowAssetModal(true)} className="bg-blue-600 text-white px-4 py-2 rounded-lg flex items-center gap-2 hover:bg-blue-700 shadow-lg"><Plus size={18}/> Novo Ativo</button>
+                                </div>
+                                <div className="bg-white dark:bg-gray-800 rounded-2xl border dark:border-gray-700 shadow-sm overflow-hidden">
+                                    <table className="w-full text-sm text-left">
+                                        <thead className="bg-gray-50 dark:bg-gray-700 text-gray-500 uppercase text-xs">
+                                            <tr><th className="px-6 py-3">Ativo</th><th className="px-6 py-3">Data Compra</th><th className="px-6 py-3 text-right">Valor Aquisição</th><th className="px-6 py-3 text-right">Vida Útil (Anos)</th><th className="px-6 py-3 text-right">Amortização Anual</th></tr>
+                                        </thead>
+                                        <tbody>
+                                            {assets.length === 0 ? <tr><td colSpan={5} className="text-center py-8 text-gray-400">Nenhum ativo registado.</td></tr> :
+                                                assets.map(a => (
+                                                    <tr key={a.id} className="border-b dark:border-gray-700">
+                                                        <td className="px-6 py-4 font-medium">{a.name}</td>
+                                                        <td className="px-6 py-4">{new Date(a.purchase_date).toLocaleDateString()}</td>
+                                                        <td className="px-6 py-4 text-right">{currencySymbol} {a.purchase_value}</td>
+                                                        <td className="px-6 py-4 text-right">{a.lifespan_years} anos</td>
+                                                        <td className="px-6 py-4 text-right font-bold text-orange-500">{currencySymbol} {(a.purchase_value / a.lifespan_years).toFixed(2)}</td>
+                                                    </tr>
+                                                ))
+                                            }
+                                        </tbody>
+                                    </table>
+                                </div>
+                            </div>
+                        )}
                         
-                        {/* 3. LANÇAMENTOS */}
-                        {accountingTab === 'journal' && (
-                             <div className="text-center py-20 bg-white dark:bg-gray-800 rounded-2xl border dark:border-gray-700">
-                                <BookOpen className="w-16 h-16 text-blue-200 mx-auto mb-4"/>
-                                <h3 className="text-xl font-bold">Lançamentos Contabilísticos</h3>
-                                <p className="text-gray-500 mb-6">Registo de Débito/Crédito.</p>
-                                <button className="bg-blue-600 text-white px-6 py-3 rounded-xl font-bold shadow-lg">Novo Lançamento</button>
-                            </div>
-                        )}
-
-                        {/* 4. FATURAS */}
-                        {accountingTab === 'invoices' && (
-                            <div className="text-center py-20 bg-white dark:bg-gray-800 rounded-2xl border dark:border-gray-700">
-                                <Printer className="w-16 h-16 text-blue-200 mx-auto mb-4"/>
-                                <h3 className="text-xl font-bold">Emissão de Faturas</h3>
-                                <p className="text-gray-500 mb-6">Crie faturas certificadas.</p>
-                                <button className="bg-blue-600 text-white px-6 py-3 rounded-xl font-bold shadow-lg flex items-center gap-2 mx-auto"><Plus size={20}/> Criar Fatura</button>
-                            </div>
-                        )}
-
-                        {['purchases', 'banking', 'assets', 'taxes', 'reports'].includes(accountingTab) && (
+                        {['journal', 'invoices', 'purchases', 'banking', 'taxes', 'reports'].includes(accountingTab) && (
                             <div className="flex flex-col items-center justify-center py-20 bg-white dark:bg-gray-800 rounded-2xl border dark:border-gray-700">
                                 <Archive className="w-16 h-16 text-gray-300 mb-4"/>
                                 <h3 className="text-xl font-bold">Módulo {accountingTab.toUpperCase()}</h3>
@@ -448,34 +453,46 @@ export default function Dashboard() {
               <div className="flex flex-col h-full bg-white dark:bg-gray-800 rounded-2xl border dark:border-gray-700 shadow-sm overflow-hidden">
                 <div ref={scrollRef} className="flex-1 overflow-y-auto p-6 space-y-4">
                   {messages.map((msg, i) => (
-                    <div key={i} className={`flex ${msg.role === 'user' ? 'justify-end' : 'justify-start'}`}>
-                      <div className={`max-w-[80%] px-5 py-3 rounded-2xl text-sm shadow-sm ${msg.role === 'user' ? 'bg-blue-600 text-white rounded-tr-none' : 'bg-gray-100 dark:bg-gray-700 rounded-tl-none'}`}>{msg.content}</div>
-                    </div>
+                    <div key={i} className={`flex ${msg.role === 'user' ? 'justify-end' : 'justify-start'}`}><div className={`max-w-[80%] px-5 py-3 rounded-2xl text-sm shadow-sm ${msg.role === 'user' ? 'bg-blue-600 text-white rounded-tr-none' : 'bg-gray-100 dark:bg-gray-700 rounded-tl-none'}`}>{msg.content}</div></div>
                   ))}
                   {isChatLoading && <div className="text-xs text-gray-400 ml-4 animate-pulse">A analisar...</div>}
                 </div>
-                <div className="p-4 border-t dark:border-gray-700 bg-gray-50 dark:bg-gray-900">
-                  <form onSubmit={handleSendChatMessage} className="flex gap-2 relative">
-                    <input type="text" value={chatInput} onChange={(e) => setChatInput(e.target.value)} placeholder={`Fale com o contabilista (${profileData?.country})...`} className="flex-1 bg-white dark:bg-gray-800 border dark:border-gray-700 rounded-xl px-4 py-3 text-sm focus:ring-2 focus:ring-blue-500 outline-none shadow-sm"/>
-                    <button type="submit" disabled={isChatLoading || !chatInput.trim()} className="bg-blue-600 text-white p-3 rounded-xl hover:bg-blue-700 shadow-md disabled:opacity-50"><Send size={18} /></button>
-                  </form>
-                </div>
+                <div className="p-4 border-t dark:border-gray-700 bg-gray-50 dark:bg-gray-900"><form onSubmit={handleSendChatMessage} className="flex gap-2 relative"><input type="text" value={chatInput} onChange={(e) => setChatInput(e.target.value)} placeholder="Pergunte ao Contabilista IA..." className="flex-1 bg-white dark:bg-gray-800 border dark:border-gray-700 rounded-xl px-4 py-3 text-sm focus:ring-2 focus:ring-blue-500 outline-none shadow-sm"/><button type="submit" disabled={isChatLoading || !chatInput.trim()} className="bg-blue-600 text-white p-3 rounded-xl hover:bg-blue-700 shadow-md disabled:opacity-50"><Send size={18} /></button></form></div>
               </div>
             } />
 
+            {/* ✅ PÁGINA DE GESTÃO DA EMPRESA (Agora com NIF e Morada) */}
             <Route path="company" element={isOwner ? (
-                <div className="bg-white dark:bg-gray-800 rounded-2xl shadow-sm border dark:border-gray-700 p-8 m-4 overflow-y-auto">
-                  <h2 className="text-2xl font-bold dark:text-white mb-6 flex gap-3"><Building2 className="text-blue-600"/> {t('settings.company_title')}</h2>
-                  <div className="mb-8 p-6 bg-blue-50 dark:bg-blue-900/20 rounded-2xl border border-blue-100 dark:border-blue-800 flex flex-col md:flex-row items-center justify-between gap-6">
-                    <div><h4 className="font-bold text-blue-900 dark:text-blue-200 mb-1">{t('settings.invite_code')}</h4><p className="text-sm text-blue-600 dark:text-blue-400">{t('settings.invite_text')}</p></div>
-                    <div className="flex items-center gap-3 bg-white dark:bg-gray-900 p-3 rounded-xl shadow-sm border border-gray-200 dark:border-gray-700">
+                <div className="max-w-4xl mx-auto space-y-6">
+                  {/* CÓDIGO DE CONVITE */}
+                  <div className="bg-white dark:bg-gray-800 rounded-2xl shadow-sm border dark:border-gray-700 p-6 flex flex-col md:flex-row items-center justify-between gap-6">
+                    <div><h4 className="font-bold text-blue-900 dark:text-white mb-1">{t('settings.invite_code')}</h4><p className="text-sm text-gray-500 dark:text-gray-400">{t('settings.invite_text')}</p></div>
+                    <div className="flex items-center gap-3 bg-gray-50 dark:bg-gray-900 p-3 rounded-xl border border-gray-200 dark:border-gray-700">
                       <code className="px-2 font-mono text-lg font-bold text-gray-700 dark:text-gray-300">{showPageCode ? profileData?.company_code : '••••••••'}</code>
                       <button onClick={() => setShowPageCode(!showPageCode)} className="p-2 text-gray-400 hover:text-blue-600">{showPageCode ? <EyeOff className="w-4 h-4"/> : <Eye className="w-4 h-4"/>}</button>
                       <button onClick={copyCode} className="p-2 text-gray-400 hover:text-blue-600"><Copy className="w-4 h-4"/></button>
                     </div>
                   </div>
-                  <h3 className="text-lg font-bold dark:text-white mb-4 flex gap-2"><Users className="w-5 h-5"/> {t('settings.team_members')}</h3>
-                  <div className="text-center py-12 border-2 border-dashed rounded-xl text-gray-500">{t('settings.no_members')}</div>
+
+                  {/* FORMULÁRIO DE DADOS DA EMPRESA */}
+                  <div className="bg-white dark:bg-gray-800 rounded-2xl shadow-sm border dark:border-gray-700 p-8">
+                      <div className="flex justify-between items-center mb-6">
+                          <h2 className="text-xl font-bold flex items-center gap-2"><Building2 className="text-blue-600"/> Dados Fiscais da Empresa</h2>
+                          <button onClick={handleSaveCompany} disabled={savingCompany} className="bg-blue-600 text-white px-4 py-2 rounded-xl flex items-center gap-2 font-bold hover:bg-blue-700 shadow-md transition-all">{savingCompany ? 'A guardar...' : <><Save size={18}/> Guardar Dados</>}</button>
+                      </div>
+                      
+                      <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                          <div><label className="block text-sm font-bold mb-2 text-gray-700 dark:text-gray-300">Nome da Entidade</label><input value={companyForm.name} onChange={e => setCompanyForm({...companyForm, name: e.target.value})} className="w-full p-3 border rounded-xl dark:bg-gray-900 dark:border-gray-700 focus:ring-2 focus:ring-blue-500 outline-none" placeholder="Ex: Minha Empresa Lda"/></div>
+                          <div><label className="block text-sm font-bold mb-2 text-gray-700 dark:text-gray-300">NIF / VAT Number</label><input value={companyForm.nif} onChange={e => setCompanyForm({...companyForm, nif: e.target.value})} className="w-full p-3 border rounded-xl dark:bg-gray-900 dark:border-gray-700 focus:ring-2 focus:ring-blue-500 outline-none" placeholder="Ex: 500 123 456"/></div>
+                          <div className="md:col-span-2"><label className="block text-sm font-bold mb-2 text-gray-700 dark:text-gray-300">Morada Fiscal (Sede)</label><input value={companyForm.address} onChange={e => setCompanyForm({...companyForm, address: e.target.value})} className="w-full p-3 border rounded-xl dark:bg-gray-900 dark:border-gray-700 focus:ring-2 focus:ring-blue-500 outline-none" placeholder="Ex: Av. da Liberdade, 100, Lisboa"/></div>
+                      </div>
+                  </div>
+
+                  {/* TABELA DE MEMBROS */}
+                  <div className="bg-white dark:bg-gray-800 rounded-2xl shadow-sm border dark:border-gray-700 p-8">
+                    <h3 className="text-lg font-bold mb-4 flex gap-2 items-center"><Users className="text-blue-600"/> {t('settings.team_members')}</h3>
+                    <div className="text-center py-12 border-2 border-dashed rounded-xl text-gray-500">{t('settings.no_members')}</div>
+                  </div>
                 </div>
               ) : <div className="text-center py-12"><Shield className="w-16 h-16 mx-auto mb-4 text-gray-300"/><h3 className="text-xl font-bold dark:text-white">Acesso Restrito</h3></div>
             } />
@@ -484,15 +501,10 @@ export default function Dashboard() {
                  <div className="max-w-2xl mx-auto bg-white dark:bg-gray-800 rounded-2xl shadow-sm border dark:border-gray-700 p-8">
                     <h2 className="text-2xl font-bold mb-6 flex gap-2 items-center"><Settings/> Configuração</h2>
                     <div className="space-y-4">
-                        <div><label className="block text-sm font-bold mb-1">Nome da Empresa</label><input value={companyForm.name} onChange={e => setCompanyForm({...companyForm, name: e.target.value})} className="w-full p-3 border rounded-xl dark:bg-gray-900"/></div>
-                        <div>
-                            <label className="block text-sm font-bold mb-1">País da Sede</label>
-                            <select value={companyForm.country} onChange={e => setCompanyForm({...companyForm, country: e.target.value})} className="w-full p-3 border rounded-xl dark:bg-gray-900">
-                                {countries.map(c => <option key={c} value={c}>{c}</option>)}
-                            </select>
-                        </div>
+                        <div><label className="block text-sm font-bold mb-1">País da Sede</label><select value={companyForm.country} onChange={e => setCompanyForm({...companyForm, country: e.target.value})} className="w-full p-3 border rounded-xl dark:bg-gray-900">{countries.map(c => <option key={c} value={c}>{c}</option>)}</select></div>
+                        <div><label className="block text-sm font-bold mb-1">Moeda Principal</label><input value={companyForm.currency} onChange={e => setCompanyForm({...companyForm, currency: e.target.value})} className="w-full p-3 border rounded-xl dark:bg-gray-900"/></div>
                     </div>
-                    <div className="mt-8 flex justify-end"><button onClick={handleSaveProfile} className="bg-blue-600 text-white px-6 py-3 rounded-xl font-bold hover:bg-blue-700">{savingProfile ? 'A guardar...' : 'Guardar'}</button></div>
+                    <div className="mt-8 flex justify-end"><button onClick={handleSaveCompany} className="bg-blue-600 text-white px-6 py-3 rounded-xl font-bold hover:bg-blue-700">Guardar Preferências</button></div>
                  </div>
             } />
             
@@ -504,33 +516,15 @@ export default function Dashboard() {
         </div>
       </main>
 
-      {/* MODAL PERFIL */}
+      {/* MODAL PERFIL (SÓ NOME E CARGO) */}
       {isProfileModalOpen && (
         <div className="fixed inset-0 z-[100] flex items-center justify-center bg-black/50 backdrop-blur-sm p-4">
           <div className="bg-white dark:bg-gray-800 rounded-2xl p-6 w-full max-w-lg shadow-2xl border dark:border-gray-700 max-h-[90vh] overflow-y-auto">
-            <div className="flex justify-between items-center mb-6 pb-4 border-b dark:border-gray-700">
-              <h3 className="text-xl font-bold flex items-center gap-2"><User className="text-blue-600"/> {t('profile.edit_title')}</h3>
-              <button onClick={() => setIsProfileModalOpen(false)}><X className="text-gray-400"/></button>
-            </div>
+            <div className="flex justify-between items-center mb-6 pb-4 border-b dark:border-gray-700"><h3 className="text-xl font-bold flex items-center gap-2"><User className="text-blue-600"/> {t('profile.edit_title')}</h3><button onClick={() => setIsProfileModalOpen(false)}><X className="text-gray-400"/></button></div>
             <div className="space-y-4">
               <div><label className="block text-sm mb-1">{t('form.email')}</label><input type="email" value={editForm.email} disabled className="w-full p-3 border rounded-xl bg-gray-50 cursor-not-allowed"/></div>
               <div><label className="block text-sm mb-1">{t('form.fullname')}</label><input type="text" value={editForm.fullName} onChange={e => setEditForm({...editForm, fullName: e.target.value})} className="w-full p-3 border rounded-xl dark:bg-gray-900"/></div>
-              {isOwner && (
-                <>
-                  <div className="pt-4 border-t dark:border-gray-700"><h4 className="text-xs font-bold text-purple-600 uppercase mb-3 flex items-center gap-2"><Building2 className="w-4 h-4"/> {t('PROFILE.COMPANY_SECTION')}</h4></div>
-                  <div className="bg-purple-50 dark:bg-purple-900/20 p-3 rounded-xl border border-purple-100 dark:border-purple-800 mb-4">
-                     <label className="text-xs font-bold text-purple-700 mb-1 block">{t('form.code') || 'Código'}</label>
-                     <div className="flex items-center justify-between">
-                        <span className="font-mono font-medium text-purple-900 dark:text-white text-lg">{showModalCode ? profileData?.company_code : '••••••••'}</span>
-                        <div className="flex gap-2">
-                           <button onClick={() => setShowModalCode(!showModalCode)} className="text-purple-400 hover:text-purple-600 p-1">{showModalCode ? <EyeOff className="w-4 h-4"/> : <Eye className="w-4 h-4"/>}</button>
-                           <button onClick={copyCode} className="text-purple-400 hover:text-purple-600 p-1"><Copy className="w-4 h-4"/></button>
-                        </div>
-                     </div>
-                  </div>
-                  <div><label className="block text-sm mb-1">{t('form.company_name')}</label><input type="text" value={companyForm.name} onChange={e => setCompanyForm({...companyForm, name: e.target.value})} className="w-full p-3 border rounded-xl dark:bg-gray-900"/></div>
-                </>
-              )}
+              <div><label className="block text-sm mb-1">{t('form.jobtitle')}</label><input type="text" value={editForm.jobTitle} onChange={e => setEditForm({...editForm, jobTitle: e.target.value})} className="w-full p-3 border rounded-xl dark:bg-gray-900"/></div>
             </div>
             <div className="flex justify-end gap-3 mt-8 pt-4 border-t dark:border-gray-700">
               <button onClick={() => setIsProfileModalOpen(false)} className="px-5 py-2.5 border rounded-xl">{t('common.cancel')}</button>
@@ -544,60 +538,56 @@ export default function Dashboard() {
       {showTransactionModal && (
         <div className="fixed inset-0 z-[100] flex items-center justify-center bg-black/50 backdrop-blur-sm p-4">
             <div className="bg-white dark:bg-gray-800 rounded-2xl p-6 w-full max-w-md shadow-xl border dark:border-gray-700">
-                <div className="flex justify-between items-center mb-4">
-                   <h3 className="text-xl font-bold flex gap-2 items-center text-gray-700 dark:text-white"><FileText size={20} className="text-blue-500"/> Nova Transação</h3>
-                </div>
-                
-                {/* BOTÕES DE TIPO (TOGGLE) */}
+                <div className="flex justify-between items-center mb-4"><h3 className="text-xl font-bold flex gap-2 items-center text-gray-700 dark:text-white"><FileText size={20} className="text-blue-500"/> Nova Transação</h3></div>
                 <div className="grid grid-cols-2 gap-2 mb-6 p-1 bg-gray-100 dark:bg-gray-700 rounded-xl">
-                    <button 
-                        onClick={() => setNewTransaction({...newTransaction, type: 'income'})}
-                        className={`py-2 rounded-lg font-bold text-sm transition-all ${newTransaction.type === 'income' ? 'bg-white dark:bg-gray-800 text-green-600 shadow-sm' : 'text-gray-500 dark:text-gray-400'}`}
-                    >
-                        Receita (+)
-                    </button>
-                    <button 
-                        onClick={() => setNewTransaction({...newTransaction, type: 'expense'})}
-                        className={`py-2 rounded-lg font-bold text-sm transition-all ${newTransaction.type === 'expense' ? 'bg-red-500 text-white shadow-sm' : 'text-gray-500 dark:text-gray-400'}`}
-                    >
-                        Despesa (-)
-                    </button>
+                    <button onClick={() => setNewTransaction({...newTransaction, type: 'income'})} className={`py-2 rounded-lg font-bold text-sm transition-all ${newTransaction.type === 'income' ? 'bg-white dark:bg-gray-800 text-green-600 shadow-sm' : 'text-gray-500 dark:text-gray-400'}`}>Receita (+)</button>
+                    <button onClick={() => setNewTransaction({...newTransaction, type: 'expense'})} className={`py-2 rounded-lg font-bold text-sm transition-all ${newTransaction.type === 'expense' ? 'bg-red-500 text-white shadow-sm' : 'text-gray-500 dark:text-gray-400'}`}>Despesa (-)</button>
                 </div>
-
                 <div className="space-y-4">
-                    <div>
-                        <label className="text-xs font-bold text-gray-400 uppercase tracking-wider mb-1 block">Descrição</label>
-                        <input placeholder="Ex: Venda de Software" value={newTransaction.description} onChange={e => setNewTransaction({...newTransaction, description: e.target.value})} className="w-full p-3 border dark:border-gray-600 rounded-xl dark:bg-gray-900 bg-gray-50 focus:ring-2 focus:ring-blue-500 outline-none"/>
-                    </div>
-                    
+                    <div><label className="text-xs font-bold text-gray-400 uppercase tracking-wider mb-1 block">Descrição</label><input placeholder="Ex: Venda de Software" value={newTransaction.description} onChange={e => setNewTransaction({...newTransaction, description: e.target.value})} className="w-full p-3 border dark:border-gray-600 rounded-xl dark:bg-gray-900 bg-gray-50 focus:ring-2 focus:ring-blue-500 outline-none"/></div>
                     <div className="grid grid-cols-2 gap-4">
-                        <div>
-                             <label className="text-xs font-bold text-gray-400 uppercase tracking-wider mb-1 block">Valor ({currencySymbol})</label>
-                             <input type="number" placeholder="0.00" value={newTransaction.amount} onChange={e => setNewTransaction({...newTransaction, amount: e.target.value})} className="w-full p-3 border dark:border-gray-600 rounded-xl dark:bg-gray-900 bg-gray-50 focus:ring-2 focus:ring-blue-500 outline-none"/>
-                        </div>
-                        <div>
-                             <label className="text-xs font-bold text-gray-400 uppercase tracking-wider mb-1 block">Data</label>
-                             <input type="date" value={newTransaction.date} onChange={e => setNewTransaction({...newTransaction, date: e.target.value})} className="w-full p-3 border dark:border-gray-600 rounded-xl dark:bg-gray-900 bg-gray-50 focus:ring-2 focus:ring-blue-500 outline-none text-sm"/>
-                        </div>
+                        <div><label className="text-xs font-bold text-gray-400 uppercase tracking-wider mb-1 block">Valor ({currencySymbol})</label><input type="number" placeholder="0.00" value={newTransaction.amount} onChange={e => setNewTransaction({...newTransaction, amount: e.target.value})} className="w-full p-3 border dark:border-gray-600 rounded-xl dark:bg-gray-900 bg-gray-50 focus:ring-2 focus:ring-blue-500 outline-none"/></div>
+                        <div><label className="text-xs font-bold text-gray-400 uppercase tracking-wider mb-1 block">Data</label><input type="date" value={newTransaction.date} onChange={e => setNewTransaction({...newTransaction, date: e.target.value})} className="w-full p-3 border dark:border-gray-600 rounded-xl dark:bg-gray-900 bg-gray-50 focus:ring-2 focus:ring-blue-500 outline-none text-sm"/></div>
                     </div>
-
                     <div>
                         <label className="text-xs font-bold text-gray-400 uppercase tracking-wider mb-1 block">Categoria</label>
                         <input placeholder="Sem categoria" list="categories" value={newTransaction.category} onChange={e => setNewTransaction({...newTransaction, category: e.target.value})} className="w-full p-3 border dark:border-gray-600 rounded-xl dark:bg-gray-900 bg-gray-50 focus:ring-2 focus:ring-blue-500 outline-none"/>
-                        <datalist id="categories">
-                            <option value="Geral"/>
-                            <option value="Alimentação"/>
-                            <option value="Transporte"/>
-                            <option value="Serviços"/>
-                            <option value="Vendas"/>
-                            <option value="Salários"/>
-                        </datalist>
+                        <datalist id="categories"><option value="Geral"/><option value="Alimentação"/><option value="Transporte"/><option value="Serviços"/><option value="Vendas"/><option value="Salários"/></datalist>
                     </div>
                 </div>
-                
                 <div className="flex justify-end gap-3 mt-8 pt-4 border-t dark:border-gray-700">
                     <button onClick={() => setShowTransactionModal(false)} className="px-6 py-3 text-gray-500 font-medium hover:bg-gray-100 dark:hover:bg-gray-700 rounded-xl transition-colors">Cancelar</button>
                     <button onClick={handleCreateTransaction} className="px-6 py-3 bg-blue-600 text-white rounded-xl font-bold hover:bg-blue-700 shadow-lg transition-transform active:scale-95">Registar</button>
+                </div>
+            </div>
+        </div>
+      )}
+
+      {/* MODAL NOVO ATIVO */}
+      {showAssetModal && (
+        <div className="fixed inset-0 z-[100] flex items-center justify-center bg-black/50 backdrop-blur-sm p-4">
+            <div className="bg-white dark:bg-gray-800 rounded-2xl p-6 w-full max-w-md shadow-xl border dark:border-gray-700">
+                <div className="flex justify-between items-center mb-4"><h3 className="text-xl font-bold flex gap-2 items-center text-gray-700 dark:text-white"><Box size={20} className="text-blue-500"/> Novo Ativo Imobilizado</h3></div>
+                <div className="space-y-4">
+                    <div><label className="text-xs font-bold text-gray-400 uppercase tracking-wider mb-1 block">Nome do Ativo</label><input placeholder="Ex: Computador Dell XPS" value={newAsset.name} onChange={e => setNewAsset({...newAsset, name: e.target.value})} className="w-full p-3 border dark:border-gray-600 rounded-xl dark:bg-gray-900 bg-gray-50 outline-none"/></div>
+                    <div className="grid grid-cols-2 gap-4">
+                        <div><label className="text-xs font-bold text-gray-400 uppercase tracking-wider mb-1 block">Valor Compra ({currencySymbol})</label><input type="number" placeholder="0.00" value={newAsset.purchase_value} onChange={e => setNewAsset({...newAsset, purchase_value: e.target.value})} className="w-full p-3 border dark:border-gray-600 rounded-xl dark:bg-gray-900 bg-gray-50 outline-none"/></div>
+                        <div><label className="text-xs font-bold text-gray-400 uppercase tracking-wider mb-1 block">Data Compra</label><input type="date" value={newAsset.purchase_date} onChange={e => setNewAsset({...newAsset, purchase_date: e.target.value})} className="w-full p-3 border dark:border-gray-600 rounded-xl dark:bg-gray-900 bg-gray-50 outline-none text-sm"/></div>
+                    </div>
+                    <div>
+                        <label className="text-xs font-bold text-gray-400 uppercase tracking-wider mb-1 block">Vida Útil (Anos)</label>
+                        <select value={newAsset.lifespan_years} onChange={e => setNewAsset({...newAsset, lifespan_years: parseInt(e.target.value)})} className="w-full p-3 border dark:border-gray-600 rounded-xl dark:bg-gray-900 bg-gray-50 outline-none">
+                            <option value="3">3 Anos (Hardware/Software)</option>
+                            <option value="4">4 Anos (Veículos Ligeiros)</option>
+                            <option value="5">5 Anos (Mobiliário/Equipamento)</option>
+                            <option value="8">8 Anos (Maquinaria Pesada)</option>
+                            <option value="20">20 Anos (Edifícios)</option>
+                        </select>
+                    </div>
+                </div>
+                <div className="flex justify-end gap-3 mt-8 pt-4 border-t dark:border-gray-700">
+                    <button onClick={() => setShowAssetModal(false)} className="px-6 py-3 text-gray-500 font-medium hover:bg-gray-100 dark:hover:bg-gray-700 rounded-xl transition-colors">Cancelar</button>
+                    <button onClick={handleCreateAsset} className="px-6 py-3 bg-blue-600 text-white rounded-xl font-bold hover:bg-blue-700 shadow-lg transition-transform active:scale-95">Adicionar Ativo</button>
                 </div>
             </div>
         </div>
