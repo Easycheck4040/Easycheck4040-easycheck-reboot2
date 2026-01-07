@@ -61,7 +61,7 @@ export default function Dashboard() {
   const [savingCompany, setSavingCompany] = useState(false);
 
   // --- CHAT IA (MENSAGEM ALTERADA) ---
-  const [messages, setMessages] = useState([{ role: 'assistant', content: 'Olá! Sou o seu assistente EasyCheck. Em que posso ajudar hoje?' }]);
+  const [messages, setMessages] = useState([{ role: 'assistant', content: 'Olá! Sou o seu assistente IA EasyCheck. Em que posso ajudar hoje?' }]);
   const [chatInput, setChatInput] = useState('');
   const [isChatLoading, setIsChatLoading] = useState(false);
   const scrollRef = useRef<HTMLDivElement>(null);
