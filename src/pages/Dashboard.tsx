@@ -3,7 +3,7 @@ import { Routes, Route, Link, useLocation, useNavigate } from 'react-router-dom'
 import { useTranslation } from 'react-i18next';
 import { supabase } from '../supabase/client';
 import { 
-  LayoutDashboard, MessageSquare, FileText, Users, BarChart3, Settings, LogOut, Menu, X, Globe, Moon, Sun, ChevronDown, Eye, EyeOff, User, Trash2, AlertTriangle, Building2, Copy, Send, Shield, Mail, Plus, Search, FileCheck, Calculator, TrendingUp, Archive, TrendingDown, Landmark, PieChart, FileSpreadsheet, Bell, Calendar, Printer, Wallet
+  LayoutDashboard, MessageSquare, FileText, Users, BarChart3, Settings, LogOut, Menu, X, Globe, Moon, Sun, ChevronDown, Eye, EyeOff, User, Trash2, AlertTriangle, Building2, Copy, Send, Shield, Mail, Plus, Search, FileCheck, Calculator, TrendingUp, Archive, TrendingDown, Landmark, PieChart, FileSpreadsheet, Bell, Calendar, Printer, List, BookOpen, CreditCard
 } from 'lucide-react';
 
 export default function Dashboard() {
@@ -30,10 +30,11 @@ export default function Dashboard() {
   const [profileData, setProfileData] = useState<any>(null);
   const [loadingUser, setLoadingUser] = useState(true);
   
-  // --- CONTABILIDADE ---
+  // --- CONTABILIDADE (BOB50 ESTRUTURA) ---
   const [accountingTab, setAccountingTab] = useState('overview'); 
-  const [transactions, setTransactions] = useState<any[]>([]);
-  const [realInvoices, setRealInvoices] = useState<any[]>([]); 
+  const [transactions, setTransactions] = useState<any[]>([]); // Diário Rápido (Home)
+  const [realInvoices, setRealInvoices] = useState<any[]>([]); // Faturas Reais
+  const [chartOfAccounts, setChartOfAccounts] = useState<any[]>([]); // Plano de Contas
   const [clients, setClients] = useState<any[]>([]);
   
   // --- MODAIS ---
@@ -47,6 +48,7 @@ export default function Dashboard() {
   const [editForm, setEditForm] = useState({ fullName: '', jobTitle: '', email: '' });
   const [companyForm, setCompanyForm] = useState({ name: '', country: 'Portugal', currency: 'EUR', address: '', nif: '' });
   
+  // Transação Rápida (Igual à imagem anterior)
   const [newTransaction, setNewTransaction] = useState({ 
     description: '', 
     amount: '', 
@@ -86,7 +88,7 @@ export default function Dashboard() {
   };
   const currencySymbol = getCurrencySymbol(profileData?.country || 'Portugal');
 
-  // ✅ CÁLCULOS FINANCEIROS COMPLETOS
+  // ✅ CÁLCULOS FINANCEIROS (Dashboard Home)
   const totalRevenue = transactions
     .filter(t => t.type === 'income')
     .reduce((acc, curr) => acc + curr.amount, 0);
@@ -96,7 +98,6 @@ export default function Dashboard() {
     .reduce((acc, curr) => acc + curr.amount, 0);
 
   const currentBalance = totalRevenue - totalExpenses;
-
   const totalInvoicesCount = realInvoices.length;
 
   useEffect(() => {
@@ -117,11 +118,17 @@ export default function Dashboard() {
             });
         }
         
+        // Transações (Diário Rápido)
         const { data: tr } = await supabase.from('transactions').select('*').order('date', { ascending: false });
         if (tr) setTransactions(tr);
         
+        // Faturas Reais
         const { data: inv } = await supabase.from('invoices').select('*');
         if (inv) setRealInvoices(inv);
+
+        // Plano de Contas (SNC)
+        const { data: acc } = await supabase.from('accounting_accounts').select('*').order('code', { ascending: true });
+        if (acc) setChartOfAccounts(acc);
 
         const { data: cl } = await supabase.from('clients').select('*');
         if (cl) setClients(cl);
@@ -297,64 +304,36 @@ export default function Dashboard() {
             {/* DASHBOARD PRINCIPAL */}
             <Route path="/" element={
               <div className="space-y-6">
-                {/* 1. SECÇÃO FINANCEIRA (3 Colunas) */}
                 <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-                  {/* RECEITA (VERDE) */}
+                  {/* RECEITA */}
                   <div className="bg-white dark:bg-gray-800 p-6 rounded-2xl shadow-sm border dark:border-gray-700">
-                    <div className="flex justify-between items-center mb-2">
-                        <h3 className="text-gray-500 text-sm font-medium uppercase tracking-wider">Receita Mensal</h3>
-                        <button onClick={toggleFinancials} className="text-gray-400">{showFinancials ? <Eye className="w-4 h-4"/> : <EyeOff className="w-4 h-4"/>}</button>
-                    </div>
-                    <p className="text-3xl font-bold text-green-600 dark:text-green-400">
-                        {showFinancials ? `${currencySymbol} ${totalRevenue.toFixed(2)}` : '••••••'}
-                    </p>
+                    <div className="flex justify-between items-center mb-2"><h3 className="text-gray-500 text-sm font-medium uppercase tracking-wider">Receita Mensal</h3><button onClick={toggleFinancials} className="text-gray-400">{showFinancials ? <Eye className="w-4 h-4"/> : <EyeOff className="w-4 h-4"/>}</button></div>
+                    <p className="text-3xl font-bold text-green-600 dark:text-green-400">{showFinancials ? `${currencySymbol} ${totalRevenue.toFixed(2)}` : '••••••'}</p>
                   </div>
 
-                  {/* DESPESA (VERMELHO) */}
+                  {/* DESPESA */}
                   <div className="bg-white dark:bg-gray-800 p-6 rounded-2xl shadow-sm border dark:border-gray-700">
-                    <div className="flex justify-between items-center mb-2">
-                        <h3 className="text-gray-500 text-sm font-medium uppercase tracking-wider">Despesas</h3>
-                        <button onClick={toggleFinancials} className="text-gray-400">{showFinancials ? <Eye className="w-4 h-4"/> : <EyeOff className="w-4 h-4"/>}</button>
-                    </div>
-                    <p className="text-3xl font-bold text-red-500 dark:text-red-400">
-                        {showFinancials ? `${currencySymbol} ${totalExpenses.toFixed(2)}` : '••••••'}
-                    </p>
+                    <div className="flex justify-between items-center mb-2"><h3 className="text-gray-500 text-sm font-medium uppercase tracking-wider">Despesas</h3><button onClick={toggleFinancials} className="text-gray-400">{showFinancials ? <Eye className="w-4 h-4"/> : <EyeOff className="w-4 h-4"/>}</button></div>
+                    <p className="text-3xl font-bold text-red-500 dark:text-red-400">{showFinancials ? `${currencySymbol} ${totalExpenses.toFixed(2)}` : '••••••'}</p>
                   </div>
 
-                  {/* SALDO (AZUL) */}
+                  {/* SALDO */}
                   <div className="bg-white dark:bg-gray-800 p-6 rounded-2xl shadow-sm border dark:border-gray-700">
-                    <div className="flex justify-between items-center mb-2">
-                        <h3 className="text-gray-500 text-sm font-medium uppercase tracking-wider">Saldo Atual</h3>
-                        <button onClick={toggleFinancials} className="text-gray-400">{showFinancials ? <Eye className="w-4 h-4"/> : <EyeOff className="w-4 h-4"/>}</button>
-                    </div>
-                    <p className={`text-3xl font-bold ${currentBalance >= 0 ? 'text-blue-600 dark:text-blue-400' : 'text-red-600 dark:text-red-400'}`}>
-                        {showFinancials ? `${currencySymbol} ${currentBalance.toFixed(2)}` : '••••••'}
-                    </p>
+                    <div className="flex justify-between items-center mb-2"><h3 className="text-gray-500 text-sm font-medium uppercase tracking-wider">Saldo Atual</h3><button onClick={toggleFinancials} className="text-gray-400">{showFinancials ? <Eye className="w-4 h-4"/> : <EyeOff className="w-4 h-4"/>}</button></div>
+                    <p className={`text-3xl font-bold ${currentBalance >= 0 ? 'text-blue-600 dark:text-blue-400' : 'text-red-600 dark:text-red-400'}`}>{showFinancials ? `${currencySymbol} ${currentBalance.toFixed(2)}` : '••••••'}</p>
                   </div>
                 </div>
 
-                {/* 2. SECÇÃO OPERACIONAL (2 Colunas) */}
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                     {/* FATURAS */}
                     <div className="bg-white dark:bg-gray-800 p-6 rounded-2xl shadow-sm border dark:border-gray-700 flex items-center justify-between">
-                        <div>
-                            <h3 className="text-gray-500 text-sm font-medium uppercase tracking-wider">Faturas Emitidas</h3>
-                            <p className="text-3xl font-bold text-orange-500 mt-1">{showFinancials ? totalInvoicesCount : '•••'}</p>
-                        </div>
-                        <div className="bg-orange-100 dark:bg-orange-900/30 p-3 rounded-xl">
-                            <FileText className="w-8 h-8 text-orange-500"/>
-                        </div>
+                        <div><h3 className="text-gray-500 text-sm font-medium uppercase tracking-wider">Faturas Emitidas</h3><p className="text-3xl font-bold text-orange-500 mt-1">{showFinancials ? totalInvoicesCount : '•••'}</p></div>
+                        <div className="bg-orange-100 dark:bg-orange-900/30 p-3 rounded-xl"><FileText className="w-8 h-8 text-orange-500"/></div>
                     </div>
-
-                    {/* AÇÕES (IA) */}
+                    {/* AÇÕES */}
                     <div className="bg-white dark:bg-gray-800 p-6 rounded-2xl shadow-sm border dark:border-gray-700 flex items-center justify-between">
-                        <div>
-                            <h3 className="text-gray-500 text-sm font-medium uppercase tracking-wider">Ações Pendentes</h3>
-                            <p className="text-3xl font-bold text-blue-600 mt-1">0</p>
-                        </div>
-                        <div className="bg-blue-100 dark:bg-blue-900/30 p-3 rounded-xl">
-                            <Bell className="w-8 h-8 text-blue-600"/>
-                        </div>
+                        <div><h3 className="text-gray-500 text-sm font-medium uppercase tracking-wider">Ações Pendentes</h3><p className="text-3xl font-bold text-blue-600 mt-1">0</p></div>
+                        <div className="bg-blue-100 dark:bg-blue-900/30 p-3 rounded-xl"><Bell className="w-8 h-8 text-blue-600"/></div>
                     </div>
                 </div>
 
@@ -365,11 +344,14 @@ export default function Dashboard() {
               </div>
             } />
 
+            {/* CONTABILIDADE TIPO BOB50 */}
             <Route path="accounting" element={
                 <div className="h-full flex flex-col">
                     <div className="flex gap-2 border-b dark:border-gray-700 pb-2 mb-6 overflow-x-auto">
                         {[
-                            { id: 'overview', label: 'Visão Geral', icon: PieChart },
+                            { id: 'overview', label: 'Geral', icon: PieChart },
+                            { id: 'chart', label: 'Plano de Contas', icon: List },
+                            { id: 'journal', label: 'Lançamentos', icon: BookOpen },
                             { id: 'invoices', label: 'Faturas', icon: FileText }, 
                             { id: 'purchases', label: 'Compras', icon: TrendingDown },
                             { id: 'banking', label: 'Bancos', icon: Landmark },
@@ -384,6 +366,7 @@ export default function Dashboard() {
                     </div>
 
                     <div className="flex-1">
+                        {/* 1. VISÃO GERAL (Diário Rápido) */}
                         {accountingTab === 'overview' && (
                             <div className="space-y-6">
                                 <div className="flex justify-between items-center">
@@ -403,9 +386,7 @@ export default function Dashboard() {
                                                         <td className="px-6 py-4 font-medium">{t.description}</td>
                                                         <td className="px-6 py-4"><span className="px-2 py-1 bg-gray-100 dark:bg-gray-700 rounded-full text-xs">{t.category}</span></td>
                                                         <td className={`px-6 py-4 text-right font-bold ${t.type === 'income' ? 'text-green-600' : 'text-red-500'}`}>{t.type === 'income' ? '+' : '-'} {currencySymbol} {t.amount}</td>
-                                                        <td className="px-6 py-4 text-right">
-                                                            <button onClick={() => handleDeleteTransaction(t.id)} className="text-red-400 hover:text-red-600 p-2"><Trash2 size={16}/></button>
-                                                        </td>
+                                                        <td className="px-6 py-4 text-right"><button onClick={() => handleDeleteTransaction(t.id)} className="text-red-400 hover:text-red-600 p-2"><Trash2 size={16}/></button></td>
                                                     </tr>
                                                 ))
                                             }
@@ -414,16 +395,41 @@ export default function Dashboard() {
                                 </div>
                             </div>
                         )}
+
+                        {/* 2. PLANO DE CONTAS */}
+                        {accountingTab === 'chart' && (
+                            <div className="bg-white dark:bg-gray-800 rounded-2xl border dark:border-gray-700 shadow-sm overflow-hidden">
+                                <div className="p-4 border-b dark:border-gray-700 flex justify-between items-center"><h3 className="font-bold flex items-center gap-2">Plano de Contas ({profileData?.country})</h3><button className="bg-blue-600 text-white px-3 py-1.5 rounded-lg text-sm flex gap-2 items-center"><Plus size={16}/> Criar Conta</button></div>
+                                <table className="w-full text-sm text-left">
+                                    <thead className="bg-gray-50 dark:bg-gray-700 text-gray-500 uppercase text-xs"><tr><th className="px-6 py-3">Código</th><th className="px-6 py-3">Nome</th><th className="px-6 py-3">Tipo</th></tr></thead>
+                                    <tbody>
+                                        {chartOfAccounts.length === 0 ? <tr><td colSpan={3} className="text-center py-8 text-gray-400">Sem contas SNC. (Necessário Setup)</td></tr> :
+                                            chartOfAccounts.map(acc => (
+                                                <tr key={acc.id} className="border-b dark:border-gray-700"><td className="px-6 py-4 font-mono font-bold text-blue-600">{acc.code}</td><td className="px-6 py-4 font-medium">{acc.name}</td><td className="px-6 py-4 uppercase text-xs">{acc.type}</td></tr>
+                                            ))
+                                        }
+                                    </tbody>
+                                </table>
+                            </div>
+                        )}
                         
+                        {/* 3. LANÇAMENTOS */}
+                        {accountingTab === 'journal' && (
+                             <div className="text-center py-20 bg-white dark:bg-gray-800 rounded-2xl border dark:border-gray-700">
+                                <BookOpen className="w-16 h-16 text-blue-200 mx-auto mb-4"/>
+                                <h3 className="text-xl font-bold">Lançamentos Contabilísticos</h3>
+                                <p className="text-gray-500 mb-6">Registo de Débito/Crédito.</p>
+                                <button className="bg-blue-600 text-white px-6 py-3 rounded-xl font-bold shadow-lg">Novo Lançamento</button>
+                            </div>
+                        )}
+
+                        {/* 4. FATURAS */}
                         {accountingTab === 'invoices' && (
                             <div className="text-center py-20 bg-white dark:bg-gray-800 rounded-2xl border dark:border-gray-700">
                                 <Printer className="w-16 h-16 text-blue-200 mx-auto mb-4"/>
-                                <h3 className="text-xl font-bold">Emissão de Faturas ({profileData?.country})</h3>
-                                <p className="text-gray-500 mb-6 max-w-md mx-auto">Crie faturas certificadas, orçamentos e recibos legais.</p>
-                                <button className="bg-blue-600 text-white px-6 py-3 rounded-xl font-bold shadow-lg hover:bg-blue-700 flex items-center gap-2 mx-auto">
-                                    <Plus size={20}/> Criar Nova Fatura
-                                </button>
-                                <p className="text-xs text-gray-400 mt-4">(Formulário completo em desenvolvimento)</p>
+                                <h3 className="text-xl font-bold">Emissão de Faturas</h3>
+                                <p className="text-gray-500 mb-6">Crie faturas certificadas.</p>
+                                <button className="bg-blue-600 text-white px-6 py-3 rounded-xl font-bold shadow-lg flex items-center gap-2 mx-auto"><Plus size={20}/> Criar Fatura</button>
                             </div>
                         )}
 
@@ -460,7 +466,6 @@ export default function Dashboard() {
             <Route path="company" element={isOwner ? (
                 <div className="bg-white dark:bg-gray-800 rounded-2xl shadow-sm border dark:border-gray-700 p-8 m-4 overflow-y-auto">
                   <h2 className="text-2xl font-bold dark:text-white mb-6 flex gap-3"><Building2 className="text-blue-600"/> {t('settings.company_title')}</h2>
-                  
                   <div className="mb-8 p-6 bg-blue-50 dark:bg-blue-900/20 rounded-2xl border border-blue-100 dark:border-blue-800 flex flex-col md:flex-row items-center justify-between gap-6">
                     <div><h4 className="font-bold text-blue-900 dark:text-blue-200 mb-1">{t('settings.invite_code')}</h4><p className="text-sm text-blue-600 dark:text-blue-400">{t('settings.invite_text')}</p></div>
                     <div className="flex items-center gap-3 bg-white dark:bg-gray-900 p-3 rounded-xl shadow-sm border border-gray-200 dark:border-gray-700">
