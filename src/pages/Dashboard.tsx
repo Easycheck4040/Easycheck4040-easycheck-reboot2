@@ -2,8 +2,10 @@ import { useState, useEffect, useRef } from 'react';
 import { Routes, Route, Link, useLocation, useNavigate } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
 import { supabase } from '../supabase/client';
+import jsPDF from 'jspdf';
+import autoTable from 'jspdf-autotable';
 import { 
-  LayoutDashboard, MessageSquare, FileText, Users, BarChart3, Settings, LogOut, Menu, X, Globe, Moon, Sun, ChevronDown, Eye, EyeOff, User, Trash2, AlertTriangle, Building2, Copy, Send, Shield, Mail, Plus, Search, FileCheck, Calculator, TrendingUp, Archive, TrendingDown, Landmark, PieChart, FileSpreadsheet, Bell, Calendar, Printer, List, BookOpen, CreditCard, Box, Save, Briefcase, Truck, RefreshCw, CheckCircle, AlertCircle, Edit2
+  LayoutDashboard, MessageSquare, FileText, Users, BarChart3, Settings, LogOut, Menu, X, Globe, Moon, Sun, ChevronDown, Eye, EyeOff, User, Trash2, AlertTriangle, Building2, Copy, Send, Shield, Mail, Plus, Search, FileCheck, Calculator, TrendingUp, Archive, TrendingDown, Landmark, PieChart, FileSpreadsheet, Bell, Calendar, Printer, List, BookOpen, CreditCard, Box, Save, Briefcase, Truck, RefreshCw, CheckCircle, AlertCircle, Edit2, FileDown
 } from 'lucide-react';
 
 // --- DADOS ESTÁTICOS ---
@@ -26,7 +28,7 @@ const countryCurrencyMap: Record<string, string> = { "Portugal": "EUR", "France"
 const currencySymbols: Record<string, string> = { 'EUR': '€', 'USD': '$', 'BRL': 'R$', 'AOA': 'Kz', 'MZN': 'MT', 'CVE': 'Esc', 'CHF': 'CHF', 'GBP': '£' };
 const currencyNames: Record<string, string> = { 'EUR': 'Euro', 'USD': 'Dólar Americano', 'BRL': 'Real Brasileiro', 'AOA': 'Kwanza', 'MZN': 'Metical', 'CVE': 'Escudo', 'CHF': 'Franco Suíço', 'GBP': 'Libra' };
 
-// IVA por País (Sugestões)
+// IVA por País (Sugestões Oficiais)
 const vatRatesByCountry: Record<string, number[]> = {
     "Portugal": [23, 13, 6, 0],
     "Luxembourg": [17, 14, 8, 3, 0],
@@ -91,6 +93,7 @@ export default function Dashboard() {
   const [newAsset, setNewAsset] = useState({ name: '', purchase_date: new Date().toISOString().split('T')[0], purchase_value: '', lifespan_years: 3 });
   const [newEntity, setNewEntity] = useState({ name: '', nif: '', email: '', address: '', city: '', postal_code: '', country: 'Portugal' });
 
+  // ESTADO DA FATURA
   const [invoiceData, setInvoiceData] = useState({
       client_id: '',
       type: 'Fatura',
@@ -99,6 +102,9 @@ export default function Dashboard() {
       exemption_reason: '',
       items: [{ description: '', quantity: 1, price: 0, tax: 0 }] 
   });
+  
+  // ✅ ESTADO PARA CONTROLAR QUAIS LINHAS ESTÃO EM "MODO MANUAL"
+  const [manualTaxLines, setManualTaxLines] = useState<Record<number, boolean>>({});
 
   const [savingProfile, setSavingProfile] = useState(false);
   const [savingCompany, setSavingCompany] = useState(false);
@@ -154,7 +160,7 @@ export default function Dashboard() {
 
   useEffect(() => { if (scrollRef.current) scrollRef.current.scrollTop = scrollRef.current.scrollHeight; }, [messages]);
 
-  // IVA INTELIGENTE (Define padrão inicial se estiver a 0, mas não força)
+  // IVA INTELIGENTE (Padrão)
   useEffect(() => {
       if (!invoiceData.client_id) return;
       
@@ -164,7 +170,6 @@ export default function Dashboard() {
       if (invoiceData.type === 'Fatura Isenta / Autoliquidação') { exemption = 'IVA - Autoliquidação'; } 
       else if (invoiceData.type === 'Fatura Intracomunitária') { exemption = 'Isento Artigo 14.º RITI'; }
 
-      // Se a taxa for 0 e não for isento, sugere a taxa padrão
       const updatedItems = invoiceData.items.map(item => ({ 
           ...item, 
           tax: item.tax === 0 && !exemption ? defaultRate : item.tax 
@@ -172,7 +177,7 @@ export default function Dashboard() {
       
       setInvoiceData(prev => ({ ...prev, items: updatedItems, exemption_reason: exemption }));
 
-  }, [invoiceData.type]); 
+  }, [invoiceData.type, companyForm.country]); 
 
   const toggleTheme = () => { document.documentElement.classList.toggle('dark'); setIsDark(!isDark); };
   const toggleFinancials = () => setShowFinancials(!showFinancials);
@@ -202,6 +207,64 @@ export default function Dashboard() {
 
   // --- ACTIONS ---
 
+  // ✅ GERAR PDF
+  const handleDownloadPDF = async (invoice: any) => {
+      const doc = new jsPDF();
+      
+      // 1. Cabeçalho
+      doc.setFontSize(20);
+      doc.setTextColor(40);
+      doc.text(invoice.type || "Fatura", 14, 22);
+      
+      doc.setFontSize(10);
+      doc.text(`Nº: ${invoice.invoice_number}`, 150, 22);
+      doc.text(`Data: ${new Date(invoice.date).toLocaleDateString()}`, 150, 28);
+      
+      // 2. Dados Empresa e Cliente
+      doc.setFontSize(12);
+      doc.text("De:", 14, 40);
+      doc.setFontSize(10);
+      doc.text(profileData?.company_name || "Sua Empresa", 14, 46);
+      doc.text(profileData?.country || "", 14, 52);
+      doc.text(`NIF: ${profileData?.company_nif || "N/A"}`, 14, 58);
+
+      doc.setFontSize(12);
+      doc.text("Para:", 120, 40);
+      doc.setFontSize(10);
+      doc.text(invoice.clients?.name || "Cliente Final", 120, 46);
+      doc.text(invoice.clients?.address || "", 120, 52);
+      doc.text(`NIF: ${invoice.clients?.nif || "N/A"}`, 120, 58);
+
+      // 3. Obter Itens da Base de Dados
+      const { data: items } = await supabase.from('invoice_items').select('*').eq('invoice_id', invoice.id);
+      
+      if (items) {
+          const tableData = items.map(item => [
+              item.description,
+              item.quantity,
+              `${invoice.currency} ${item.unit_price}`,
+              `${item.tax_rate}%`,
+              `${invoice.currency} ${(item.quantity * item.unit_price).toFixed(2)}`
+          ]);
+
+          autoTable(doc, {
+              head: [['Descrição', 'Qtd', 'Preço Unit.', 'IVA', 'Total']],
+              body: tableData,
+              startY: 70,
+          });
+
+          // 4. Totais
+          const finalY = (doc as any).lastAutoTable.finalY + 10;
+          doc.text(`Subtotal: ${invoice.currency} ${invoice.subtotal.toFixed(2)}`, 140, finalY);
+          doc.text(`IVA: ${invoice.currency} ${invoice.tax_total.toFixed(2)}`, 140, finalY + 6);
+          doc.setFontSize(12);
+          doc.setFont("helvetica", "bold");
+          doc.text(`Total: ${invoice.currency} ${invoice.total.toFixed(2)}`, 140, finalY + 14);
+      }
+
+      doc.save(`${invoice.invoice_number}.pdf`);
+  };
+
   const handleAddInvoiceItem = () => {
       const currentTax = getCurrentCountryVatRates()[0];
       setInvoiceData({ ...invoiceData, items: [...invoiceData.items, { description: '', quantity: 1, price: 0, tax: currentTax }] });
@@ -217,6 +280,11 @@ export default function Dashboard() {
       const newItems: any = [...invoiceData.items];
       newItems[index][field] = field === 'description' ? value : parseFloat(value) || 0;
       setInvoiceData({ ...invoiceData, items: newItems });
+  };
+
+  // ✅ Alternar entre Manual e Automático para uma linha
+  const toggleTaxMode = (index: number) => {
+      setManualTaxLines(prev => ({...prev, [index]: !prev[index]}));
   };
 
   const calculateInvoiceTotals = () => {
@@ -486,7 +554,6 @@ export default function Dashboard() {
                                         <tbody>{transactions.length === 0 ? <tr><td colSpan={5} className="text-center py-8 text-gray-400">Sem movimentos.</td></tr> : transactions.map(t => (
                                             <tr key={t.id} className="border-b dark:border-gray-700 hover:bg-gray-50 dark:hover:bg-gray-800">
                                                 <td className="px-6 py-4">{new Date(t.date).toLocaleDateString()}</td><td className="px-6 py-4 font-medium">{t.description}</td><td className="px-6 py-4"><span className="px-2 py-1 bg-gray-100 dark:bg-gray-700 rounded-full text-xs">{t.category}</span></td>
-                                                {/* ✅ CONVERTE NA TABELA */}
                                                 <td className={`px-6 py-4 text-right font-bold ${t.type === 'income' ? 'text-green-600' : 'text-red-500'}`}>{t.type === 'income' ? '+' : '-'} {displaySymbol} {(t.amount * conversionRate).toFixed(2)}</td>
                                                 <td className="px-6 py-4 text-right"><button onClick={() => handleDeleteTransaction(t.id)} className="text-red-400 hover:text-red-600 p-2"><Trash2 size={16}/></button></td>
                                             </tr>
@@ -535,7 +602,6 @@ export default function Dashboard() {
                                         <tbody>{assets.length === 0 ? <tr><td colSpan={5} className="text-center py-8 text-gray-400">Nenhum ativo registado.</td></tr> : assets.map(a => (
                                             <tr key={a.id} className="border-b dark:border-gray-700">
                                                 <td className="px-6 py-4 font-medium">{a.name}</td><td className="px-6 py-4">{new Date(a.purchase_date).toLocaleDateString()}</td>
-                                                {/* ✅ CONVERTE NA TABELA */}
                                                 <td className="px-6 py-4 text-right">{displaySymbol} {(a.purchase_value * conversionRate).toFixed(2)}</td>
                                                 <td className="px-6 py-4 text-right">{a.lifespan_years} anos</td>
                                                 <td className="px-6 py-4 text-right font-bold text-orange-500">{displaySymbol} {((a.purchase_value / a.lifespan_years) * conversionRate).toFixed(2)}</td>
@@ -558,10 +624,10 @@ export default function Dashboard() {
                                         <div className="bg-white dark:bg-gray-800 rounded-2xl border dark:border-gray-700 shadow-sm overflow-hidden">
                                             <table className="w-full text-sm text-left">
                                                 <thead className="bg-gray-50 dark:bg-gray-700 text-gray-500 uppercase text-xs">
-                                                    <tr><th className="px-6 py-3">Número</th><th className="px-6 py-3">Cliente</th><th className="px-6 py-3">Tipo</th><th className="px-6 py-3">Data</th><th className="px-6 py-3 text-right">Total</th></tr>
+                                                    <tr><th className="px-6 py-3">Número</th><th className="px-6 py-3">Cliente</th><th className="px-6 py-3">Tipo</th><th className="px-6 py-3">Data</th><th className="px-6 py-3 text-right">Total</th><th className="px-6 py-3"></th></tr>
                                                 </thead>
                                                 <tbody>
-                                                    {realInvoices.length === 0 ? <tr><td colSpan={5} className="text-center py-8 text-gray-400">Nenhuma fatura emitida.</td></tr> : 
+                                                    {realInvoices.length === 0 ? <tr><td colSpan={6} className="text-center py-8 text-gray-400">Nenhuma fatura emitida.</td></tr> : 
                                                         realInvoices.map(inv => (
                                                             <tr key={inv.id} className="border-b dark:border-gray-700">
                                                                 <td className="px-6 py-4 font-mono font-bold text-blue-600">{inv.invoice_number}</td>
@@ -569,6 +635,10 @@ export default function Dashboard() {
                                                                 <td className="px-6 py-4 text-xs uppercase font-bold">{inv.type}</td>
                                                                 <td className="px-6 py-4">{new Date(inv.date).toLocaleDateString()}</td>
                                                                 <td className="px-6 py-4 text-right font-bold">{inv.currency} {inv.total}</td>
+                                                                <td className="px-6 py-4 text-right">
+                                                                    {/* ✅ BOTÃO PDF */}
+                                                                    <button onClick={() => handleDownloadPDF(inv)} className="text-gray-400 hover:text-blue-600"><FileDown size={18}/></button>
+                                                                </td>
                                                             </tr>
                                                         ))
                                                     }
@@ -577,7 +647,7 @@ export default function Dashboard() {
                                         </div>
                                     </>
                                 ) : (
-                                    /* ✅ FORMULÁRIO DE CRIAÇÃO DE FATURA COMPLETO */
+                                    /* ✅ FORMULÁRIO DE CRIAÇÃO DE FATURA */
                                     <div className="bg-white dark:bg-gray-800 rounded-2xl shadow-xl border dark:border-gray-700 p-8 animate-fade-in-up">
                                         <div className="flex justify-between items-start mb-8 pb-6 border-b dark:border-gray-700">
                                             <div>
@@ -610,7 +680,6 @@ export default function Dashboard() {
                                                     <option value="">Selecione um cliente...</option>
                                                     {clients.map(c => <option key={c.id} value={c.id}>{c.name}</option>)}
                                                 </select>
-                                                {clients.length === 0 && <p className="text-xs text-red-500 mt-1">Crie um cliente primeiro na aba Clientes.</p>}
                                             </div>
                                             <div>
                                                 <label className="block text-sm font-bold mb-2">Data Emissão</label>
@@ -621,17 +690,6 @@ export default function Dashboard() {
                                                 <input type="date" className="w-full p-3 border rounded-xl dark:bg-gray-900 outline-none" value={invoiceData.due_date} onChange={e => setInvoiceData({...invoiceData, due_date: e.target.value})}/>
                                             </div>
                                         </div>
-
-                                        {/* ALERTAS DE IVA */}
-                                        {invoiceData.exemption_reason && (
-                                            <div className="bg-yellow-50 dark:bg-yellow-900/20 border border-yellow-200 dark:border-yellow-700 p-4 rounded-xl mb-6 flex gap-3 items-center">
-                                                <AlertCircle className="text-yellow-600"/>
-                                                <div>
-                                                    <p className="font-bold text-yellow-800 dark:text-yellow-200 text-sm">Regime de Isenção Aplicado</p>
-                                                    <p className="text-xs text-yellow-700 dark:text-yellow-300">{invoiceData.exemption_reason}</p>
-                                                </div>
-                                            </div>
-                                        )}
 
                                         {/* LINHAS DA FATURA */}
                                         <div className="mb-8">
@@ -649,38 +707,32 @@ export default function Dashboard() {
                                                 <tbody className="divide-y dark:divide-gray-700">
                                                     {invoiceData.items.map((item, index) => (
                                                         <tr key={index}>
-                                                            <td className="py-3"><input className="w-full bg-transparent outline-none font-medium" placeholder="Nome do produto/serviço" value={item.description} onChange={e => updateInvoiceItem(index, 'description', e.target.value)}/></td>
+                                                            <td className="py-3"><input className="w-full bg-transparent outline-none font-medium" placeholder="Descrição" value={item.description} onChange={e => updateInvoiceItem(index, 'description', e.target.value)}/></td>
                                                             <td className="py-3"><input type="number" className="w-full bg-transparent outline-none text-center" value={item.quantity} onChange={e => updateInvoiceItem(index, 'quantity', e.target.value)}/></td>
                                                             <td className="py-3"><input type="number" className="w-full bg-transparent outline-none text-right" value={item.price} onChange={e => updateInvoiceItem(index, 'price', e.target.value)}/></td>
                                                             
-                                                            {/* ✅ IVA HÍBRIDO (INPUT + BOTÃO "LÁPIS") */}
+                                                            {/* ✅ IVA HÍBRIDO: Input de texto se editável, senão Dropdown */}
                                                             <td className="py-3 flex items-center justify-end gap-2 relative">
-                                                                <input 
-                                                                    type="number" 
-                                                                    className="w-16 bg-transparent outline-none text-right font-bold border-b border-dashed border-gray-300 focus:border-blue-500" 
-                                                                    value={item.tax} 
-                                                                    onChange={e => updateInvoiceItem(index, 'tax', e.target.value)}
-                                                                />
-                                                                {/* Botão Mágico de Sugestões */}
-                                                                <div className="relative group">
-                                                                    <button className="p-1 bg-gray-100 dark:bg-gray-700 rounded-full hover:bg-blue-100 dark:hover:bg-blue-900/50 text-gray-500 hover:text-blue-600 transition-colors">
-                                                                        <Edit2 size={12}/>
-                                                                    </button>
-                                                                    <div className="absolute right-0 top-full mt-2 w-48 bg-white dark:bg-gray-800 border dark:border-gray-700 shadow-xl rounded-xl p-2 z-50 hidden group-hover:block animate-fade-in-up">
-                                                                        <p className="text-[10px] uppercase text-gray-400 font-bold mb-2 px-2 border-b dark:border-gray-700 pb-1">Taxas {companyForm.country}</p>
-                                                                        <div className="grid grid-cols-2 gap-1">
-                                                                            {getCurrentCountryVatRates().map(rate => (
-                                                                                <button 
-                                                                                    key={rate} 
-                                                                                    onClick={() => updateInvoiceItem(index, 'tax', rate.toString())} 
-                                                                                    className="text-center px-2 py-1.5 text-xs hover:bg-blue-50 dark:hover:bg-blue-900/20 rounded-lg font-medium transition-colors"
-                                                                                >
-                                                                                    {rate}%
-                                                                                </button>
-                                                                            ))}
-                                                                        </div>
+                                                                {manualTaxLines[index] ? (
+                                                                    <input 
+                                                                        type="number" 
+                                                                        className="w-16 bg-transparent outline-none text-right font-bold border-b border-blue-500 text-blue-600"
+                                                                        value={item.tax}
+                                                                        onChange={e => updateInvoiceItem(index, 'tax', e.target.value)}
+                                                                        autoFocus
+                                                                    />
+                                                                ) : (
+                                                                    <div className="flex items-center gap-1">
+                                                                        <select 
+                                                                            className="bg-transparent outline-none text-right font-bold appearance-none cursor-pointer"
+                                                                            value={item.tax} 
+                                                                            onChange={e => updateInvoiceItem(index, 'tax', e.target.value)}
+                                                                        >
+                                                                            {getCurrentCountryVatRates().map(rate => <option key={rate} value={rate}>{rate}%</option>)}
+                                                                        </select>
+                                                                        <button onClick={() => toggleTaxMode(index)} className="text-gray-400 hover:text-blue-600"><Edit2 size={12}/></button>
                                                                     </div>
-                                                                </div>
+                                                                )}
                                                             </td>
 
                                                             <td className="py-3 text-right font-bold">{displaySymbol} {(item.quantity * item.price).toFixed(2)}</td>
@@ -696,7 +748,7 @@ export default function Dashboard() {
                                         <div className="flex justify-end border-t dark:border-gray-700 pt-6">
                                             <div className="w-64 space-y-2">
                                                 <div className="flex justify-between text-gray-500"><span>Subtotal</span><span>{displaySymbol} {invoiceTotals.subtotal.toFixed(2)}</span></div>
-                                                <div className="flex justify-between text-gray-500"><span>IVA / Taxas</span><span>{displaySymbol} {invoiceTotals.taxTotal.toFixed(2)}</span></div>
+                                                <div className="flex justify-between text-gray-500"><span>IVA</span><span>{displaySymbol} {invoiceTotals.taxTotal.toFixed(2)}</span></div>
                                                 <div className="flex justify-between text-xl font-bold text-gray-800 dark:text-white pt-2 border-t dark:border-gray-700"><span>Total</span><span>{displaySymbol} {invoiceTotals.total.toFixed(2)}</span></div>
                                             </div>
                                         </div>
@@ -779,7 +831,6 @@ export default function Dashboard() {
                                     </div>
                                     <div className="flex items-center gap-2">
                                         <span className="text-gray-400 text-sm">1 € =</span>
-                                        {/* CORREÇÃO: Input em minúscula */}
                                         <input 
                                             type="number" 
                                             step="0.01" 
