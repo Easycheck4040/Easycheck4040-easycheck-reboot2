@@ -5,14 +5,14 @@ import { supabase } from '../supabase/client';
 import jsPDF from 'jspdf';
 import autoTable from 'jspdf-autotable';
 import { 
-  LayoutDashboard, MessageSquare, FileText, Users, BarChart3, Settings, LogOut, Menu, X, Globe, Moon, Sun, ChevronDown, Eye, EyeOff, User, Trash2, AlertTriangle, Building2, Copy, Send, Shield, Mail, Plus, Search, FileCheck, Calculator, TrendingUp, Archive, TrendingDown, Landmark, PieChart, FileSpreadsheet, Bell, Calendar, Printer, List, BookOpen, CreditCard, Box, Save, Briefcase, Truck, RefreshCw, CheckCircle, AlertCircle, Edit2, Download, Image as ImageIcon
+  LayoutDashboard, MessageSquare, FileText, Users, BarChart3, Settings, LogOut, Menu, X, Globe, Moon, Sun, ChevronDown, Eye, EyeOff, User, Trash2, AlertTriangle, Building2, Copy, Send, Shield, Mail, Plus, Search, FileCheck, Calculator, TrendingUp, Archive, TrendingDown, Landmark, PieChart, FileSpreadsheet, Bell, Calendar, Printer, List, BookOpen, CreditCard, Box, Save, Briefcase, Truck, RefreshCw, CheckCircle, AlertCircle, Edit2, Download, Image as ImageIcon, FileSearch
 } from 'lucide-react';
 
 // --- DADOS ESTÁTICOS ---
 
 const countries = ["Portugal", "Brasil", "Angola", "Moçambique", "Cabo Verde", "France", "Deutschland", "United Kingdom", "España", "United States", "Italia", "Belgique", "Suisse", "Luxembourg"];
 
-// ✅ PREFIXOS PARA CADA TIPO DE DOCUMENTO
+// ✅ PREFIXOS CORRETOS (INCLUINDO RAPPELS)
 const invoiceTypesMap: any = {
     "Fatura": "FT",
     "Fatura-Recibo": "FR",
@@ -22,7 +22,10 @@ const invoiceTypesMap: any = {
     "Nota de Débito": "ND",
     "Recibo": "RC",
     "Fatura Intracomunitária": "FI",
-    "Fatura Isenta / Autoliquidação": "FA"
+    "Fatura Isenta / Autoliquidação": "FA",
+    "Rappel 1": "RP1",
+    "Rappel 2": "RP2",
+    "Rappel 3": "RP3"
 };
 const invoiceTypes = Object.keys(invoiceTypesMap);
 
@@ -34,7 +37,7 @@ const countryCurrencyMap: Record<string, string> = { "Portugal": "EUR", "France"
 const currencySymbols: Record<string, string> = { 'EUR': '€', 'USD': '$', 'BRL': 'R$', 'AOA': 'Kz', 'MZN': 'MT', 'CVE': 'Esc', 'CHF': 'CHF', 'GBP': '£' };
 const currencyNames: Record<string, string> = { 'EUR': 'Euro', 'USD': 'Dólar Americano', 'BRL': 'Real Brasileiro', 'AOA': 'Kwanza', 'MZN': 'Metical', 'CVE': 'Escudo', 'CHF': 'Franco Suíço', 'GBP': 'Libra' };
 
-// ✅ IVA POR PAÍS (SUGESTÕES)
+// IVA por País (Sugestões)
 const vatRatesByCountry: Record<string, number[]> = {
     "Portugal": [23, 13, 6, 0],
     "Luxembourg": [17, 14, 8, 3, 0],
@@ -88,13 +91,18 @@ export default function Dashboard() {
   const [showAssetModal, setShowAssetModal] = useState(false);
   const [showEntityModal, setShowEntityModal] = useState(false); 
   const [showInvoiceForm, setShowInvoiceForm] = useState(false);
-  const [showPreviewModal, setShowPreviewModal] = useState(false); // ✅ NOVO: MODAL DE PREVIEW
+  
+  // ✅ CORREÇÃO DOS ERROS: ESTADOS DEFINIDOS EXPLICITAMENTE
+  const [showPreviewModal, setShowPreviewModal] = useState(false);
+  const [previewInvoice, setPreviewInvoice] = useState<any>(null);
+  
+  const [activeTaxDropdown, setActiveTaxDropdown] = useState<number | null>(null); 
+
   const [entityType, setEntityType] = useState<'client' | 'supplier'>('client'); 
   const [deleteConfirmation, setDeleteConfirmation] = useState('');
   const [isDeleting, setIsDeleting] = useState(false);
   
   const [editForm, setEditForm] = useState({ fullName: '', jobTitle: '', email: '' });
-  // ✅ ADICIONADO LOGO E FOOTER
   const [companyForm, setCompanyForm] = useState({ name: '', country: 'Portugal', currency: 'EUR', address: '', nif: '', logo_url: '', footer: '' });
   
   const [newTransaction, setNewTransaction] = useState({ description: '', amount: '', type: 'expense', category: '', date: new Date().toISOString().split('T')[0] });
@@ -153,13 +161,13 @@ export default function Dashboard() {
                 currency: initialCurrency, 
                 address: profile.company_address || '', 
                 nif: profile.company_nif || '',
-                logo_url: profile.logo_url || '', // ✅ CARREGA LOGO
-                footer: profile.company_footer || '' // ✅ CARREGA FOOTER
+                logo_url: profile.logo_url || '',
+                footer: profile.company_footer || ''
             });
             if (profile.custom_exchange_rates) { setExchangeRates({ ...defaultRates, ...profile.custom_exchange_rates }); }
         }
         const { data: tr } = await supabase.from('transactions').select('*').order('date', { ascending: false }); if (tr) setTransactions(tr);
-        const { data: inv } = await supabase.from('invoices').select('*, clients(name)').order('created_at', { ascending: false }); if (inv) setRealInvoices(inv);
+        const { data: inv } = await supabase.from('invoices').select('*, clients(*)').order('created_at', { ascending: false }); if (inv) setRealInvoices(inv);
         const { data: acc } = await supabase.from('accounting_accounts').select('*'); if (acc) setChartOfAccounts(acc);
         const { data: ass } = await supabase.from('accounting_assets').select('*'); if (ass) setAssets(ass);
         const { data: cl } = await supabase.from('clients').select('*'); if (cl) setClients(cl);
@@ -172,7 +180,7 @@ export default function Dashboard() {
 
   useEffect(() => { if (scrollRef.current) scrollRef.current.scrollTop = scrollRef.current.scrollHeight; }, [messages]);
 
-  // ✅ IVA INTELIGENTE (SEM FORÇAR SOBRESCRITA)
+  // IVA INTELIGENTE
   useEffect(() => {
       if (!invoiceData.client_id) return;
       
@@ -185,7 +193,6 @@ export default function Dashboard() {
           exemption = invoiceData.type.includes('Intracomunitária') ? 'Isento Artigo 14.º RITI' : 'IVA - Autoliquidação'; 
       }
 
-      // Só altera se a taxa for 0 e ainda não tivermos mudado manualmente
       const updatedItems = invoiceData.items.map(item => ({ 
           ...item, 
           tax: item.tax === 0 && newTax !== 0 ? newTax : item.tax 
@@ -238,6 +245,7 @@ export default function Dashboard() {
       const newItems: any = [...invoiceData.items];
       newItems[index][field] = field === 'description' ? value : parseFloat(value) || 0;
       setInvoiceData({ ...invoiceData, items: newItems });
+      if (field === 'tax') setActiveTaxDropdown(null);
   };
 
   const calculateInvoiceTotals = () => {
@@ -251,124 +259,106 @@ export default function Dashboard() {
       return { subtotal, taxTotal, total: subtotal + taxTotal };
   };
 
-  // ✅ GERADOR DE PDF PROFISSIONAL
-  const generatePDF = () => {
+  // ✅ GERADOR DE PDF
+  const generatePDF = (invData: any) => {
       const doc = new jsPDF();
-      const totals = calculateInvoiceTotals();
-      const client = clients.find(c => c.id === invoiceData.client_id) || { name: 'Cliente Final', address: '', nif: '' };
-      
-      // Cor de Fundo do Header
+      const client = invData.client || { name: 'Consumidor Final', address: '', nif: '' };
+      const items = invData.items || [];
+      const totals = { 
+          subtotal: items.reduce((acc: number, item: any) => acc + (item.quantity * item.unit_price), 0),
+          taxTotal: items.reduce((acc: number, item: any) => acc + (item.quantity * item.unit_price * (item.tax_rate/100)), 0)
+      };
+      const total = totals.subtotal + totals.taxTotal;
+
+      // Header
       doc.setFillColor(245, 247, 250);
       doc.rect(0, 0, 210, 40, 'F');
 
-      // Logo (Se existir)
-      if (companyForm.logo_url) {
-          // Aqui assumimos que é uma URL válida. Num caso real, pode ser preciso converter para base64.
-          // doc.addImage(companyForm.logo_url, 'PNG', 15, 10, 30, 30);
-          doc.setFontSize(10);
-          doc.text("Logo", 15, 20); // Placeholder se a imagem falhar
-      }
-
-      // Dados da Empresa (Header)
-      doc.setFontSize(16);
-      doc.setTextColor(40);
+      doc.setFontSize(16); doc.setTextColor(40);
       doc.text(companyForm.name || 'Minha Empresa', 140, 15);
-      doc.setFontSize(10);
-      doc.setTextColor(100);
-      doc.text(companyForm.address || 'Morada da Empresa', 140, 22);
-      doc.text(`NIF: ${companyForm.nif || '999999999'}`, 140, 27);
+      doc.setFontSize(10); doc.setTextColor(100);
+      doc.text(companyForm.address || '', 140, 22);
+      doc.text(`NIF: ${companyForm.nif || ''}`, 140, 27);
       doc.text(companyForm.country, 140, 32);
 
-      // Título do Documento
-      doc.setFontSize(22);
-      doc.setTextColor(0, 0, 0);
-      const prefix = invoiceTypesMap[invoiceData.type] || 'DOC';
-      const number = `${prefix} ${new Date().getFullYear()}/${realInvoices.length + 1}`;
-      doc.text(invoiceData.type.toUpperCase(), 15, 55);
-      doc.setFontSize(12);
-      doc.setTextColor(100);
-      doc.text(`# ${number}`, 15, 62);
+      // Título
+      doc.setFontSize(22); doc.setTextColor(0);
+      doc.text(invData.type?.toUpperCase() || 'FATURA', 15, 55);
+      doc.setFontSize(12); doc.setTextColor(100);
+      doc.text(`# ${invData.invoice_number}`, 15, 62);
 
-      // Dados do Cliente
-      doc.setFontSize(11);
-      doc.setTextColor(0);
+      // Cliente
+      doc.setFontSize(11); doc.setTextColor(0);
       doc.text("Faturar a:", 15, 80);
-      doc.setFont("helvetica", "bold");
-      doc.text(client.name, 15, 86);
-      doc.setFont("helvetica", "normal");
+      doc.setFont("helvetica", "bold"); doc.text(client.name || 'N/A', 15, 86);
+      doc.setFont("helvetica", "normal"); 
       doc.text(client.address || '', 15, 91);
       doc.text(`NIF: ${client.nif || 'N/A'}`, 15, 96);
-      doc.text(client.city || '', 15, 101);
+      doc.text(`${client.city || ''} ${client.country || ''}`, 15, 101);
 
       // Datas
-      doc.text(`Data: ${invoiceData.date}`, 140, 86);
-      doc.text(`Vencimento: ${invoiceData.due_date}`, 140, 91);
-
-      // Tabela de Itens (AutoTable)
-      const tableColumn = ["Descrição", "Qtd", "Preço Un.", "IVA %", "Total"];
-      const tableRows: any[] = [];
-
-      invoiceData.items.forEach(item => {
-        const itemData = [
-          item.description,
-          item.quantity,
-          `${displaySymbol} ${item.price.toFixed(2)}`,
-          `${item.tax}%`,
-          `${displaySymbol} ${(item.quantity * item.price).toFixed(2)}`
-        ];
-        tableRows.push(itemData);
-      });
+      doc.text(`Data: ${new Date(invData.date).toLocaleDateString()}`, 140, 86);
+      
+      // Tabela
+      const tableRows = items.map((item: any) => [
+          item.description, item.quantity, `${displaySymbol} ${item.unit_price.toFixed(2)}`, `${item.tax_rate}%`, `${displaySymbol} ${(item.quantity * item.unit_price).toFixed(2)}`
+      ]);
 
       autoTable(doc, {
-        head: [tableColumn],
+        head: [["Descrição", "Qtd", "Preço Un.", "IVA %", "Total"]],
         body: tableRows,
         startY: 110,
         theme: 'grid',
-        headStyles: { fillColor: [66, 133, 244] }, // Azul Google
-        styles: { fontSize: 10 },
+        headStyles: { fillColor: [66, 133, 244] }
       });
 
       // Totais
       const finalY = (doc as any).lastAutoTable.finalY + 10;
-      doc.text(`Subtotal:`, 140, finalY);
-      doc.text(`${displaySymbol} ${totals.subtotal.toFixed(2)}`, 180, finalY, { align: 'right' });
-      
-      doc.text(`Imposto (IVA):`, 140, finalY + 7);
-      doc.text(`${displaySymbol} ${totals.taxTotal.toFixed(2)}`, 180, finalY + 7, { align: 'right' });
-
-      doc.setFontSize(14);
+      doc.text(`Subtotal: ${displaySymbol} ${totals.subtotal.toFixed(2)}`, 140, finalY);
+      doc.text(`Imposto: ${displaySymbol} ${totals.taxTotal.toFixed(2)}`, 140, finalY + 7);
       doc.setFont("helvetica", "bold");
-      doc.text(`TOTAL:`, 140, finalY + 15);
-      doc.text(`${displaySymbol} ${totals.total.toFixed(2)}`, 180, finalY + 15, { align: 'right' });
+      doc.text(`TOTAL: ${displaySymbol} ${total.toFixed(2)}`, 140, finalY + 15);
 
       // Footer
+      doc.setFont("helvetica", "normal");
       if (companyForm.footer) {
-          doc.setFontSize(8);
-          doc.setTextColor(150);
+          doc.setFontSize(8); doc.setTextColor(150);
           doc.text(companyForm.footer, 105, 280, { align: 'center' });
       }
-      doc.text("Processado por EasyCheck software certificado.", 105, 290, { align: 'center' });
+      doc.text("Processado por EasyCheck Software.", 105, 290, { align: 'center' });
 
       return doc;
   };
 
-  const handleDownloadPDF = () => {
-      const doc = generatePDF();
-      doc.save(`Fatura_${Date.now()}.pdf`);
-      // Depois de baixar, gravar e fechar
-      handleSaveInvoice();
+  // ✅ CLICK NO OLHO (ABRE PREVIEW)
+  const handlePreviewInvoice = async (invoice: any) => {
+      const { data: items } = await supabase.from('invoice_items').select('*').eq('invoice_id', invoice.id);
+      
+      const fullInvoice = {
+          ...invoice,
+          client: invoice.clients,
+          items: items || []
+      };
+      
+      setPreviewInvoice(fullInvoice);
+      setShowPreviewModal(true); // ✅ AGORA ABRE CORRETAMENTE
   };
 
-  // ✅ PREVIEW ANTES DE GRAVAR
-  const handlePreview = () => {
-      if (!invoiceData.client_id) return alert("Selecione um cliente.");
-      if (invoiceData.items.length === 0) return alert("Adicione itens.");
-      setShowPreviewModal(true);
+  const handleDownloadPDF = () => {
+      if (previewInvoice) {
+          const doc = generatePDF(previewInvoice);
+          doc.save(`${previewInvoice.invoice_number.replace('/','-')}.pdf`);
+      }
   };
 
   const handleSaveInvoice = async () => {
+      if (!invoiceData.client_id) return alert("Selecione um cliente.");
+      if (invoiceData.items.length === 0) return alert("Adicione pelo menos um item.");
+
       const totals = calculateInvoiceTotals();
-      const prefix = invoiceTypesMap[invoiceData.type] || 'DOC';
+      
+      // ✅ PREFIXO CORRETO
+      const prefix = invoiceTypesMap[invoiceData.type] || 'FT';
       const docNumber = `${prefix} ${new Date().getFullYear()}/${realInvoices.length + 1}`;
 
       const { data: invoice, error } = await supabase.from('invoices').insert([{
@@ -398,11 +388,10 @@ export default function Dashboard() {
 
       await supabase.from('invoice_items').insert(itemsToInsert);
 
-      // Recarregar
-      const { data: updatedInvoices } = await supabase.from('invoices').select('*, clients(name)').order('created_at', { ascending: false });
+      alert(`${invoiceData.type} emitida com sucesso!`);
+      const { data: updatedInvoices } = await supabase.from('invoices').select('*, clients(*)').order('created_at', { ascending: false });
       if (updatedInvoices) setRealInvoices(updatedInvoices);
       
-      setShowPreviewModal(false);
       setShowInvoiceForm(false);
       setInvoiceData({
           client_id: '',
@@ -416,11 +405,10 @@ export default function Dashboard() {
 
   // ✅ APAGAR FATURA (SEGURANÇA)
   const handleDeleteInvoice = async (id: string) => {
-      if (window.confirm("ATENÇÃO: Apagar uma fatura emitida é ilegal em muitos países.\nTem a certeza absoluta?")) {
-          if (window.prompt("Escreva 'APAGAR' para confirmar:") === 'APAGAR') {
-             const { error } = await supabase.from('invoices').delete().eq('id', id);
-             if (!error) setRealInvoices(prev => prev.filter(i => i.id !== id));
-          }
+      if (window.confirm("Tem a certeza absoluta? Esta ação é irreversível.")) {
+          const { error } = await supabase.from('invoices').delete().eq('id', id);
+          if (!error) setRealInvoices(prev => prev.filter(i => i.id !== id));
+          else alert("Erro ao apagar: " + error.message);
       }
   };
 
@@ -474,20 +462,10 @@ export default function Dashboard() {
   const handleSaveCompany = async () => {
     setSavingCompany(true);
     try {
-        const updates = { 
-            company_name: companyForm.name, 
-            company_nif: companyForm.nif, 
-            company_address: companyForm.address, 
-            country: companyForm.country, 
-            currency: companyForm.currency, 
-            custom_exchange_rates: exchangeRates, 
-            logo_url: companyForm.logo_url, // ✅ GRAVA LOGO
-            company_footer: companyForm.footer, // ✅ GRAVA FOOTER
-            updated_at: new Date() 
-        };
+        const updates = { company_name: companyForm.name, company_nif: companyForm.nif, company_address: companyForm.address, country: companyForm.country, currency: companyForm.currency, custom_exchange_rates: exchangeRates, logo_url: companyForm.logo_url, company_footer: companyForm.footer, updated_at: new Date() };
         await supabase.from('profiles').update(updates).eq('id', userData.id);
         setProfileData({ ...profileData, ...updates });
-        alert(`Dados da Empresa e Moeda (${companyForm.currency}) atualizados!`);
+        alert(`Dados da Empresa atualizados!`);
     } catch { alert("Erro ao guardar."); } finally { setSavingCompany(false); }
   };
 
@@ -509,6 +487,8 @@ export default function Dashboard() {
     { icon: Building2, label: t('dashboard.menu.company'), path: '/dashboard/company', hidden: !isOwner, special: true },
     { icon: Settings, label: t('dashboard.menu.settings'), path: '/dashboard/settings' },
   ];
+
+  const invoiceTotals = calculateInvoiceTotals();
 
   return (
     <div className="flex h-screen bg-gray-50 dark:bg-gray-900 transition-colors duration-300 font-sans text-gray-900 dark:text-gray-100">
@@ -580,16 +560,22 @@ export default function Dashboard() {
             <Route path="/" element={
               <div className="space-y-6">
                 <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+                  {/* RECEITA */}
                   <div className="bg-white dark:bg-gray-800 p-6 rounded-2xl shadow-sm border dark:border-gray-700">
                     <div className="flex justify-between items-center mb-2"><h3 className="text-gray-500 text-sm font-medium uppercase tracking-wider">Receita Mensal</h3><button onClick={toggleFinancials} className="text-gray-400">{showFinancials ? <Eye className="w-4 h-4"/> : <EyeOff className="w-4 h-4"/>}</button></div>
+                    {/* VALOR CONVERTIDO */}
                     <p className="text-3xl font-bold text-green-600 dark:text-green-400">{showFinancials ? `${displaySymbol} ${totalRevenue.toFixed(2)}` : '••••••'}</p>
                   </div>
+                  {/* DESPESA */}
                   <div className="bg-white dark:bg-gray-800 p-6 rounded-2xl shadow-sm border dark:border-gray-700">
                     <div className="flex justify-between items-center mb-2"><h3 className="text-gray-500 text-sm font-medium uppercase tracking-wider">Despesas</h3><button onClick={toggleFinancials} className="text-gray-400">{showFinancials ? <Eye className="w-4 h-4"/> : <EyeOff className="w-4 h-4"/>}</button></div>
+                    {/* VALOR CONVERTIDO */}
                     <p className="text-3xl font-bold text-red-500 dark:text-red-400">{showFinancials ? `${displaySymbol} ${totalExpenses.toFixed(2)}` : '••••••'}</p>
                   </div>
+                  {/* SALDO */}
                   <div className="bg-white dark:bg-gray-800 p-6 rounded-2xl shadow-sm border dark:border-gray-700">
                     <div className="flex justify-between items-center mb-2"><h3 className="text-gray-500 text-sm font-medium uppercase tracking-wider">Saldo Atual</h3><button onClick={toggleFinancials} className="text-gray-400">{showFinancials ? <Eye className="w-4 h-4"/> : <EyeOff className="w-4 h-4"/>}</button></div>
+                    {/* VALOR CONVERTIDO */}
                     <p className={`text-3xl font-bold ${currentBalance >= 0 ? 'text-blue-600 dark:text-blue-400' : 'text-red-600 dark:text-red-400'}`}>{showFinancials ? `${displaySymbol} ${currentBalance.toFixed(2)}` : '••••••'}</p>
                   </div>
                 </div>
@@ -634,6 +620,7 @@ export default function Dashboard() {
                                         <tbody>{transactions.length === 0 ? <tr><td colSpan={5} className="text-center py-8 text-gray-400">Sem movimentos.</td></tr> : transactions.map(t => (
                                             <tr key={t.id} className="border-b dark:border-gray-700 hover:bg-gray-50 dark:hover:bg-gray-800">
                                                 <td className="px-6 py-4">{new Date(t.date).toLocaleDateString()}</td><td className="px-6 py-4 font-medium">{t.description}</td><td className="px-6 py-4"><span className="px-2 py-1 bg-gray-100 dark:bg-gray-700 rounded-full text-xs">{t.category}</span></td>
+                                                {/* ✅ CONVERTE NA TABELA */}
                                                 <td className={`px-6 py-4 text-right font-bold ${t.type === 'income' ? 'text-green-600' : 'text-red-500'}`}>{t.type === 'income' ? '+' : '-'} {displaySymbol} {(t.amount * conversionRate).toFixed(2)}</td>
                                                 <td className="px-6 py-4 text-right"><button onClick={() => handleDeleteTransaction(t.id)} className="text-red-400 hover:text-red-600 p-2"><Trash2 size={16}/></button></td>
                                             </tr>
@@ -682,6 +669,7 @@ export default function Dashboard() {
                                         <tbody>{assets.length === 0 ? <tr><td colSpan={5} className="text-center py-8 text-gray-400">Nenhum ativo registado.</td></tr> : assets.map(a => (
                                             <tr key={a.id} className="border-b dark:border-gray-700">
                                                 <td className="px-6 py-4 font-medium">{a.name}</td><td className="px-6 py-4">{new Date(a.purchase_date).toLocaleDateString()}</td>
+                                                {/* ✅ CONVERTE NA TABELA */}
                                                 <td className="px-6 py-4 text-right">{displaySymbol} {(a.purchase_value * conversionRate).toFixed(2)}</td>
                                                 <td className="px-6 py-4 text-right">{a.lifespan_years} anos</td>
                                                 <td className="px-6 py-4 text-right font-bold text-orange-500">{displaySymbol} {((a.purchase_value / a.lifespan_years) * conversionRate).toFixed(2)}</td>
@@ -715,7 +703,11 @@ export default function Dashboard() {
                                                                 <td className="px-6 py-4 text-xs uppercase font-bold">{inv.type}</td>
                                                                 <td className="px-6 py-4">{new Date(inv.date).toLocaleDateString()}</td>
                                                                 <td className="px-6 py-4 text-right font-bold">{inv.currency} {inv.total}</td>
-                                                                <td className="px-6 py-4 text-right"><button onClick={() => handleDeleteInvoice(inv.id)} className="text-red-400 hover:text-red-600"><Trash2 size={16}/></button></td>
+                                                                <td className="px-6 py-4 text-right flex justify-end gap-2">
+                                                                    {/* ✅ BOTÃO PREVIEW NA LISTA */}
+                                                                    <button onClick={() => handlePreviewInvoice(inv)} className="p-2 text-gray-400 hover:text-blue-600 rounded-lg hover:bg-blue-50 dark:hover:bg-blue-900/20"><FileSearch size={18}/></button>
+                                                                    <button onClick={() => handleDeleteInvoice(inv.id)} className="p-2 text-gray-400 hover:text-red-600 rounded-lg hover:bg-red-50 dark:hover:bg-red-900/20"><Trash2 size={18}/></button>
+                                                                </td>
                                                             </tr>
                                                         ))
                                                     }
@@ -769,6 +761,17 @@ export default function Dashboard() {
                                             </div>
                                         </div>
 
+                                        {/* ALERTAS DE IVA */}
+                                        {invoiceData.exemption_reason && (
+                                            <div className="bg-yellow-50 dark:bg-yellow-900/20 border border-yellow-200 dark:border-yellow-700 p-4 rounded-xl mb-6 flex gap-3 items-center">
+                                                <AlertCircle className="text-yellow-600"/>
+                                                <div>
+                                                    <p className="font-bold text-yellow-800 dark:text-yellow-200 text-sm">Regime de Isenção Aplicado</p>
+                                                    <p className="text-xs text-yellow-700 dark:text-yellow-300">{invoiceData.exemption_reason}</p>
+                                                </div>
+                                            </div>
+                                        )}
+
                                         {/* LINHAS DA FATURA */}
                                         <div className="mb-8">
                                             <table className="w-full text-sm">
@@ -777,7 +780,7 @@ export default function Dashboard() {
                                                         <th className="py-2 w-1/2">Descrição</th>
                                                         <th className="py-2 w-20 text-center">Qtd</th>
                                                         <th className="py-2 w-32 text-right">Preço Un.</th>
-                                                        <th className="py-2 w-32 text-right">IVA %</th>
+                                                        <th className="py-2 w-24 text-right">IVA %</th>
                                                         <th className="py-2 w-32 text-right">Total</th>
                                                         <th className="py-2 w-10"></th>
                                                     </tr>
@@ -789,7 +792,7 @@ export default function Dashboard() {
                                                             <td className="py-3"><input type="number" className="w-full bg-transparent outline-none text-center" value={item.quantity} onChange={e => updateInvoiceItem(index, 'quantity', e.target.value)}/></td>
                                                             <td className="py-3"><input type="number" className="w-full bg-transparent outline-none text-right" value={item.price} onChange={e => updateInvoiceItem(index, 'price', e.target.value)}/></td>
                                                             
-                                                            {/* ✅ IVA HÍBRIDO (INPUT + BOTÃO "LÁPIS") */}
+                                                            {/* ✅ IVA HÍBRIDO (INPUT + MENU CLICÁVEL) */}
                                                             <td className="py-3 flex items-center justify-end gap-2 relative">
                                                                 <input 
                                                                     type="number" 
@@ -797,25 +800,31 @@ export default function Dashboard() {
                                                                     value={item.tax} 
                                                                     onChange={e => updateInvoiceItem(index, 'tax', e.target.value)}
                                                                 />
-                                                                {/* Botão Mágico de Sugestões */}
-                                                                <div className="relative group">
-                                                                    <button className="p-1 bg-gray-100 dark:bg-gray-700 rounded-full hover:bg-blue-100 dark:hover:bg-blue-900/50 text-gray-500 hover:text-blue-600 transition-colors">
-                                                                        <Edit2 size={12}/>
+                                                                {/* Botão Mágico: Abre com Clique e Mantém Aberto */}
+                                                                <div className="relative">
+                                                                    <button 
+                                                                        className="p-1 bg-gray-100 dark:bg-gray-700 rounded-full hover:bg-blue-100 dark:hover:bg-blue-900/50 text-gray-500 hover:text-blue-600 transition-colors"
+                                                                        onClick={() => setActiveTaxDropdown(activeTaxDropdown === index ? null : index)}
+                                                                    >
+                                                                        <List size={12}/>
                                                                     </button>
-                                                                    <div className="absolute right-0 top-full mt-2 w-48 bg-white dark:bg-gray-800 border dark:border-gray-700 shadow-xl rounded-xl p-2 z-50 hidden group-hover:block animate-fade-in-up">
-                                                                        <p className="text-[10px] uppercase text-gray-400 font-bold mb-2 px-2 border-b dark:border-gray-700 pb-1">Taxas {companyForm.country}</p>
-                                                                        <div className="grid grid-cols-2 gap-1">
-                                                                            {getCurrentCountryVatRates().map(rate => (
-                                                                                <button 
-                                                                                    key={rate} 
-                                                                                    onClick={() => updateInvoiceItem(index, 'tax', rate.toString())} 
-                                                                                    className="text-center px-2 py-1.5 text-xs hover:bg-blue-50 dark:hover:bg-blue-900/20 rounded-lg font-medium transition-colors"
-                                                                                >
-                                                                                    {rate}%
-                                                                                </button>
-                                                                            ))}
+                                                                    
+                                                                    {activeTaxDropdown === index && (
+                                                                        <div className="absolute right-0 top-full mt-2 w-48 bg-white dark:bg-gray-800 border dark:border-gray-700 shadow-xl rounded-xl p-2 z-50 animate-fade-in-up">
+                                                                            <p className="text-[10px] uppercase text-gray-400 font-bold mb-2 px-2 border-b dark:border-gray-700 pb-1">Taxas {companyForm.country}</p>
+                                                                            <div className="grid grid-cols-2 gap-1">
+                                                                                {getCurrentCountryVatRates().map(rate => (
+                                                                                    <button 
+                                                                                        key={rate} 
+                                                                                        onClick={() => updateInvoiceItem(index, 'tax', rate.toString())} 
+                                                                                        className="text-center px-2 py-1.5 text-xs hover:bg-blue-50 dark:hover:bg-blue-900/20 rounded-lg font-medium transition-colors"
+                                                                                    >
+                                                                                        {rate}%
+                                                                                    </button>
+                                                                                ))}
+                                                                            </div>
                                                                         </div>
-                                                                    </div>
+                                                                    )}
                                                                 </div>
                                                             </td>
 
@@ -831,15 +840,15 @@ export default function Dashboard() {
                                         {/* TOTAIS */}
                                         <div className="flex justify-end border-t dark:border-gray-700 pt-6">
                                             <div className="w-64 space-y-2">
-                                                <div className="flex justify-between text-gray-500"><span>Subtotal</span><span>{displaySymbol} {calculateInvoiceTotals().subtotal.toFixed(2)}</span></div>
-                                                <div className="flex justify-between text-gray-500"><span>IVA / Taxas</span><span>{displaySymbol} {calculateInvoiceTotals().taxTotal.toFixed(2)}</span></div>
-                                                <div className="flex justify-between text-xl font-bold text-gray-800 dark:text-white pt-2 border-t dark:border-gray-700"><span>Total</span><span>{displaySymbol} {calculateInvoiceTotals().total.toFixed(2)}</span></div>
+                                                <div className="flex justify-between text-gray-500"><span>Subtotal</span><span>{displaySymbol} {invoiceTotals.subtotal.toFixed(2)}</span></div>
+                                                <div className="flex justify-between text-gray-500"><span>IVA / Taxas</span><span>{displaySymbol} {invoiceTotals.taxTotal.toFixed(2)}</span></div>
+                                                <div className="flex justify-between text-xl font-bold text-gray-800 dark:text-white pt-2 border-t dark:border-gray-700"><span>Total</span><span>{displaySymbol} {invoiceTotals.total.toFixed(2)}</span></div>
                                             </div>
                                         </div>
 
                                         <div className="flex justify-end gap-4 mt-8">
                                             <button onClick={() => setShowInvoiceForm(false)} className="px-6 py-3 rounded-xl border font-medium hover:bg-gray-50 dark:hover:bg-gray-700">Cancelar</button>
-                                            <button onClick={handlePreview} className="px-6 py-3 rounded-xl bg-blue-600 text-white font-bold hover:bg-blue-700 shadow-lg flex items-center gap-2"><Eye size={20}/> Pré-visualizar</button>
+                                            <button onClick={handleSaveInvoice} className="px-6 py-3 rounded-xl bg-blue-600 text-white font-bold hover:bg-blue-700 shadow-lg flex items-center gap-2"><CheckCircle size={20}/> Emitir {invoiceData.type}</button>
                                         </div>
                                     </div>
                                 )}
@@ -967,7 +976,7 @@ export default function Dashboard() {
       )}
 
       {/* ✅ PREVIEW MODAL */}
-      {showPreviewModal && (
+      {showPreviewModal && previewInvoice && (
         <div className="fixed inset-0 z-[200] flex items-center justify-center bg-black/80 backdrop-blur-sm p-4">
             <div className="bg-white dark:bg-gray-800 w-full h-full max-w-5xl rounded-2xl shadow-2xl flex flex-col overflow-hidden animate-scale-in">
                 {/* Header do Preview */}
@@ -986,8 +995,8 @@ export default function Dashboard() {
                         <div className="flex justify-between items-start mb-12">
                             <div>
                                 {companyForm.logo_url ? <img src={companyForm.logo_url} className="h-16 w-auto object-contain mb-4"/> : <div className="h-16 w-16 bg-gray-200 rounded-lg flex items-center justify-center text-gray-400 mb-4"><ImageIcon/></div>}
-                                <h1 className="text-3xl font-bold text-gray-800">{invoiceData.type.toUpperCase()}</h1>
-                                <p className="text-gray-500 font-mono mt-1"># RASCUNHO</p>
+                                <h1 className="text-3xl font-bold text-gray-800">{previewInvoice.type?.toUpperCase()}</h1>
+                                <p className="text-gray-500 font-mono mt-1"># {previewInvoice.invoice_number}</p>
                             </div>
                             <div className="text-right">
                                 <h2 className="font-bold text-xl">{companyForm.name || 'Nome da Empresa'}</h2>
@@ -1001,18 +1010,18 @@ export default function Dashboard() {
                         <div className="flex justify-between mb-12">
                             <div>
                                 <h3 className="text-xs font-bold text-gray-400 uppercase tracking-wider mb-2">Faturado a:</h3>
-                                {clients.find(c => c.id === invoiceData.client_id) && (
+                                {previewInvoice.client && (
                                     <>
-                                        <p className="font-bold text-lg">{clients.find(c => c.id === invoiceData.client_id)?.name}</p>
-                                        <p className="text-sm text-gray-600">{clients.find(c => c.id === invoiceData.client_id)?.address}</p>
-                                        <p className="text-sm text-gray-600">NIF: {clients.find(c => c.id === invoiceData.client_id)?.nif}</p>
-                                        <p className="text-sm text-gray-600">{clients.find(c => c.id === invoiceData.client_id)?.city}, {clients.find(c => c.id === invoiceData.client_id)?.country}</p>
+                                        <p className="font-bold text-lg">{previewInvoice.client.name}</p>
+                                        <p className="text-sm text-gray-600">{previewInvoice.client.address}</p>
+                                        <p className="text-sm text-gray-600">NIF: {previewInvoice.client.nif}</p>
+                                        <p className="text-sm text-gray-600">{previewInvoice.client.city}, {previewInvoice.client.country}</p>
                                     </>
                                 )}
                             </div>
                             <div className="text-right">
-                                <div className="mb-2"><span className="text-gray-500 text-sm">Data de Emissão:</span> <span className="font-bold">{new Date(invoiceData.date).toLocaleDateString()}</span></div>
-                                <div><span className="text-gray-500 text-sm">Vencimento:</span> <span className="font-bold">{new Date(invoiceData.due_date).toLocaleDateString()}</span></div>
+                                <div className="mb-2"><span className="text-gray-500 text-sm">Data de Emissão:</span> <span className="font-bold">{new Date(previewInvoice.date).toLocaleDateString()}</span></div>
+                                <div><span className="text-gray-500 text-sm">Vencimento:</span> <span className="font-bold">{new Date(previewInvoice.due_date).toLocaleDateString()}</span></div>
                             </div>
                         </div>
 
@@ -1028,13 +1037,13 @@ export default function Dashboard() {
                                 </tr>
                             </thead>
                             <tbody>
-                                {invoiceData.items.map((item, i) => (
+                                {previewInvoice.items && previewInvoice.items.map((item: any, i: number) => (
                                     <tr key={i} className="border-b border-gray-50">
                                         <td className="py-4 text-sm font-medium">{item.description}</td>
                                         <td className="py-4 text-sm text-center">{item.quantity}</td>
-                                        <td className="py-4 text-sm text-right">{displaySymbol} {item.price.toFixed(2)}</td>
-                                        <td className="py-4 text-sm text-right">{item.tax}%</td>
-                                        <td className="py-4 text-sm text-right font-bold">{displaySymbol} {(item.quantity * item.price).toFixed(2)}</td>
+                                        <td className="py-4 text-sm text-right">{previewInvoice.currency} {item.unit_price?.toFixed(2)}</td>
+                                        <td className="py-4 text-sm text-right">{item.tax_rate}%</td>
+                                        <td className="py-4 text-sm text-right font-bold">{previewInvoice.currency} {(item.quantity * item.unit_price).toFixed(2)}</td>
                                     </tr>
                                 ))}
                             </tbody>
@@ -1043,9 +1052,9 @@ export default function Dashboard() {
                         {/* Totais */}
                         <div className="flex justify-end">
                             <div className="w-64 space-y-2">
-                                <div className="flex justify-between text-gray-500 text-sm"><span>Subtotal:</span><span>{displaySymbol} {calculateInvoiceTotals().subtotal.toFixed(2)}</span></div>
-                                <div className="flex justify-between text-gray-500 text-sm"><span>Impostos (IVA):</span><span>{displaySymbol} {calculateInvoiceTotals().taxTotal.toFixed(2)}</span></div>
-                                <div className="flex justify-between text-xl font-bold text-gray-900 pt-4 border-t border-gray-200"><span>Total:</span><span>{displaySymbol} {calculateInvoiceTotals().total.toFixed(2)}</span></div>
+                                <div className="flex justify-between text-gray-500 text-sm"><span>Subtotal:</span><span>{previewInvoice.currency} {previewInvoice.subtotal?.toFixed(2)}</span></div>
+                                <div className="flex justify-between text-gray-500 text-sm"><span>Impostos (IVA):</span><span>{previewInvoice.currency} {previewInvoice.tax_total?.toFixed(2)}</span></div>
+                                <div className="flex justify-between text-xl font-bold text-gray-900 pt-4 border-t border-gray-200"><span>Total:</span><span>{previewInvoice.currency} {previewInvoice.total?.toFixed(2)}</span></div>
                             </div>
                         </div>
 
