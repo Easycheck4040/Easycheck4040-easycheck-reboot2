@@ -70,25 +70,43 @@ export default function Dashboard() {
   
   const languages = [ { code: 'pt', label: 'Português', flag: '🇵🇹' }, { code: 'en', label: 'English', flag: '🇬🇧' }, { code: 'fr', label: 'Français', flag: '🇫🇷' }, { code: 'es', label: 'Español', flag: '🇪🇸' }, { code: 'de', label: 'Deutsch', flag: '🇩🇪' }, { code: 'it', label: 'Italiano', flag: '🇮🇹' } ];
 
-  // DETECTAR SÍMBOLO (Para visualização)
-  const getCurrencySymbol = (country: string) => { if (country === 'Brasil') return 'R$'; if (country === 'United States') return '$'; if (country === 'United Kingdom') return '£'; if (country === 'Angola') return 'Kz'; if (country === 'Moçambique') return 'MT'; if (country === 'Suisse') return 'CHF'; return '€'; };
-  
-  // DETECTAR CÓDIGO DA MOEDA (Para o formulário automático)
+  // ✅ SISTEMA DE CÂMBIO (TAXAS DE EXEMPLO RELATIVAS AO EURO)
+  const exchangeRates: any = {
+      'EUR': 1,
+      'USD': 1.08,  // Dólar Americano
+      'BRL': 6.15,  // Real Brasileiro
+      'AOA': 915,   // Kwanza Angolano
+      'MZN': 69,    // Metical Moçambicano
+      'CVE': 110.26,// Escudo Cabo-Verdiano
+      'CHF': 0.94,  // Franco Suíço
+      'GBP': 0.84,  // Libra Esterlina
+  };
+
+  // DETECTAR CÓDIGO DA MOEDA
   const getCurrencyCode = (country: string) => {
       if (country === 'Brasil') return 'BRL';
       if (country === 'United States') return 'USD';
       if (country === 'United Kingdom') return 'GBP';
       if (country === 'Angola') return 'AOA';
       if (country === 'Moçambique') return 'MZN';
+      if (country === 'Cabo Verde') return 'CVE';
       if (country === 'Suisse') return 'CHF';
       return 'EUR';
   };
 
-  const currencySymbol = getCurrencySymbol(profileData?.country || 'Portugal');
+  const getCurrencySymbol = (currencyCode: string) => {
+      const symbols: any = { 'BRL': 'R$', 'USD': '$', 'GBP': '£', 'AOA': 'Kz', 'MZN': 'MT', 'CVE': 'Esc', 'CHF': 'CHF', 'EUR': '€' };
+      return symbols[currencyCode] || '€';
+  };
 
-  // CÁLCULOS
-  const totalRevenue = transactions.filter(t => t.type === 'income').reduce((acc, curr) => acc + curr.amount, 0);
-  const totalExpenses = transactions.filter(t => t.type === 'expense').reduce((acc, curr) => acc + curr.amount, 0);
+  // ✅ VALORES CONVERTIDOS
+  const currentCurrency = companyForm.currency || 'EUR';
+  const conversionRate = exchangeRates[currentCurrency] || 1;
+  const currencySymbol = getCurrencySymbol(currentCurrency);
+
+  // Calcula e converte para a moeda escolhida
+  const totalRevenue = transactions.filter(t => t.type === 'income').reduce((acc, curr) => acc + curr.amount, 0) * conversionRate;
+  const totalExpenses = transactions.filter(t => t.type === 'expense').reduce((acc, curr) => acc + curr.amount, 0) * conversionRate;
   const currentBalance = totalRevenue - totalExpenses;
   const totalInvoicesCount = realInvoices.length;
 
@@ -103,10 +121,18 @@ export default function Dashboard() {
             setProfileData(profile);
             setEditForm({ 
                 fullName: profile.full_name, 
-                jobTitle: profile.job_title || '', // ✅ CARREGA O CARGO DA BD
+                jobTitle: profile.job_title || '', 
                 email: user.email || '' 
             });
-            setCompanyForm({ name: profile.company_name, country: profile.country || 'Portugal', currency: profile.currency || 'EUR', address: profile.company_address || '', nif: profile.company_nif || '' });
+            // Se o perfil tiver moeda guardada, usa. Se não, deteta pelo país.
+            const initialCurrency = profile.currency || getCurrencyCode(profile.country || 'Portugal');
+            setCompanyForm({ 
+                name: profile.company_name, 
+                country: profile.country || 'Portugal', 
+                currency: initialCurrency,
+                address: profile.company_address || '', 
+                nif: profile.company_nif || '' 
+            });
         }
         const { data: tr } = await supabase.from('transactions').select('*').order('date', { ascending: false }); if (tr) setTransactions(tr);
         const { data: inv } = await supabase.from('invoices').select('*'); if (inv) setRealInvoices(inv);
@@ -129,7 +155,6 @@ export default function Dashboard() {
   const handleLogout = async () => { await supabase.auth.signOut(); navigate('/'); };
   const copyCode = () => { navigator.clipboard.writeText(profileData?.company_code); alert("Código copiado!"); };
 
-  // ✅ NOVA FUNÇÃO: Mudar país atualiza moeda automaticamente
   const handleCountryChange = (e: React.ChangeEvent<HTMLSelectElement>) => {
       const selectedCountry = e.target.value;
       const newCurrency = getCurrencyCode(selectedCountry);
@@ -140,7 +165,7 @@ export default function Dashboard() {
     e.preventDefault(); if (!chatInput.trim() || isChatLoading) return;
     const userMessage = { role: 'user', content: chatInput }; setMessages(prev => [...prev, userMessage]); setChatInput(''); setIsChatLoading(true);
     try {
-      const context = `[Empresa: ${companyForm.name}, País: ${companyForm.country}, Moeda: ${currencySymbol}] ${chatInput}`;
+      const context = `[Empresa: ${companyForm.name}, País: ${companyForm.country}, Moeda: ${currentCurrency}] ${chatInput}`;
       const response = await fetch(`${API_URL}/api/chat`, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ message: context }) });
       const data = await response.json();
       if (data.reply) setMessages(prev => [...prev, { role: 'assistant', content: data.reply }]);
@@ -149,14 +174,45 @@ export default function Dashboard() {
 
   const handleCreateTransaction = async () => {
      if (!newTransaction.amount || !newTransaction.description) return alert("Preencha dados.");
-     const { data } = await supabase.from('transactions').insert([{ user_id: userData.id, description: newTransaction.description, amount: parseFloat(newTransaction.amount), type: newTransaction.type, category: newTransaction.category || 'Geral', date: newTransaction.date }]).select();
-     if (data) { setTransactions([data[0], ...transactions]); setShowTransactionModal(false); setNewTransaction({ description: '', amount: '', type: 'expense', category: '', date: new Date().toISOString().split('T')[0] }); }
+     
+     // ✅ CONVERTER PARA EURO ANTES DE GUARDAR (NORMALIZAÇÃO)
+     const amountInEur = parseFloat(newTransaction.amount) / conversionRate;
+
+     const { data } = await supabase.from('transactions').insert([{ 
+         user_id: userData.id, 
+         description: newTransaction.description, 
+         amount: amountInEur, // Guarda sempre em EUR
+         type: newTransaction.type, 
+         category: newTransaction.category || 'Geral', 
+         date: newTransaction.date 
+     }]).select();
+
+     if (data) { 
+         setTransactions([data[0], ...transactions]); 
+         setShowTransactionModal(false); 
+         setNewTransaction({ description: '', amount: '', type: 'expense', category: '', date: new Date().toISOString().split('T')[0] }); 
+     }
   };
 
   const handleCreateAsset = async () => {
     if (!newAsset.name || !newAsset.purchase_value) return alert("Preencha dados.");
-    const { data } = await supabase.from('accounting_assets').insert([{ user_id: userData.id, name: newAsset.name, purchase_date: newAsset.purchase_date, purchase_value: parseFloat(newAsset.purchase_value), lifespan_years: newAsset.lifespan_years }]).select();
-    if (data) { setAssets([...assets, data[0]]); setShowAssetModal(false); setNewAsset({ name: '', purchase_date: new Date().toISOString().split('T')[0], purchase_value: '', lifespan_years: 3 }); }
+    
+    // ✅ Converter valor de compra para EUR
+    const valueInEur = parseFloat(newAsset.purchase_value) / conversionRate;
+
+    const { data } = await supabase.from('accounting_assets').insert([{ 
+        user_id: userData.id, 
+        name: newAsset.name, 
+        purchase_date: newAsset.purchase_date, 
+        purchase_value: valueInEur, // Guarda em EUR
+        lifespan_years: newAsset.lifespan_years 
+    }]).select();
+
+    if (data) { 
+        setAssets([...assets, data[0]]); 
+        setShowAssetModal(false); 
+        setNewAsset({ name: '', purchase_date: new Date().toISOString().split('T')[0], purchase_value: '', lifespan_years: 3 }); 
+    }
   };
 
   const handleCreateEntity = async () => {
@@ -187,13 +243,12 @@ export default function Dashboard() {
     if (!error) setTransactions(prev => prev.filter(t => t.id !== id));
   };
 
-  // ✅ ATUALIZADO: Salvar perfil inclui agora o CARGO
   const handleSaveProfile = async () => {
     setSavingProfile(true);
     try {
       const updates = { 
           full_name: editForm.fullName,
-          job_title: editForm.jobTitle, // ✅ SALVA O CARGO
+          job_title: editForm.jobTitle, 
           updated_at: new Date() 
       };
       await supabase.from('profiles').update(updates).eq('id', userData.id);
@@ -205,10 +260,17 @@ export default function Dashboard() {
   const handleSaveCompany = async () => {
     setSavingCompany(true);
     try {
-        const updates = { company_name: companyForm.name, company_nif: companyForm.nif, company_address: companyForm.address, country: companyForm.country, currency: companyForm.currency, updated_at: new Date() };
+        const updates = { 
+            company_name: companyForm.name, 
+            company_nif: companyForm.nif, 
+            company_address: companyForm.address, 
+            country: companyForm.country, 
+            currency: companyForm.currency, 
+            updated_at: new Date() 
+        };
         await supabase.from('profiles').update(updates).eq('id', userData.id);
         setProfileData({ ...profileData, ...updates });
-        alert(`Dados da Empresa atualizados!`);
+        alert(`Dados da Empresa e Moeda (${companyForm.currency}) atualizados!`);
     } catch { alert("Erro ao guardar."); } finally { setSavingCompany(false); }
   };
 
@@ -297,20 +359,26 @@ export default function Dashboard() {
 
         <div className="flex-1 overflow-y-auto bg-gray-50 dark:bg-gray-900 p-8">
           <Routes>
-            {/* DASHBOARD */}
+            {/* DASHBOARD PRINCIPAL */}
             <Route path="/" element={
               <div className="space-y-6">
                 <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+                  {/* RECEITA */}
                   <div className="bg-white dark:bg-gray-800 p-6 rounded-2xl shadow-sm border dark:border-gray-700">
                     <div className="flex justify-between items-center mb-2"><h3 className="text-gray-500 text-sm font-medium uppercase tracking-wider">Receita Mensal</h3><button onClick={toggleFinancials} className="text-gray-400">{showFinancials ? <Eye className="w-4 h-4"/> : <EyeOff className="w-4 h-4"/>}</button></div>
+                    {/* ✅ MOSTRA VALOR CONVERTIDO */}
                     <p className="text-3xl font-bold text-green-600 dark:text-green-400">{showFinancials ? `${currencySymbol} ${totalRevenue.toFixed(2)}` : '••••••'}</p>
                   </div>
+                  {/* DESPESA */}
                   <div className="bg-white dark:bg-gray-800 p-6 rounded-2xl shadow-sm border dark:border-gray-700">
                     <div className="flex justify-between items-center mb-2"><h3 className="text-gray-500 text-sm font-medium uppercase tracking-wider">Despesas</h3><button onClick={toggleFinancials} className="text-gray-400">{showFinancials ? <Eye className="w-4 h-4"/> : <EyeOff className="w-4 h-4"/>}</button></div>
+                    {/* ✅ MOSTRA VALOR CONVERTIDO */}
                     <p className="text-3xl font-bold text-red-500 dark:text-red-400">{showFinancials ? `${currencySymbol} ${totalExpenses.toFixed(2)}` : '••••••'}</p>
                   </div>
+                  {/* SALDO */}
                   <div className="bg-white dark:bg-gray-800 p-6 rounded-2xl shadow-sm border dark:border-gray-700">
                     <div className="flex justify-between items-center mb-2"><h3 className="text-gray-500 text-sm font-medium uppercase tracking-wider">Saldo Atual</h3><button onClick={toggleFinancials} className="text-gray-400">{showFinancials ? <Eye className="w-4 h-4"/> : <EyeOff className="w-4 h-4"/>}</button></div>
+                    {/* ✅ MOSTRA VALOR CONVERTIDO */}
                     <p className={`text-3xl font-bold ${currentBalance >= 0 ? 'text-blue-600 dark:text-blue-400' : 'text-red-600 dark:text-red-400'}`}>{showFinancials ? `${currencySymbol} ${currentBalance.toFixed(2)}` : '••••••'}</p>
                   </div>
                 </div>
@@ -351,8 +419,15 @@ export default function Dashboard() {
                                 <div className="flex justify-between items-center"><h3 className="font-bold text-lg">Diário de Movimentos</h3><button onClick={() => setShowTransactionModal(true)} className="bg-blue-600 text-white px-4 py-2 rounded-lg flex items-center gap-2 hover:bg-blue-700 shadow-lg"><Plus size={18}/> Nova Transação</button></div>
                                 <div className="bg-white dark:bg-gray-800 rounded-2xl border dark:border-gray-700 shadow-sm overflow-hidden">
                                     <table className="w-full text-sm text-left">
-                                        <thead className="bg-gray-50 dark:bg-gray-700 text-gray-500 uppercase text-xs"><tr><th className="px-6 py-3">Data</th><th className="px-6 py-3">Descrição</th><th className="px-6 py-3">Categoria</th><th className="px-6 py-3 text-right">Valor</th><th className="px-6 py-3 text-right">Ação</th></tr></thead>
-                                        <tbody>{transactions.length === 0 ? <tr><td colSpan={5} className="text-center py-8 text-gray-400">Sem movimentos.</td></tr> : transactions.map(t => (<tr key={t.id} className="border-b dark:border-gray-700 hover:bg-gray-50 dark:hover:bg-gray-800"><td className="px-6 py-4">{new Date(t.date).toLocaleDateString()}</td><td className="px-6 py-4 font-medium">{t.description}</td><td className="px-6 py-4"><span className="px-2 py-1 bg-gray-100 dark:bg-gray-700 rounded-full text-xs">{t.category}</span></td><td className={`px-6 py-4 text-right font-bold ${t.type === 'income' ? 'text-green-600' : 'text-red-500'}`}>{t.type === 'income' ? '+' : '-'} {currencySymbol} {t.amount}</td><td className="px-6 py-4 text-right"><button onClick={() => handleDeleteTransaction(t.id)} className="text-red-400 hover:text-red-600 p-2"><Trash2 size={16}/></button></td></tr>))}</tbody>
+                                        <thead className="bg-gray-50 dark:bg-gray-700 text-gray-500 uppercase text-xs"><tr><th className="px-6 py-3">Data</th><th className="px-6 py-3">Descrição</th><th className="px-6 py-3">Categoria</th><th className="px-6 py-3 text-right">Valor ({currencySymbol})</th><th className="px-6 py-3 text-right">Ação</th></tr></thead>
+                                        <tbody>{transactions.length === 0 ? <tr><td colSpan={5} className="text-center py-8 text-gray-400">Sem movimentos.</td></tr> : transactions.map(t => (
+                                            <tr key={t.id} className="border-b dark:border-gray-700 hover:bg-gray-50 dark:hover:bg-gray-800">
+                                                <td className="px-6 py-4">{new Date(t.date).toLocaleDateString()}</td><td className="px-6 py-4 font-medium">{t.description}</td><td className="px-6 py-4"><span className="px-2 py-1 bg-gray-100 dark:bg-gray-700 rounded-full text-xs">{t.category}</span></td>
+                                                {/* ✅ CONVERTE NA TABELA TAMBÉM */}
+                                                <td className={`px-6 py-4 text-right font-bold ${t.type === 'income' ? 'text-green-600' : 'text-red-500'}`}>{t.type === 'income' ? '+' : '-'} {currencySymbol} {(t.amount * conversionRate).toFixed(2)}</td>
+                                                <td className="px-6 py-4 text-right"><button onClick={() => handleDeleteTransaction(t.id)} className="text-red-400 hover:text-red-600 p-2"><Trash2 size={16}/></button></td>
+                                            </tr>
+                                        ))}</tbody>
                                     </table>
                                 </div>
                             </div>
@@ -394,7 +469,15 @@ export default function Dashboard() {
                                 <div className="bg-white dark:bg-gray-800 rounded-2xl border dark:border-gray-700 shadow-sm overflow-hidden">
                                     <table className="w-full text-sm text-left">
                                         <thead className="bg-gray-50 dark:bg-gray-700 text-gray-500 uppercase text-xs"><tr><th className="px-6 py-3">Ativo</th><th className="px-6 py-3">Data Compra</th><th className="px-6 py-3 text-right">Valor Aquisição</th><th className="px-6 py-3 text-right">Vida Útil</th><th className="px-6 py-3 text-right">Amortização Anual</th></tr></thead>
-                                        <tbody>{assets.length === 0 ? <tr><td colSpan={5} className="text-center py-8 text-gray-400">Nenhum ativo registado.</td></tr> : assets.map(a => (<tr key={a.id} className="border-b dark:border-gray-700"><td className="px-6 py-4 font-medium">{a.name}</td><td className="px-6 py-4">{new Date(a.purchase_date).toLocaleDateString()}</td><td className="px-6 py-4 text-right">{currencySymbol} {a.purchase_value}</td><td className="px-6 py-4 text-right">{a.lifespan_years} anos</td><td className="px-6 py-4 text-right font-bold text-orange-500">{currencySymbol} {(a.purchase_value / a.lifespan_years).toFixed(2)}</td></tr>))}</tbody>
+                                        <tbody>{assets.length === 0 ? <tr><td colSpan={5} className="text-center py-8 text-gray-400">Nenhum ativo registado.</td></tr> : assets.map(a => (
+                                            <tr key={a.id} className="border-b dark:border-gray-700">
+                                                <td className="px-6 py-4 font-medium">{a.name}</td><td className="px-6 py-4">{new Date(a.purchase_date).toLocaleDateString()}</td>
+                                                {/* ✅ CONVERTE NA TABELA */}
+                                                <td className="px-6 py-4 text-right">{currencySymbol} {(a.purchase_value * conversionRate).toFixed(2)}</td>
+                                                <td className="px-6 py-4 text-right">{a.lifespan_years} anos</td>
+                                                <td className="px-6 py-4 text-right font-bold text-orange-500">{currencySymbol} {((a.purchase_value / a.lifespan_years) * conversionRate).toFixed(2)}</td>
+                                            </tr>
+                                        ))}</tbody>
                                     </table>
                                 </div>
                             </div>
@@ -405,16 +488,6 @@ export default function Dashboard() {
                         )}
                     </div>
                 </div>
-            } />
-
-            <Route path="chat" element={
-              <div className="flex flex-col h-full bg-white dark:bg-gray-800 rounded-2xl border dark:border-gray-700 shadow-sm overflow-hidden">
-                <div ref={scrollRef} className="flex-1 overflow-y-auto p-6 space-y-4">
-                  {messages.map((msg, i) => (<div key={i} className={`flex ${msg.role === 'user' ? 'justify-end' : 'justify-start'}`}><div className={`max-w-[80%] px-5 py-3 rounded-2xl text-sm shadow-sm ${msg.role === 'user' ? 'bg-blue-600 text-white rounded-tr-none' : 'bg-gray-100 dark:bg-gray-700 rounded-tl-none'}`}>{msg.content}</div></div>))}
-                  {isChatLoading && <div className="text-xs text-gray-400 ml-4 animate-pulse">A analisar...</div>}
-                </div>
-                <div className="p-4 border-t dark:border-gray-700 bg-gray-50 dark:bg-gray-900"><form onSubmit={handleSendChatMessage} className="flex gap-2 relative"><input type="text" value={chatInput} onChange={(e) => setChatInput(e.target.value)} placeholder="Pergunte ao Contabilista IA..." className="flex-1 bg-white dark:bg-gray-800 border dark:border-gray-700 rounded-xl px-4 py-3 text-sm focus:ring-2 focus:ring-blue-500 outline-none shadow-sm"/><button type="submit" disabled={isChatLoading || !chatInput.trim()} className="bg-blue-600 text-white p-3 rounded-xl hover:bg-blue-700 shadow-md disabled:opacity-50"><Send size={18} /></button></form></div>
-              </div>
             } />
 
             <Route path="company" element={isOwner ? (
@@ -472,6 +545,7 @@ export default function Dashboard() {
             <div className="space-y-4">
               <div><label className="block text-sm mb-1">{t('form.email')}</label><input type="email" value={editForm.email} disabled className="w-full p-3 border rounded-xl bg-gray-50 cursor-not-allowed"/></div>
               <div><label className="block text-sm mb-1">{t('form.fullname')}</label><input type="text" value={editForm.fullName} onChange={e => setEditForm({...editForm, fullName: e.target.value})} className="w-full p-3 border rounded-xl dark:bg-gray-900"/></div>
+              {/* ✅ CAMPO CARGO ATUALIZADO */}
               <div><label className="block text-sm mb-1">{t('form.jobtitle')}</label><input type="text" value={editForm.jobTitle} onChange={e => setEditForm({...editForm, jobTitle: e.target.value})} className="w-full p-3 border rounded-xl dark:bg-gray-900"/></div>
             </div>
             <div className="flex justify-end gap-3 mt-8 pt-4 border-t dark:border-gray-700">
