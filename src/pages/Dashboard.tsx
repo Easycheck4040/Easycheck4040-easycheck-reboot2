@@ -7,26 +7,43 @@ import {
 } from 'lucide-react';
 
 // --- DADOS ESTÁTICOS (Movidos para fora para evitar erros) ---
-const COUNTRIES = ["Portugal", "Brasil", "Angola", "Moçambique", "Cabo Verde", "France", "Deutschland", "United Kingdom", "España", "United States", "Italia", "Belgique", "Suisse", "Luxembourg"];
 
-const LANGUAGES = [ 
-  { code: 'pt', label: 'Português', flag: '🇵🇹' }, 
-  { code: 'en', label: 'English', flag: '🇬🇧' }, 
-  { code: 'fr', label: 'Français', flag: '🇫🇷' }, 
-  { code: 'es', label: 'Español', flag: '🇪🇸' }, 
-  { code: 'de', label: 'Deutsch', flag: '🇩🇪' }, 
-  { code: 'it', label: 'Italiano', flag: '🇮🇹' } 
+const countries = ["Portugal", "Brasil", "Angola", "Moçambique", "Cabo Verde", "France", "Deutschland", "United Kingdom", "España", "United States", "Italia", "Belgique", "Suisse", "Luxembourg"];
+
+const invoiceTypes = [
+    "Fatura", "Fatura-Recibo", "Fatura Simplificada", "Fatura Proforma", 
+    "Nota de Crédito", "Nota de Débito", "Recibo", 
+    "Fatura Intracomunitária", "Fatura Isenta / Autoliquidação"
 ];
 
-const DEFAULT_RATES: any = { 'EUR': 1, 'USD': 1.05, 'BRL': 6.15, 'AOA': 930, 'MZN': 69, 'CVE': 110.27, 'CHF': 0.94, 'GBP': 0.83 };
+const languages = [ { code: 'pt', label: 'Português', flag: '🇵🇹' }, { code: 'en', label: 'English', flag: '🇬🇧' }, { code: 'fr', label: 'Français', flag: '🇫🇷' }, { code: 'es', label: 'Español', flag: '🇪🇸' }, { code: 'de', label: 'Deutsch', flag: '🇩🇪' }, { code: 'it', label: 'Italiano', flag: '🇮🇹' } ];
 
-const COUNTRY_CURRENCY_MAP: any = { "Portugal": "EUR", "France": "EUR", "Deutschland": "EUR", "España": "EUR", "Italia": "EUR", "Belgique": "EUR", "Luxembourg": "EUR", "Brasil": "BRL", "United States": "USD", "United Kingdom": "GBP", "Angola": "AOA", "Moçambique": "MZN", "Cabo Verde": "CVE", "Suisse": "CHF" };
+// Taxas de Câmbio Padrão
+const defaultRates: Record<string, number> = { 'EUR': 1, 'USD': 1.05, 'BRL': 6.15, 'AOA': 930, 'MZN': 69, 'CVE': 110.27, 'CHF': 0.94, 'GBP': 0.83 };
 
-const CURRENCY_SYMBOLS: any = { 'EUR': '€', 'USD': '$', 'BRL': 'R$', 'AOA': 'Kz', 'MZN': 'MT', 'CVE': 'Esc', 'CHF': 'CHF', 'GBP': '£' };
+// Mapeamento de Moedas
+const countryCurrencyMap: Record<string, string> = { "Portugal": "EUR", "France": "EUR", "Deutschland": "EUR", "España": "EUR", "Italia": "EUR", "Belgique": "EUR", "Luxembourg": "EUR", "Brasil": "BRL", "United States": "USD", "United Kingdom": "GBP", "Angola": "AOA", "Moçambique": "MZN", "Cabo Verde": "CVE", "Suisse": "CHF" };
+const currencySymbols: Record<string, string> = { 'EUR': '€', 'USD': '$', 'BRL': 'R$', 'AOA': 'Kz', 'MZN': 'MT', 'CVE': 'Esc', 'CHF': 'CHF', 'GBP': '£' };
+const currencyNames: Record<string, string> = { 'EUR': 'Euro', 'USD': 'Dólar Americano', 'BRL': 'Real Brasileiro', 'AOA': 'Kwanza', 'MZN': 'Metical', 'CVE': 'Escudo', 'CHF': 'Franco Suíço', 'GBP': 'Libra' };
 
-const CURRENCY_NAMES: any = { 'EUR': 'Euro', 'USD': 'Dólar Americano', 'BRL': 'Real Brasileiro', 'AOA': 'Kwanza', 'MZN': 'Metical', 'CVE': 'Escudo', 'CHF': 'Franco Suíço', 'GBP': 'Libra' };
+// IVA por País
+const vatRatesByCountry: Record<string, number[]> = {
+    "Portugal": [23, 13, 6, 0],
+    "Luxembourg": [17, 14, 8, 3, 0],
+    "Brasil": [17, 18, 12, 7, 0],
+    "Angola": [14, 7, 5, 0],
+    "Moçambique": [16, 0],
+    "Cabo Verde": [15, 0],
+    "France": [20, 10, 5.5, 2.1, 0],
+    "Deutschland": [19, 7, 0],
+    "España": [21, 10, 4, 0],
+    "Italia": [22, 10, 5, 4, 0],
+    "Belgique": [21, 12, 6, 0],
+    "Suisse": [8.1, 2.6, 3.8, 0],
+    "United Kingdom": [20, 5, 0],
+    "United States": [0, 5, 6, 7, 8, 9, 10]
+};
 
-// --- COMPONENTE PRINCIPAL ---
 export default function Dashboard() {
   const { t, i18n } = useTranslation();
   const location = useLocation();
@@ -34,24 +51,20 @@ export default function Dashboard() {
   
   const API_URL = window.location.hostname === 'localhost' ? 'http://localhost:3000' : 'https://easycheck-api.onrender.com';
 
-  // --- ESTADOS GERAIS ---
+  // --- ESTADOS ---
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
   const [isProfileDropdownOpen, setIsProfileDropdownOpen] = useState(false);
   const [isLangMenuOpen, setIsLangMenuOpen] = useState(false);
   const [notifications, setNotifications] = useState([]); 
-  
-  // --- PRIVACIDADE E UI ---
   const [showFinancials, setShowFinancials] = useState(true); 
   const [showModalCode, setShowModalCode] = useState(false);
   const [showPageCode, setShowPageCode] = useState(false);
   const [isDark, setIsDark] = useState(false);
 
-  // --- DADOS ---
   const [userData, setUserData] = useState<any>(null);
   const [profileData, setProfileData] = useState<any>(null);
   const [loadingUser, setLoadingUser] = useState(true);
   
-  // --- CONTABILIDADE ---
   const [accountingTab, setAccountingTab] = useState('overview'); 
   const [transactions, setTransactions] = useState<any[]>([]); 
   const [realInvoices, setRealInvoices] = useState<any[]>([]); 
@@ -59,8 +72,8 @@ export default function Dashboard() {
   const [assets, setAssets] = useState<any[]>([]); 
   const [clients, setClients] = useState<any[]>([]);
   const [suppliers, setSuppliers] = useState<any[]>([]);
+  const [exchangeRates, setExchangeRates] = useState<any>(defaultRates);
   
-  // --- MODAIS ---
   const [isDeleteModalOpen, setIsDeleteModalOpen] = useState(false);
   const [isProfileModalOpen, setIsProfileModalOpen] = useState(false);
   const [showTransactionModal, setShowTransactionModal] = useState(false);
@@ -71,7 +84,6 @@ export default function Dashboard() {
   const [deleteConfirmation, setDeleteConfirmation] = useState('');
   const [isDeleting, setIsDeleting] = useState(false);
   
-  // --- FORMULÁRIOS ---
   const [editForm, setEditForm] = useState({ fullName: '', jobTitle: '', email: '' });
   const [companyForm, setCompanyForm] = useState({ name: '', country: 'Portugal', currency: 'EUR', address: '', nif: '' });
   
@@ -79,36 +91,30 @@ export default function Dashboard() {
   const [newAsset, setNewAsset] = useState({ name: '', purchase_date: new Date().toISOString().split('T')[0], purchase_value: '', lifespan_years: 3 });
   const [newEntity, setNewEntity] = useState({ name: '', nif: '', email: '', address: '', city: '', postal_code: '', country: 'Portugal' });
 
-  // ESTADO DA FATURA
   const [invoiceData, setInvoiceData] = useState({
       client_id: '',
       type: 'Fatura',
       date: new Date().toISOString().split('T')[0],
       due_date: new Date(new Date().setDate(new Date().getDate() + 30)).toISOString().split('T')[0],
       exemption_reason: '',
-      items: [{ description: '', quantity: 1, price: 0, tax: 23 }] 
+      items: [{ description: '', quantity: 1, price: 0, tax: 0 }] 
   });
 
   const [savingProfile, setSavingProfile] = useState(false);
   const [savingCompany, setSavingCompany] = useState(false);
-  const [exchangeRates, setExchangeRates] = useState<any>(DEFAULT_RATES);
 
-  // --- CHAT IA ---
   const [messages, setMessages] = useState([{ role: 'assistant', content: 'Olá! Sou o seu assistente EasyCheck IA. Em que posso ajudar hoje?' }]);
   const [chatInput, setChatInput] = useState('');
   const [isChatLoading, setIsChatLoading] = useState(false);
   const scrollRef = useRef<HTMLDivElement>(null);
 
-  // TIPOS DE FATURA
-  const invoiceTypes = [
-      "Fatura", "Fatura-Recibo", "Fatura Simplificada", "Fatura Proforma", 
-      "Nota de Crédito", "Nota de Débito", "Recibo", 
-      "Fatura Intracomunitária", "Fatura Isenta / Autoliquidação"
-  ];
-
-  // Helpers
-  const getCurrencyCode = (country: string) => COUNTRY_CURRENCY_MAP[country] || 'EUR';
-  const getCurrencySymbol = (code: string) => CURRENCY_SYMBOLS[code] || '€';
+  // --- HELPERS ---
+  const getCurrencyCode = (country: string) => countryCurrencyMap[country] || 'EUR';
+  const getCurrencySymbol = (code: string) => currencySymbols[code] || '€';
+  const getCurrentCountryVatRates = () => {
+      const country = companyForm.country || "Portugal";
+      return vatRatesByCountry[country] || [23, 0];
+  };
 
   const currentCurrency = companyForm.currency || 'EUR';
   const conversionRate = exchangeRates[currentCurrency] || 1;
@@ -131,7 +137,7 @@ export default function Dashboard() {
             setEditForm({ fullName: profile.full_name, jobTitle: profile.job_title || '', email: user.email || '' });
             const initialCurrency = profile.currency || getCurrencyCode(profile.country || 'Portugal');
             setCompanyForm({ name: profile.company_name, country: profile.country || 'Portugal', currency: initialCurrency, address: profile.company_address || '', nif: profile.company_nif || '' });
-            if (profile.custom_exchange_rates) { setExchangeRates({ ...DEFAULT_RATES, ...profile.custom_exchange_rates }); }
+            if (profile.custom_exchange_rates) { setExchangeRates({ ...defaultRates, ...profile.custom_exchange_rates }); }
         }
         const { data: tr } = await supabase.from('transactions').select('*').order('date', { ascending: false }); if (tr) setTransactions(tr);
         const { data: inv } = await supabase.from('invoices').select('*, clients(name)').order('created_at', { ascending: false }); if (inv) setRealInvoices(inv);
@@ -147,28 +153,21 @@ export default function Dashboard() {
 
   useEffect(() => { if (scrollRef.current) scrollRef.current.scrollTop = scrollRef.current.scrollHeight; }, [messages]);
 
-  // IVA INTELIGENTE
+  // --- IVA INTELIGENTE ---
   useEffect(() => {
       if (!invoiceData.client_id) return;
-      const selectedClient = clients.find(c => c.id === invoiceData.client_id);
-      if (!selectedClient) return;
-
-      let newTax = 23; 
+      
+      const defaultRate = getCurrentCountryVatRates()[0]; 
+      let newTax = defaultRate;
       let exemption = '';
 
-      if (invoiceData.type === 'Fatura Isenta / Autoliquidação') {
-          newTax = 0; exemption = 'IVA - Autoliquidação (Artigo 6.º)';
-      } 
-      else if (invoiceData.type === 'Fatura Intracomunitária') {
-          newTax = 0; exemption = 'Isento Artigo 14.º do RITI';
-      }
-      else if (selectedClient.country && selectedClient.country !== companyForm.country) {
-          newTax = 0; exemption = 'Isento Artigo 14.º do CIVA (Exportação)';
-      }
+      if (invoiceData.type === 'Fatura Isenta / Autoliquidação') { newTax = 0; exemption = 'IVA - Autoliquidação'; } 
+      else if (invoiceData.type === 'Fatura Intracomunitária') { newTax = 0; exemption = 'Isento Artigo 14.º RITI'; }
 
       const updatedItems = invoiceData.items.map(item => ({ ...item, tax: newTax }));
       setInvoiceData(prev => ({ ...prev, items: updatedItems, exemption_reason: exemption }));
-  }, [invoiceData.client_id, invoiceData.type]);
+
+  }, [invoiceData.client_id, invoiceData.type, companyForm.country]);
 
   const toggleTheme = () => { document.documentElement.classList.toggle('dark'); setIsDark(!isDark); };
   const toggleFinancials = () => setShowFinancials(!showFinancials);
@@ -196,8 +195,10 @@ export default function Dashboard() {
     } catch { setMessages(prev => [...prev, { role: 'assistant', content: '⚠️ Erro de conexão.' }]); } finally { setIsChatLoading(false); }
   };
 
+  // --- ACTIONS ---
+
   const handleAddInvoiceItem = () => {
-      const currentTax = invoiceData.items.length > 0 ? invoiceData.items[0].tax : 23;
+      const currentTax = invoiceData.items.length > 0 ? invoiceData.items[0].tax : getCurrentCountryVatRates()[0];
       setInvoiceData({ ...invoiceData, items: [...invoiceData.items, { description: '', quantity: 1, price: 0, tax: currentTax }] });
   };
 
@@ -239,7 +240,7 @@ export default function Dashboard() {
           due_date: invoiceData.due_date,
           exemption_reason: invoiceData.exemption_reason,
           subtotal: totals.subtotal,
-          tax_total: totals.taxTotal,
+          tax_total: totals.taxTotal, 
           total: totals.total,
           currency: currentCurrency,
           status: 'sent'
@@ -268,7 +269,7 @@ export default function Dashboard() {
           date: new Date().toISOString().split('T')[0],
           due_date: new Date(new Date().setDate(new Date().getDate() + 30)).toISOString().split('T')[0],
           exemption_reason: '',
-          items: [{ description: '', quantity: 1, price: 0, tax: 23 }]
+          items: [{ description: '', quantity: 1, price: 0, tax: getCurrentCountryVatRates()[0] }]
       });
   };
 
@@ -388,7 +389,7 @@ export default function Dashboard() {
             <div className="relative">
               <button onClick={() => setIsLangMenuOpen(!isLangMenuOpen)} className="p-2 flex gap-2 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-lg"><Globe className="w-5 h-5"/><ChevronDown className="w-3 h-3"/></button>
               {isLangMenuOpen && <div className="absolute right-0 mt-2 w-48 bg-white dark:bg-gray-800 rounded-xl shadow-xl border dark:border-gray-700 z-40">
-                {LANGUAGES.map(l => <button key={l.code} onClick={() => selectLanguage(l.code)} className="w-full text-left px-4 py-3 text-sm hover:bg-gray-50 dark:hover:bg-gray-700 flex gap-2"><span>{l.flag}</span>{l.label}</button>)}
+                {languages.map(l => <button key={l.code} onClick={() => selectLanguage(l.code)} className="w-full text-left px-4 py-3 text-sm hover:bg-gray-50 dark:hover:bg-gray-700 flex gap-2"><span>{l.flag}</span>{l.label}</button>)}
               </div>}
             </div>
             
@@ -646,7 +647,20 @@ export default function Dashboard() {
                                                             <td className="py-3"><input className="w-full bg-transparent outline-none font-medium" placeholder="Nome do produto/serviço" value={item.description} onChange={e => updateInvoiceItem(index, 'description', e.target.value)}/></td>
                                                             <td className="py-3"><input type="number" className="w-full bg-transparent outline-none text-center" value={item.quantity} onChange={e => updateInvoiceItem(index, 'quantity', e.target.value)}/></td>
                                                             <td className="py-3"><input type="number" className="w-full bg-transparent outline-none text-right" value={item.price} onChange={e => updateInvoiceItem(index, 'price', e.target.value)}/></td>
-                                                            <td className="py-3"><input type="number" className="w-full bg-transparent outline-none text-right" value={item.tax} onChange={e => updateInvoiceItem(index, 'tax', e.target.value)}/></td>
+                                                            
+                                                            {/* ✅ IVA INTELIGENTE: SELECT AUTOMÁTICO */}
+                                                            <td className="py-3">
+                                                                <select 
+                                                                    className="w-full bg-transparent outline-none text-right" 
+                                                                    value={item.tax} 
+                                                                    onChange={e => updateInvoiceItem(index, 'tax', e.target.value)}
+                                                                >
+                                                                    {getCurrentCountryVatRates().map(rate => (
+                                                                        <option key={rate} value={rate}>{rate}%</option>
+                                                                    ))}
+                                                                </select>
+                                                            </td>
+
                                                             <td className="py-3 text-right font-bold">{displaySymbol} {(item.quantity * item.price).toFixed(2)}</td>
                                                             <td className="py-3 text-center"><button onClick={() => handleRemoveInvoiceItem(index)} className="text-red-400 hover:text-red-600"><Trash2 size={16}/></button></td>
                                                         </tr>
@@ -717,35 +731,38 @@ export default function Dashboard() {
               ) : <div className="text-center py-12"><Shield className="w-16 h-16 mx-auto mb-4 text-gray-300"/><h3 className="text-xl font-bold dark:text-white">Acesso Restrito</h3></div>
             } />
 
-            {/* ✅ SETTINGS COM MENU DE CÂMBIO MODERNO (CORRIGIDO: CURR em vez de CURRENCY para evitar erros) */}
+            {/* ✅ SETTINGS COM MENU DE CÂMBIO MODERNO */}
             <Route path="settings" element={
                  <div className="max-w-4xl mx-auto space-y-6">
+                    {/* Configuração Geral */}
                     <div className="bg-white dark:bg-gray-800 rounded-2xl shadow-sm border dark:border-gray-700 p-8">
                         <h2 className="text-2xl font-bold mb-6 flex gap-2 items-center"><Settings/> Definições Globais</h2>
                         <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                            <div><label className="block text-sm font-bold mb-1">País da Sede</label><select value={companyForm.country} onChange={handleCountryChange} className="w-full p-3 border rounded-xl dark:bg-gray-900 dark:border-gray-600">{COUNTRIES.map(c => <option key={c} value={c}>{c}</option>)}</select></div>
+                            <div><label className="block text-sm font-bold mb-1">País da Sede</label><select value={companyForm.country} onChange={handleCountryChange} className="w-full p-3 border rounded-xl dark:bg-gray-900 dark:border-gray-600">{countries.map(c => <option key={c} value={c}>{c}</option>)}</select></div>
                             <div><label className="block text-sm font-bold mb-1">Moeda Principal</label><input value={companyForm.currency} onChange={e => setCompanyForm({...companyForm, currency: e.target.value})} className="w-full p-3 border rounded-xl dark:bg-gray-900 dark:border-gray-600" disabled/></div>
                         </div>
                     </div>
 
+                    {/* ✅ MENU DE TAXAS DE CÂMBIO */}
                     <div className="bg-white dark:bg-gray-800 rounded-2xl shadow-sm border dark:border-gray-700 p-8">
                         <h2 className="text-xl font-bold mb-4 flex gap-2 items-center text-blue-600"><RefreshCw/> Gestão de Taxas de Câmbio</h2>
                         <p className="text-sm text-gray-500 mb-6">Defina o valor de 1 EURO (€) nas moedas internacionais que utiliza.</p>
                         
                         <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-4">
-                            {Object.keys(DEFAULT_RATES).filter(k => k !== 'EUR').map(curr => (
-                                <div key={curr} className="bg-gray-50 dark:bg-gray-900 p-4 rounded-xl border dark:border-gray-700 flex items-center justify-between">
+                            {Object.keys(defaultRates).filter(k => k !== 'EUR').map(currency => (
+                                <div key={currency} className="bg-gray-50 dark:bg-gray-900 p-4 rounded-xl border dark:border-gray-700 flex items-center justify-between">
                                     <div>
-                                        <p className="font-bold text-lg">{curr}</p>
-                                        <p className="text-xs text-gray-500">{CURRENCY_NAMES[curr]}</p>
+                                        <p className="font-bold text-lg">{currency}</p>
+                                        <p className="text-xs text-gray-500">{currencyNames[currency]}</p>
                                     </div>
                                     <div className="flex items-center gap-2">
                                         <span className="text-gray-400 text-sm">1 € =</span>
+                                        {/* CORREÇÃO: Input em minúscula */}
                                         <input 
                                             type="number" 
                                             step="0.01" 
-                                            value={exchangeRates[curr]} 
-                                            onChange={(e) => handleRateChange(curr, e.target.value)}
+                                            value={exchangeRates[currency]} 
+                                            onChange={(e) => handleRateChange(currency, e.target.value)}
                                             className="w-20 p-2 text-right font-bold rounded-lg border focus:ring-2 focus:ring-blue-500 outline-none dark:bg-gray-800 dark:border-gray-600"
                                         />
                                     </div>
@@ -803,7 +820,7 @@ export default function Dashboard() {
                     <div><label className="text-xs font-bold text-gray-400 uppercase tracking-wider mb-1 block">Morada</label><input placeholder="Rua..." value={newEntity.address} onChange={e => setNewEntity({...newEntity, address: e.target.value})} className="w-full p-3 border dark:border-gray-600 rounded-xl dark:bg-gray-900 bg-gray-50 outline-none"/></div>
                     <div className="grid grid-cols-2 gap-4">
                         <div><label className="text-xs font-bold text-gray-400 uppercase tracking-wider mb-1 block">Cidade</label><input placeholder="Lisboa" value={newEntity.city} onChange={e => setNewEntity({...newEntity, city: e.target.value})} className="w-full p-3 border dark:border-gray-600 rounded-xl dark:bg-gray-900 bg-gray-50 outline-none"/></div>
-                        <div><label className="text-xs font-bold text-gray-400 uppercase tracking-wider mb-1 block">País</label><select value={newEntity.country} onChange={e => setNewEntity({...newEntity, country: e.target.value})} className="w-full p-3 border dark:border-gray-600 rounded-xl dark:bg-gray-900 bg-gray-50 outline-none">{COUNTRIES.map(c => <option key={c} value={c}>{c}</option>)}</select></div>
+                        <div><label className="text-xs font-bold text-gray-400 uppercase tracking-wider mb-1 block">País</label><select value={newEntity.country} onChange={e => setNewEntity({...newEntity, country: e.target.value})} className="w-full p-3 border dark:border-gray-600 rounded-xl dark:bg-gray-900 bg-gray-50 outline-none">{countries.map(c => <option key={c} value={c}>{c}</option>)}</select></div>
                     </div>
                 </div>
                 <div className="flex justify-end gap-3 mt-8 pt-4 border-t dark:border-gray-700">
