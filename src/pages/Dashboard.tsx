@@ -60,8 +60,8 @@ export default function Dashboard() {
   const [savingProfile, setSavingProfile] = useState(false);
   const [savingCompany, setSavingCompany] = useState(false);
 
-  // --- CHAT IA ---
-  const [messages, setMessages] = useState([{ role: 'assistant', content: 'Olá! Sou o seu Contabilista IA. Em que posso ajudar hoje?' }]);
+  // --- CHAT IA (MENSAGEM ALTERADA) ---
+  const [messages, setMessages] = useState([{ role: 'assistant', content: 'Olá! Sou o seu assistente EasyCheck. Em que posso ajudar hoje?' }]);
   const [chatInput, setChatInput] = useState('');
   const [isChatLoading, setIsChatLoading] = useState(false);
   const scrollRef = useRef<HTMLDivElement>(null);
@@ -70,21 +70,10 @@ export default function Dashboard() {
   
   const languages = [ { code: 'pt', label: 'Português', flag: '🇵🇹' }, { code: 'en', label: 'English', flag: '🇬🇧' }, { code: 'fr', label: 'Français', flag: '🇫🇷' }, { code: 'es', label: 'Español', flag: '🇪🇸' }, { code: 'de', label: 'Deutsch', flag: '🇩🇪' }, { code: 'it', label: 'Italiano', flag: '🇮🇹' } ];
 
-  // ✅ TAXAS DE CÂMBIO (Estado Editável)
-  // Valores iniciais padrão
-  const defaultRates: any = {
-      'EUR': 1,
-      'USD': 1.05,
-      'BRL': 6.15,
-      'AOA': 930,
-      'MZN': 69,
-      'CVE': 110.27,
-      'CHF': 0.94,
-      'GBP': 0.83
-  };
+  // TAXAS DE CÂMBIO
+  const defaultRates: any = { 'EUR': 1, 'USD': 1.05, 'BRL': 6.15, 'AOA': 930, 'MZN': 69, 'CVE': 110.27, 'CHF': 0.94, 'GBP': 0.83 };
   const [exchangeRates, setExchangeRates] = useState<any>(defaultRates);
 
-  // Mapeamentos
   const countryCurrencyMap: any = { "Portugal": "EUR", "France": "EUR", "Deutschland": "EUR", "España": "EUR", "Italia": "EUR", "Belgique": "EUR", "Luxembourg": "EUR", "Brasil": "BRL", "United States": "USD", "United Kingdom": "GBP", "Angola": "AOA", "Moçambique": "MZN", "Cabo Verde": "CVE", "Suisse": "CHF" };
   const currencySymbols: any = { 'EUR': '€', 'USD': '$', 'BRL': 'R$', 'AOA': 'Kz', 'MZN': 'MT', 'CVE': 'Esc', 'CHF': 'CHF', 'GBP': '£' };
   const currencyNames: any = { 'EUR': 'Euro', 'USD': 'Dólar Americano', 'BRL': 'Real Brasileiro', 'AOA': 'Kwanza', 'MZN': 'Metical', 'CVE': 'Escudo', 'CHF': 'Franco Suíço', 'GBP': 'Libra' };
@@ -114,11 +103,7 @@ export default function Dashboard() {
             setEditForm({ fullName: profile.full_name, jobTitle: profile.job_title || '', email: user.email || '' });
             const initialCurrency = profile.currency || getCurrencyCode(profile.country || 'Portugal');
             setCompanyForm({ name: profile.company_name, country: profile.country || 'Portugal', currency: initialCurrency, address: profile.company_address || '', nif: profile.company_nif || '' });
-            
-            // ✅ CARREGAR TAXAS PERSONALIZADAS DA BD
-            if (profile.custom_exchange_rates) {
-                setExchangeRates({ ...defaultRates, ...profile.custom_exchange_rates });
-            }
+            if (profile.custom_exchange_rates) { setExchangeRates({ ...defaultRates, ...profile.custom_exchange_rates }); }
         }
         const { data: tr } = await supabase.from('transactions').select('*').order('date', { ascending: false }); if (tr) setTransactions(tr);
         const { data: inv } = await supabase.from('invoices').select('*'); if (inv) setRealInvoices(inv);
@@ -147,10 +132,7 @@ export default function Dashboard() {
       setCompanyForm({ ...companyForm, country: selectedCountry, currency: newCurrency });
   };
 
-  // ✅ ATUALIZAR TAXA MANUALMENTE
-  const handleRateChange = (currency: string, value: string) => {
-      setExchangeRates(prev => ({ ...prev, [currency]: parseFloat(value) || 0 }));
-  };
+  const handleRateChange = (currency: string, value: string) => { setExchangeRates(prev => ({ ...prev, [currency]: parseFloat(value) || 0 })); };
 
   const handleSendChatMessage = async (e: React.FormEvent) => {
     e.preventDefault(); if (!chatInput.trim() || isChatLoading) return;
@@ -188,14 +170,14 @@ export default function Dashboard() {
   };
 
   const handleDeleteEntity = async (id: string, type: 'client' | 'supplier') => {
-      if (!window.confirm("Apagar?")) return;
+      if (!window.confirm("Apagar este registo?")) return;
       const table = type === 'client' ? 'clients' : 'suppliers';
       const { error } = await supabase.from(table).delete().eq('id', id);
       if (!error) { if (type === 'client') setClients(prev => prev.filter(c => c.id !== id)); else setSuppliers(prev => prev.filter(s => s.id !== id)); }
   };
 
   const handleDeleteTransaction = async (id: string) => {
-    if (!window.confirm("Eliminar?")) return;
+    if (!window.confirm("Eliminar registo?")) return;
     const { error } = await supabase.from('transactions').delete().eq('id', id);
     if (!error) setTransactions(prev => prev.filter(t => t.id !== id));
   };
@@ -203,28 +185,20 @@ export default function Dashboard() {
   const handleSaveProfile = async () => {
     setSavingProfile(true);
     try {
-      await supabase.from('profiles').update({ full_name: editForm.fullName, job_title: editForm.jobTitle, updated_at: new Date() }).eq('id', userData.id);
-      setProfileData({ ...profileData, full_name: editForm.fullName, job_title: editForm.jobTitle });
+      const updates = { full_name: editForm.fullName, job_title: editForm.jobTitle, updated_at: new Date() };
+      await supabase.from('profiles').update(updates).eq('id', userData.id);
+      setProfileData({ ...profileData, ...updates });
       alert(`Perfil Pessoal atualizado!`); setIsProfileModalOpen(false);
     } catch { alert("Erro ao guardar."); } finally { setSavingProfile(false); }
   };
 
-  // ✅ GRAVA DADOS DA EMPRESA + TAXAS DE CÂMBIO
   const handleSaveCompany = async () => {
     setSavingCompany(true);
     try {
-        const updates = { 
-            company_name: companyForm.name, 
-            company_nif: companyForm.nif, 
-            company_address: companyForm.address, 
-            country: companyForm.country, 
-            currency: companyForm.currency, 
-            custom_exchange_rates: exchangeRates, // ✅ GRAVA AS TAXAS NA BD
-            updated_at: new Date() 
-        };
+        const updates = { company_name: companyForm.name, company_nif: companyForm.nif, company_address: companyForm.address, country: companyForm.country, currency: companyForm.currency, custom_exchange_rates: exchangeRates, updated_at: new Date() };
         await supabase.from('profiles').update(updates).eq('id', userData.id);
         setProfileData({ ...profileData, ...updates });
-        alert(`Definições e Taxas de Câmbio guardadas com sucesso!`);
+        alert(`Dados da Empresa e Moeda (${companyForm.currency}) atualizados!`);
     } catch { alert("Erro ao guardar."); } finally { setSavingCompany(false); }
   };
 
@@ -446,7 +420,7 @@ export default function Dashboard() {
                   {messages.map((msg, i) => (<div key={i} className={`flex ${msg.role === 'user' ? 'justify-end' : 'justify-start'}`}><div className={`max-w-[80%] px-5 py-3 rounded-2xl text-sm shadow-sm ${msg.role === 'user' ? 'bg-blue-600 text-white rounded-tr-none' : 'bg-gray-100 dark:bg-gray-700 rounded-tl-none'}`}>{msg.content}</div></div>))}
                   {isChatLoading && <div className="text-xs text-gray-400 ml-4 animate-pulse">A analisar...</div>}
                 </div>
-                <div className="p-4 border-t dark:border-gray-700 bg-gray-50 dark:bg-gray-900"><form onSubmit={handleSendChatMessage} className="flex gap-2 relative"><input type="text" value={chatInput} onChange={(e) => setChatInput(e.target.value)} placeholder="Pergunte ao Contabilista IA..." className="flex-1 bg-white dark:bg-gray-800 border dark:border-gray-700 rounded-xl px-4 py-3 text-sm focus:ring-2 focus:ring-blue-500 outline-none shadow-sm"/><button type="submit" disabled={isChatLoading || !chatInput.trim()} className="bg-blue-600 text-white p-3 rounded-xl hover:bg-blue-700 shadow-md disabled:opacity-50"><Send size={18} /></button></form></div>
+                <div className="p-4 border-t dark:border-gray-700 bg-gray-50 dark:bg-gray-900"><form onSubmit={handleSendChatMessage} className="flex gap-2 relative"><input type="text" value={chatInput} onChange={(e) => setChatInput(e.target.value)} placeholder="Pergunte ao assistente EasyCheck..." className="flex-1 bg-white dark:bg-gray-800 border dark:border-gray-700 rounded-xl px-4 py-3 text-sm focus:ring-2 focus:ring-blue-500 outline-none shadow-sm"/><button type="submit" disabled={isChatLoading || !chatInput.trim()} className="bg-blue-600 text-white p-3 rounded-xl hover:bg-blue-700 shadow-md disabled:opacity-50"><Send size={18} /></button></form></div>
               </div>
             } />
 
@@ -587,7 +561,7 @@ export default function Dashboard() {
                 <div className="space-y-4">
                     <div><label className="text-xs font-bold text-gray-400 uppercase tracking-wider mb-1 block">Descrição</label><input placeholder="Ex: Venda de Software" value={newTransaction.description} onChange={e => setNewTransaction({...newTransaction, description: e.target.value})} className="w-full p-3 border dark:border-gray-600 rounded-xl dark:bg-gray-900 bg-gray-50 focus:ring-2 focus:ring-blue-500 outline-none"/></div>
                     <div className="grid grid-cols-2 gap-4">
-                        <div><label className="text-xs font-bold text-gray-400 uppercase tracking-wider mb-1 block">Valor ({displaySymbol})</label><input type="number" placeholder="0.00" value={newTransaction.amount} onChange={e => setNewTransaction({...newTransaction, amount: e.target.value})} className="w-full p-3 border dark:border-gray-600 rounded-xl dark:bg-gray-900 bg-gray-50 focus:ring-2 focus:ring-blue-500 outline-none"/></div>
+                        <div><label className="text-xs font-bold text-gray-400 uppercase tracking-wider mb-1 block">Valor ({currencySymbol})</label><input type="number" placeholder="0.00" value={newTransaction.amount} onChange={e => setNewTransaction({...newTransaction, amount: e.target.value})} className="w-full p-3 border dark:border-gray-600 rounded-xl dark:bg-gray-900 bg-gray-50 focus:ring-2 focus:ring-blue-500 outline-none"/></div>
                         <div><label className="text-xs font-bold text-gray-400 uppercase tracking-wider mb-1 block">Data</label><input type="date" value={newTransaction.date} onChange={e => setNewTransaction({...newTransaction, date: e.target.value})} className="w-full p-3 border dark:border-gray-600 rounded-xl dark:bg-gray-900 bg-gray-50 focus:ring-2 focus:ring-blue-500 outline-none text-sm"/></div>
                     </div>
                     <div>
@@ -612,7 +586,7 @@ export default function Dashboard() {
                 <div className="space-y-4">
                     <div><label className="text-xs font-bold text-gray-400 uppercase tracking-wider mb-1 block">Nome do Ativo</label><input placeholder="Ex: Computador Dell XPS" value={newAsset.name} onChange={e => setNewAsset({...newAsset, name: e.target.value})} className="w-full p-3 border dark:border-gray-600 rounded-xl dark:bg-gray-900 bg-gray-50 outline-none"/></div>
                     <div className="grid grid-cols-2 gap-4">
-                        <div><label className="text-xs font-bold text-gray-400 uppercase tracking-wider mb-1 block">Valor Compra ({displaySymbol})</label><input type="number" placeholder="0.00" value={newAsset.purchase_value} onChange={e => setNewAsset({...newAsset, purchase_value: e.target.value})} className="w-full p-3 border dark:border-gray-600 rounded-xl dark:bg-gray-900 bg-gray-50 outline-none"/></div>
+                        <div><label className="text-xs font-bold text-gray-400 uppercase tracking-wider mb-1 block">Valor Compra ({currencySymbol})</label><input type="number" placeholder="0.00" value={newAsset.purchase_value} onChange={e => setNewAsset({...newAsset, purchase_value: e.target.value})} className="w-full p-3 border dark:border-gray-600 rounded-xl dark:bg-gray-900 bg-gray-50 outline-none"/></div>
                         <div><label className="text-xs font-bold text-gray-400 uppercase tracking-wider mb-1 block">Data Compra</label><input type="date" value={newAsset.purchase_date} onChange={e => setNewAsset({...newAsset, purchase_date: e.target.value})} className="w-full p-3 border dark:border-gray-600 rounded-xl dark:bg-gray-900 bg-gray-50 outline-none text-sm"/></div>
                     </div>
                     <div>
