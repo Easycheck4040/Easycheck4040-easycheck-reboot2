@@ -3,7 +3,7 @@ import { Routes, Route, Link, useLocation, useNavigate } from 'react-router-dom'
 import { useTranslation } from 'react-i18next';
 import { supabase } from '../supabase/client';
 import { 
-  LayoutDashboard, MessageSquare, FileText, Users, BarChart3, Settings, LogOut, Menu, X, Globe, Moon, Sun, ChevronDown, Eye, EyeOff, User, Trash2, AlertTriangle, Building2, Copy, Send, Shield, Mail, Plus, Search, FileCheck, Calculator, TrendingUp, Archive, TrendingDown, Landmark, PieChart, FileSpreadsheet, Bell, Calendar, Printer, List, BookOpen, CreditCard, Box, Save
+  LayoutDashboard, MessageSquare, FileText, Users, BarChart3, Settings, LogOut, Menu, X, Globe, Moon, Sun, ChevronDown, Eye, EyeOff, User, Trash2, AlertTriangle, Building2, Copy, Send, Shield, Mail, Plus, Search, FileCheck, Calculator, TrendingUp, Archive, TrendingDown, Landmark, PieChart, FileSpreadsheet, Bell, Calendar, Printer, List, BookOpen, CreditCard, Box, Save, Briefcase, Truck
 } from 'lucide-react';
 
 export default function Dashboard() {
@@ -36,13 +36,18 @@ export default function Dashboard() {
   const [realInvoices, setRealInvoices] = useState<any[]>([]); 
   const [chartOfAccounts, setChartOfAccounts] = useState<any[]>([]); 
   const [assets, setAssets] = useState<any[]>([]); 
+  
+  // ESTADOS DE TERCEIROS (CRM)
   const [clients, setClients] = useState<any[]>([]);
+  const [suppliers, setSuppliers] = useState<any[]>([]);
   
   // --- MODAIS ---
   const [isDeleteModalOpen, setIsDeleteModalOpen] = useState(false);
   const [isProfileModalOpen, setIsProfileModalOpen] = useState(false);
   const [showTransactionModal, setShowTransactionModal] = useState(false);
   const [showAssetModal, setShowAssetModal] = useState(false);
+  const [showEntityModal, setShowEntityModal] = useState(false); // Modal para Clientes/Fornecedores
+  const [entityType, setEntityType] = useState<'client' | 'supplier'>('client'); // Define quem estamos a criar
   const [deleteConfirmation, setDeleteConfirmation] = useState('');
   const [isDeleting, setIsDeleting] = useState(false);
   
@@ -50,13 +55,11 @@ export default function Dashboard() {
   const [editForm, setEditForm] = useState({ fullName: '', jobTitle: '', email: '' });
   const [companyForm, setCompanyForm] = useState({ name: '', country: 'Portugal', currency: 'EUR', address: '', nif: '' });
   
-  const [newTransaction, setNewTransaction] = useState({ 
-    description: '', amount: '', type: 'expense', category: '', date: new Date().toISOString().split('T')[0]
-  });
-
-  const [newAsset, setNewAsset] = useState({
-    name: '', purchase_date: new Date().toISOString().split('T')[0], purchase_value: '', lifespan_years: 3
-  });
+  const [newTransaction, setNewTransaction] = useState({ description: '', amount: '', type: 'expense', category: '', date: new Date().toISOString().split('T')[0] });
+  const [newAsset, setNewAsset] = useState({ name: '', purchase_date: new Date().toISOString().split('T')[0], purchase_value: '', lifespan_years: 3 });
+  
+  // Formulário Genérico para Clientes/Fornecedores
+  const [newEntity, setNewEntity] = useState({ name: '', nif: '', email: '', address: '', city: '', postal_code: '', country: 'Portugal' });
 
   const [savingProfile, setSavingProfile] = useState(false);
   const [savingCompany, setSavingCompany] = useState(false);
@@ -69,27 +72,11 @@ export default function Dashboard() {
 
   const countries = ["Portugal", "Brasil", "Angola", "Moçambique", "Cabo Verde", "France", "Deutschland", "United Kingdom", "España", "United States", "Italia", "Belgique", "Suisse", "Luxembourg"];
   
-  const languages = [
-    { code: 'pt', label: 'Português', flag: '🇵🇹' },
-    { code: 'en', label: 'English', flag: '🇬🇧' },
-    { code: 'fr', label: 'Français', flag: '🇫🇷' },
-    { code: 'es', label: 'Español', flag: '🇪🇸' },
-    { code: 'de', label: 'Deutsch', flag: '🇩🇪' },
-    { code: 'it', label: 'Italiano', flag: '🇮🇹' },
-  ];
+  const languages = [ { code: 'pt', label: 'Português', flag: '🇵🇹' }, { code: 'en', label: 'English', flag: '🇬🇧' }, { code: 'fr', label: 'Français', flag: '🇫🇷' }, { code: 'es', label: 'Español', flag: '🇪🇸' }, { code: 'de', label: 'Deutsch', flag: '🇩🇪' }, { code: 'it', label: 'Italiano', flag: '🇮🇹' } ];
 
-  const getCurrencySymbol = (country: string) => {
-    if (country === 'Brasil') return 'R$';
-    if (country === 'United States') return '$';
-    if (country === 'United Kingdom') return '£';
-    if (country === 'Angola') return 'Kz';
-    if (country === 'Moçambique') return 'MT';
-    if (country === 'Suisse') return 'CHF';
-    return '€';
-  };
+  const getCurrencySymbol = (country: string) => { if (country === 'Brasil') return 'R$'; if (country === 'United States') return '$'; if (country === 'United Kingdom') return '£'; if (country === 'Angola') return 'Kz'; if (country === 'Moçambique') return 'MT'; if (country === 'Suisse') return 'CHF'; return '€'; };
   const currencySymbol = getCurrencySymbol(profileData?.country || 'Portugal');
 
-  // CÁLCULOS
   const totalRevenue = transactions.filter(t => t.type === 'income').reduce((acc, curr) => acc + curr.amount, 0);
   const totalExpenses = transactions.filter(t => t.type === 'expense').reduce((acc, curr) => acc + curr.amount, 0);
   const currentBalance = totalRevenue - totalExpenses;
@@ -105,29 +92,14 @@ export default function Dashboard() {
         if (profile) {
             setProfileData(profile);
             setEditForm({ fullName: profile.full_name, jobTitle: profile.role, email: user.email || '' });
-            setCompanyForm({ 
-                name: profile.company_name, 
-                country: profile.country || 'Portugal', 
-                currency: profile.currency || 'EUR',
-                address: profile.company_address || '', 
-                nif: profile.company_nif || '' 
-            });
+            setCompanyForm({ name: profile.company_name, country: profile.country || 'Portugal', currency: profile.currency || 'EUR', address: profile.company_address || '', nif: profile.company_nif || '' });
         }
-        
-        const { data: tr } = await supabase.from('transactions').select('*').order('date', { ascending: false });
-        if (tr) setTransactions(tr);
-        
-        const { data: inv } = await supabase.from('invoices').select('*');
-        if (inv) setRealInvoices(inv);
-
-        const { data: acc } = await supabase.from('accounting_accounts').select('*');
-        if (acc) setChartOfAccounts(acc);
-
-        const { data: ass } = await supabase.from('accounting_assets').select('*');
-        if (ass) setAssets(ass);
-
-        const { data: cl } = await supabase.from('clients').select('*');
-        if (cl) setClients(cl);
+        const { data: tr } = await supabase.from('transactions').select('*').order('date', { ascending: false }); if (tr) setTransactions(tr);
+        const { data: inv } = await supabase.from('invoices').select('*'); if (inv) setRealInvoices(inv);
+        const { data: acc } = await supabase.from('accounting_accounts').select('*'); if (acc) setChartOfAccounts(acc);
+        const { data: ass } = await supabase.from('accounting_assets').select('*'); if (ass) setAssets(ass);
+        const { data: cl } = await supabase.from('clients').select('*'); if (cl) setClients(cl);
+        const { data: sup } = await supabase.from('suppliers').select('*'); if (sup) setSuppliers(sup);
       }
       setLoadingUser(false);
     };
@@ -144,52 +116,50 @@ export default function Dashboard() {
   const copyCode = () => { navigator.clipboard.writeText(profileData?.company_code); alert("Código copiado!"); };
 
   const handleSendChatMessage = async (e: React.FormEvent) => {
-    e.preventDefault();
-    if (!chatInput.trim() || isChatLoading) return;
-    const userMessage = { role: 'user', content: chatInput };
-    setMessages(prev => [...prev, userMessage]);
-    setChatInput('');
-    setIsChatLoading(true);
+    e.preventDefault(); if (!chatInput.trim() || isChatLoading) return;
+    const userMessage = { role: 'user', content: chatInput }; setMessages(prev => [...prev, userMessage]); setChatInput(''); setIsChatLoading(true);
     try {
       const context = `[Empresa: ${companyForm.name}, País: ${companyForm.country}, Moeda: ${currencySymbol}] ${chatInput}`;
       const response = await fetch(`${API_URL}/api/chat`, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ message: context }) });
       const data = await response.json();
       if (data.reply) setMessages(prev => [...prev, { role: 'assistant', content: data.reply }]);
-    } catch { setMessages(prev => [...prev, { role: 'assistant', content: '⚠️ Erro de conexão.' }]); } 
-    finally { setIsChatLoading(false); }
+    } catch { setMessages(prev => [...prev, { role: 'assistant', content: '⚠️ Erro de conexão.' }]); } finally { setIsChatLoading(false); }
   };
 
   const handleCreateTransaction = async () => {
-     if (!newTransaction.amount || !newTransaction.description) return alert("Preencha o valor e a descrição.");
-     const { data, error } = await supabase.from('transactions').insert([{
-         user_id: userData.id,
-         description: newTransaction.description,
-         amount: parseFloat(newTransaction.amount),
-         type: newTransaction.type,
-         category: newTransaction.category || 'Geral',
-         date: newTransaction.date
-     }]).select();
-     if (data) {
-         setTransactions([data[0], ...transactions]);
-         setShowTransactionModal(false);
-         setNewTransaction({ description: '', amount: '', type: 'expense', category: '', date: new Date().toISOString().split('T')[0] });
-     }
+     if (!newTransaction.amount || !newTransaction.description) return alert("Preencha dados.");
+     const { data } = await supabase.from('transactions').insert([{ user_id: userData.id, description: newTransaction.description, amount: parseFloat(newTransaction.amount), type: newTransaction.type, category: newTransaction.category || 'Geral', date: newTransaction.date }]).select();
+     if (data) { setTransactions([data[0], ...transactions]); setShowTransactionModal(false); setNewTransaction({ description: '', amount: '', type: 'expense', category: '', date: new Date().toISOString().split('T')[0] }); }
   };
 
   const handleCreateAsset = async () => {
-    if (!newAsset.name || !newAsset.purchase_value) return alert("Preencha os dados do ativo.");
-    const { data, error } = await supabase.from('accounting_assets').insert([{
-        user_id: userData.id,
-        name: newAsset.name,
-        purchase_date: newAsset.purchase_date,
-        purchase_value: parseFloat(newAsset.purchase_value),
-        lifespan_years: newAsset.lifespan_years
-    }]).select();
-    if (data) {
-        setAssets([...assets, data[0]]);
-        setShowAssetModal(false);
-        setNewAsset({ name: '', purchase_date: new Date().toISOString().split('T')[0], purchase_value: '', lifespan_years: 3 });
-    }
+    if (!newAsset.name || !newAsset.purchase_value) return alert("Preencha dados.");
+    const { data } = await supabase.from('accounting_assets').insert([{ user_id: userData.id, name: newAsset.name, purchase_date: newAsset.purchase_date, purchase_value: parseFloat(newAsset.purchase_value), lifespan_years: newAsset.lifespan_years }]).select();
+    if (data) { setAssets([...assets, data[0]]); setShowAssetModal(false); setNewAsset({ name: '', purchase_date: new Date().toISOString().split('T')[0], purchase_value: '', lifespan_years: 3 }); }
+  };
+
+  // ✅ CRIAR CLIENTE OU FORNECEDOR
+  const handleCreateEntity = async () => {
+      if (!newEntity.name) return alert("Nome obrigatório");
+      const table = entityType === 'client' ? 'clients' : 'suppliers';
+      const { data, error } = await supabase.from(table).insert([{ user_id: userData.id, ...newEntity }]).select();
+      
+      if (!error && data) {
+          if (entityType === 'client') setClients([data[0], ...clients]);
+          else setSuppliers([data[0], ...suppliers]);
+          setShowEntityModal(false);
+          setNewEntity({ name: '', nif: '', email: '', address: '', city: '', postal_code: '', country: 'Portugal' });
+      } else { alert("Erro ao criar: " + error?.message); }
+  };
+
+  const handleDeleteEntity = async (id: string, type: 'client' | 'supplier') => {
+      if (!window.confirm("Apagar este registo?")) return;
+      const table = type === 'client' ? 'clients' : 'suppliers';
+      const { error } = await supabase.from(table).delete().eq('id', id);
+      if (!error) {
+          if (type === 'client') setClients(prev => prev.filter(c => c.id !== id));
+          else setSuppliers(prev => prev.filter(s => s.id !== id));
+      }
   };
 
   const handleDeleteTransaction = async (id: string) => {
@@ -198,44 +168,28 @@ export default function Dashboard() {
     if (!error) setTransactions(prev => prev.filter(t => t.id !== id));
   };
 
-  // ✅ 1. GUARDAR PERFIL PESSOAL (Só Nome e Cargo)
   const handleSaveProfile = async () => {
     setSavingProfile(true);
     try {
-      const updates = { full_name: editForm.fullName, updated_at: new Date() };
-      await supabase.from('profiles').update(updates).eq('id', userData.id);
-      setProfileData({ ...profileData, ...updates });
-      alert(`Perfil Pessoal atualizado!`);
-      setIsProfileModalOpen(false);
-    } catch { alert("Erro ao guardar perfil."); } 
-    finally { setSavingProfile(false); }
+      await supabase.from('profiles').update({ full_name: editForm.fullName, updated_at: new Date() }).eq('id', userData.id);
+      setProfileData({ ...profileData, full_name: editForm.fullName });
+      alert(`Perfil Pessoal atualizado!`); setIsProfileModalOpen(false);
+    } catch { alert("Erro ao guardar."); } finally { setSavingProfile(false); }
   };
 
-  // ✅ 2. GUARDAR EMPRESA (Nome, NIF, Morada, País)
   const handleSaveCompany = async () => {
     setSavingCompany(true);
     try {
-        const updates = { 
-            company_name: companyForm.name,
-            company_nif: companyForm.nif, 
-            company_address: companyForm.address,
-            country: companyForm.country,
-            currency: companyForm.currency,
-            updated_at: new Date()
-        };
+        const updates = { company_name: companyForm.name, company_nif: companyForm.nif, company_address: companyForm.address, country: companyForm.country, currency: companyForm.currency, updated_at: new Date() };
         await supabase.from('profiles').update(updates).eq('id', userData.id);
         setProfileData({ ...profileData, ...updates });
-        alert(`Dados da Empresa atualizados com sucesso!`);
-    } catch { alert("Erro ao guardar empresa."); }
-    finally { setSavingCompany(false); }
+        alert(`Dados da Empresa atualizados!`);
+    } catch { alert("Erro ao guardar."); } finally { setSavingCompany(false); }
   };
 
   const handleDeleteAccount = async () => {
     if (deleteConfirmation !== 'ELIMINAR') return alert(t('delete.confirm_text'));
-    setIsDeleting(true);
-    try { await supabase.rpc('delete_user'); await supabase.auth.signOut(); navigate('/'); } 
-    catch(e: any) { alert(e.message); } 
-    finally { setIsDeleting(false); }
+    setIsDeleting(true); try { await supabase.rpc('delete_user'); await supabase.auth.signOut(); navigate('/'); } catch(e: any) { alert(e.message); } finally { setIsDeleting(false); }
   };
 
   if (loadingUser) return <div className="h-screen flex items-center justify-center bg-gray-50 dark:bg-gray-900 dark:text-white">A carregar escritório...</div>;
@@ -318,42 +272,28 @@ export default function Dashboard() {
 
         <div className="flex-1 overflow-y-auto bg-gray-50 dark:bg-gray-900 p-8">
           <Routes>
-            {/* DASHBOARD PRINCIPAL */}
+            {/* DASHBOARD */}
             <Route path="/" element={
               <div className="space-y-6">
                 <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-                  {/* RECEITA */}
                   <div className="bg-white dark:bg-gray-800 p-6 rounded-2xl shadow-sm border dark:border-gray-700">
                     <div className="flex justify-between items-center mb-2"><h3 className="text-gray-500 text-sm font-medium uppercase tracking-wider">Receita Mensal</h3><button onClick={toggleFinancials} className="text-gray-400">{showFinancials ? <Eye className="w-4 h-4"/> : <EyeOff className="w-4 h-4"/>}</button></div>
                     <p className="text-3xl font-bold text-green-600 dark:text-green-400">{showFinancials ? `${currencySymbol} ${totalRevenue.toFixed(2)}` : '••••••'}</p>
                   </div>
-                  {/* DESPESA */}
                   <div className="bg-white dark:bg-gray-800 p-6 rounded-2xl shadow-sm border dark:border-gray-700">
                     <div className="flex justify-between items-center mb-2"><h3 className="text-gray-500 text-sm font-medium uppercase tracking-wider">Despesas</h3><button onClick={toggleFinancials} className="text-gray-400">{showFinancials ? <Eye className="w-4 h-4"/> : <EyeOff className="w-4 h-4"/>}</button></div>
                     <p className="text-3xl font-bold text-red-500 dark:text-red-400">{showFinancials ? `${currencySymbol} ${totalExpenses.toFixed(2)}` : '••••••'}</p>
                   </div>
-                  {/* SALDO */}
                   <div className="bg-white dark:bg-gray-800 p-6 rounded-2xl shadow-sm border dark:border-gray-700">
                     <div className="flex justify-between items-center mb-2"><h3 className="text-gray-500 text-sm font-medium uppercase tracking-wider">Saldo Atual</h3><button onClick={toggleFinancials} className="text-gray-400">{showFinancials ? <Eye className="w-4 h-4"/> : <EyeOff className="w-4 h-4"/>}</button></div>
                     <p className={`text-3xl font-bold ${currentBalance >= 0 ? 'text-blue-600 dark:text-blue-400' : 'text-red-600 dark:text-red-400'}`}>{showFinancials ? `${currencySymbol} ${currentBalance.toFixed(2)}` : '••••••'}</p>
                   </div>
                 </div>
-
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                    <div className="bg-white dark:bg-gray-800 p-6 rounded-2xl shadow-sm border dark:border-gray-700 flex items-center justify-between">
-                        <div><h3 className="text-gray-500 text-sm font-medium uppercase tracking-wider">Faturas Emitidas</h3><p className="text-3xl font-bold text-orange-500 mt-1">{showFinancials ? totalInvoicesCount : '•••'}</p></div>
-                        <div className="bg-orange-100 dark:bg-orange-900/30 p-3 rounded-xl"><FileText className="w-8 h-8 text-orange-500"/></div>
-                    </div>
-                    <div className="bg-white dark:bg-gray-800 p-6 rounded-2xl shadow-sm border dark:border-gray-700 flex items-center justify-between">
-                        <div><h3 className="text-gray-500 text-sm font-medium uppercase tracking-wider">Ações Pendentes</h3><p className="text-3xl font-bold text-blue-600 mt-1">0</p></div>
-                        <div className="bg-blue-100 dark:bg-blue-900/30 p-3 rounded-xl"><Bell className="w-8 h-8 text-blue-600"/></div>
-                    </div>
+                    <div className="bg-white dark:bg-gray-800 p-6 rounded-2xl shadow-sm border dark:border-gray-700 flex items-center justify-between"><div><h3 className="text-gray-500 text-sm font-medium uppercase tracking-wider">Faturas Emitidas</h3><p className="text-3xl font-bold text-orange-500 mt-1">{showFinancials ? totalInvoicesCount : '•••'}</p></div><div className="bg-orange-100 dark:bg-orange-900/30 p-3 rounded-xl"><FileText className="w-8 h-8 text-orange-500"/></div></div>
+                    <div className="bg-white dark:bg-gray-800 p-6 rounded-2xl shadow-sm border dark:border-gray-700 flex items-center justify-between"><div><h3 className="text-gray-500 text-sm font-medium uppercase tracking-wider">Ações Pendentes</h3><p className="text-3xl font-bold text-blue-600 mt-1">0</p></div><div className="bg-blue-100 dark:bg-blue-900/30 p-3 rounded-xl"><Bell className="w-8 h-8 text-blue-600"/></div></div>
                 </div>
-
-                <div className="bg-blue-50 dark:bg-blue-900/20 border border-blue-100 dark:border-blue-800 rounded-2xl p-8 text-center shadow-lg">
-                  <h3 className="text-xl font-bold text-blue-800 dark:text-blue-300 mb-2">{t('dashboard.welcome')}, {profileData?.full_name?.split(' ')[0]}! 👋</h3>
-                  <Link to="/dashboard/chat" className="inline-flex items-center gap-2 bg-blue-600 text-white px-6 py-3 rounded-xl font-bold hover:bg-blue-700 shadow-lg"><MessageSquare className="w-5 h-5" />{t('dashboard.open_chat')}</Link>
-                </div>
+                <div className="bg-blue-50 dark:bg-blue-900/20 border border-blue-100 dark:border-blue-800 rounded-2xl p-8 text-center shadow-lg"><h3 className="text-xl font-bold text-blue-800 dark:text-blue-300 mb-2">{t('dashboard.welcome')}, {profileData?.full_name?.split(' ')[0]}! 👋</h3><Link to="/dashboard/chat" className="inline-flex items-center gap-2 bg-blue-600 text-white px-6 py-3 rounded-xl font-bold hover:bg-blue-700 shadow-lg"><MessageSquare className="w-5 h-5" />{t('dashboard.open_chat')}</Link></div>
               </div>
             } />
 
@@ -365,9 +305,11 @@ export default function Dashboard() {
                             { id: 'overview', label: 'Geral', icon: PieChart },
                             { id: 'chart', label: 'Plano de Contas', icon: List },
                             { id: 'journal', label: 'Lançamentos', icon: BookOpen },
-                            { id: 'assets', label: 'Ativos (Amortizações)', icon: Box },
+                            { id: 'clients', label: 'Clientes', icon: Briefcase }, // ✅ NOVA ABA
                             { id: 'invoices', label: 'Faturas', icon: FileText }, 
                             { id: 'purchases', label: 'Compras', icon: TrendingDown },
+                            { id: 'suppliers', label: 'Fornecedores', icon: Truck }, // ✅ NOVA ABA
+                            { id: 'assets', label: 'Ativos', icon: Box },
                             { id: 'banking', label: 'Bancos', icon: Landmark },
                             { id: 'taxes', label: 'Impostos', icon: FileCheck },
                             { id: 'reports', label: 'Relatórios', icon: FileSpreadsheet },
@@ -385,17 +327,31 @@ export default function Dashboard() {
                                 <div className="bg-white dark:bg-gray-800 rounded-2xl border dark:border-gray-700 shadow-sm overflow-hidden">
                                     <table className="w-full text-sm text-left">
                                         <thead className="bg-gray-50 dark:bg-gray-700 text-gray-500 uppercase text-xs"><tr><th className="px-6 py-3">Data</th><th className="px-6 py-3">Descrição</th><th className="px-6 py-3">Categoria</th><th className="px-6 py-3 text-right">Valor</th><th className="px-6 py-3 text-right">Ação</th></tr></thead>
-                                        <tbody>
-                                            {transactions.length === 0 ? <tr><td colSpan={5} className="text-center py-8 text-gray-400">Sem movimentos.</td></tr> :
-                                                transactions.map(t => (
-                                                    <tr key={t.id} className="border-b dark:border-gray-700 hover:bg-gray-50 dark:hover:bg-gray-800">
-                                                        <td className="px-6 py-4">{new Date(t.date).toLocaleDateString()}</td><td className="px-6 py-4 font-medium">{t.description}</td><td className="px-6 py-4"><span className="px-2 py-1 bg-gray-100 dark:bg-gray-700 rounded-full text-xs">{t.category}</span></td><td className={`px-6 py-4 text-right font-bold ${t.type === 'income' ? 'text-green-600' : 'text-red-500'}`}>{t.type === 'income' ? '+' : '-'} {currencySymbol} {t.amount}</td><td className="px-6 py-4 text-right"><button onClick={() => handleDeleteTransaction(t.id)} className="text-red-400 hover:text-red-600 p-2"><Trash2 size={16}/></button></td>
-                                                    </tr>
-                                                ))
-                                            }
-                                        </tbody>
+                                        <tbody>{transactions.length === 0 ? <tr><td colSpan={5} className="text-center py-8 text-gray-400">Sem movimentos.</td></tr> : transactions.map(t => (<tr key={t.id} className="border-b dark:border-gray-700 hover:bg-gray-50 dark:hover:bg-gray-800"><td className="px-6 py-4">{new Date(t.date).toLocaleDateString()}</td><td className="px-6 py-4 font-medium">{t.description}</td><td className="px-6 py-4"><span className="px-2 py-1 bg-gray-100 dark:bg-gray-700 rounded-full text-xs">{t.category}</span></td><td className={`px-6 py-4 text-right font-bold ${t.type === 'income' ? 'text-green-600' : 'text-red-500'}`}>{t.type === 'income' ? '+' : '-'} {currencySymbol} {t.amount}</td><td className="px-6 py-4 text-right"><button onClick={() => handleDeleteTransaction(t.id)} className="text-red-400 hover:text-red-600 p-2"><Trash2 size={16}/></button></td></tr>))}</tbody>
                                     </table>
                                 </div>
+                            </div>
+                        )}
+
+                        {/* ✅ ABA CLIENTES (CRM) */}
+                        {accountingTab === 'clients' && (
+                            <div className="bg-white dark:bg-gray-800 rounded-2xl border dark:border-gray-700 shadow-sm overflow-hidden">
+                                <div className="p-4 border-b dark:border-gray-700 flex justify-between items-center"><h3 className="font-bold flex items-center gap-2"><Briefcase size={18}/> Clientes</h3><button onClick={() => {setEntityType('client'); setShowEntityModal(true)}} className="bg-blue-600 text-white px-3 py-1.5 rounded-lg text-sm flex gap-2 items-center"><Plus size={16}/> Novo Cliente</button></div>
+                                <table className="w-full text-sm text-left">
+                                    <thead className="bg-gray-50 dark:bg-gray-700 text-gray-500 uppercase text-xs"><tr><th className="px-6 py-3">Nome</th><th className="px-6 py-3">NIF</th><th className="px-6 py-3">Email</th><th className="px-6 py-3">Cidade</th><th className="px-6 py-3 text-right">Ação</th></tr></thead>
+                                    <tbody>{clients.length === 0 ? <tr><td colSpan={5} className="text-center py-8 text-gray-400">Nenhum cliente registado.</td></tr> : clients.map(c => (<tr key={c.id} className="border-b dark:border-gray-700"><td className="px-6 py-4 font-medium">{c.name}</td><td className="px-6 py-4">{c.nif || '-'}</td><td className="px-6 py-4">{c.email || '-'}</td><td className="px-6 py-4">{c.city || '-'}</td><td className="px-6 py-4 text-right"><button onClick={() => handleDeleteEntity(c.id, 'client')} className="text-red-400 hover:text-red-600"><Trash2 size={16}/></button></td></tr>))}</tbody>
+                                </table>
+                            </div>
+                        )}
+
+                        {/* ✅ ABA FORNECEDORES */}
+                        {accountingTab === 'suppliers' && (
+                            <div className="bg-white dark:bg-gray-800 rounded-2xl border dark:border-gray-700 shadow-sm overflow-hidden">
+                                <div className="p-4 border-b dark:border-gray-700 flex justify-between items-center"><h3 className="font-bold flex items-center gap-2"><Truck size={18}/> Fornecedores</h3><button onClick={() => {setEntityType('supplier'); setShowEntityModal(true)}} className="bg-blue-600 text-white px-3 py-1.5 rounded-lg text-sm flex gap-2 items-center"><Plus size={16}/> Novo Fornecedor</button></div>
+                                <table className="w-full text-sm text-left">
+                                    <thead className="bg-gray-50 dark:bg-gray-700 text-gray-500 uppercase text-xs"><tr><th className="px-6 py-3">Nome</th><th className="px-6 py-3">NIF</th><th className="px-6 py-3">Email</th><th className="px-6 py-3">Categoria</th><th className="px-6 py-3 text-right">Ação</th></tr></thead>
+                                    <tbody>{suppliers.length === 0 ? <tr><td colSpan={5} className="text-center py-8 text-gray-400">Nenhum fornecedor registado.</td></tr> : suppliers.map(s => (<tr key={s.id} className="border-b dark:border-gray-700"><td className="px-6 py-4 font-medium">{s.name}</td><td className="px-6 py-4">{s.nif || '-'}</td><td className="px-6 py-4">{s.email || '-'}</td><td className="px-6 py-4">{s.category || '-'}</td><td className="px-6 py-4 text-right"><button onClick={() => handleDeleteEntity(s.id, 'supplier')} className="text-red-400 hover:text-red-600"><Trash2 size={16}/></button></td></tr>))}</tbody>
+                                </table>
                             </div>
                         )}
 
@@ -411,39 +367,18 @@ export default function Dashboard() {
 
                         {accountingTab === 'assets' && (
                             <div className="space-y-6">
-                                <div className="flex justify-between items-center">
-                                    <h3 className="font-bold text-lg">Mapa de Amortizações</h3>
-                                    <button onClick={() => setShowAssetModal(true)} className="bg-blue-600 text-white px-4 py-2 rounded-lg flex items-center gap-2 hover:bg-blue-700 shadow-lg"><Plus size={18}/> Novo Ativo</button>
-                                </div>
+                                <div className="flex justify-between items-center"><h3 className="font-bold text-lg">Mapa de Amortizações</h3><button onClick={() => setShowAssetModal(true)} className="bg-blue-600 text-white px-4 py-2 rounded-lg flex items-center gap-2 hover:bg-blue-700 shadow-lg"><Plus size={18}/> Novo Ativo</button></div>
                                 <div className="bg-white dark:bg-gray-800 rounded-2xl border dark:border-gray-700 shadow-sm overflow-hidden">
                                     <table className="w-full text-sm text-left">
-                                        <thead className="bg-gray-50 dark:bg-gray-700 text-gray-500 uppercase text-xs">
-                                            <tr><th className="px-6 py-3">Ativo</th><th className="px-6 py-3">Data Compra</th><th className="px-6 py-3 text-right">Valor Aquisição</th><th className="px-6 py-3 text-right">Vida Útil (Anos)</th><th className="px-6 py-3 text-right">Amortização Anual</th></tr>
-                                        </thead>
-                                        <tbody>
-                                            {assets.length === 0 ? <tr><td colSpan={5} className="text-center py-8 text-gray-400">Nenhum ativo registado.</td></tr> :
-                                                assets.map(a => (
-                                                    <tr key={a.id} className="border-b dark:border-gray-700">
-                                                        <td className="px-6 py-4 font-medium">{a.name}</td>
-                                                        <td className="px-6 py-4">{new Date(a.purchase_date).toLocaleDateString()}</td>
-                                                        <td className="px-6 py-4 text-right">{currencySymbol} {a.purchase_value}</td>
-                                                        <td className="px-6 py-4 text-right">{a.lifespan_years} anos</td>
-                                                        <td className="px-6 py-4 text-right font-bold text-orange-500">{currencySymbol} {(a.purchase_value / a.lifespan_years).toFixed(2)}</td>
-                                                    </tr>
-                                                ))
-                                            }
-                                        </tbody>
+                                        <thead className="bg-gray-50 dark:bg-gray-700 text-gray-500 uppercase text-xs"><tr><th className="px-6 py-3">Ativo</th><th className="px-6 py-3">Data Compra</th><th className="px-6 py-3 text-right">Valor Aquisição</th><th className="px-6 py-3 text-right">Vida Útil</th><th className="px-6 py-3 text-right">Amortização Anual</th></tr></thead>
+                                        <tbody>{assets.length === 0 ? <tr><td colSpan={5} className="text-center py-8 text-gray-400">Nenhum ativo registado.</td></tr> : assets.map(a => (<tr key={a.id} className="border-b dark:border-gray-700"><td className="px-6 py-4 font-medium">{a.name}</td><td className="px-6 py-4">{new Date(a.purchase_date).toLocaleDateString()}</td><td className="px-6 py-4 text-right">{currencySymbol} {a.purchase_value}</td><td className="px-6 py-4 text-right">{a.lifespan_years} anos</td><td className="px-6 py-4 text-right font-bold text-orange-500">{currencySymbol} {(a.purchase_value / a.lifespan_years).toFixed(2)}</td></tr>))}</tbody>
                                     </table>
                                 </div>
                             </div>
                         )}
                         
                         {['journal', 'invoices', 'purchases', 'banking', 'taxes', 'reports'].includes(accountingTab) && (
-                            <div className="flex flex-col items-center justify-center py-20 bg-white dark:bg-gray-800 rounded-2xl border dark:border-gray-700">
-                                <Archive className="w-16 h-16 text-gray-300 mb-4"/>
-                                <h3 className="text-xl font-bold">Módulo {accountingTab.toUpperCase()}</h3>
-                                <p className="text-gray-500">Pronto para {profileData?.country}.</p>
-                            </div>
+                            <div className="flex flex-col items-center justify-center py-20 bg-white dark:bg-gray-800 rounded-2xl border dark:border-gray-700"><Archive className="w-16 h-16 text-gray-300 mb-4"/><h3 className="text-xl font-bold">Módulo {accountingTab.toUpperCase()}</h3><p className="text-gray-500">Pronto para {profileData?.country}.</p></div>
                         )}
                     </div>
                 </div>
@@ -452,19 +387,15 @@ export default function Dashboard() {
             <Route path="chat" element={
               <div className="flex flex-col h-full bg-white dark:bg-gray-800 rounded-2xl border dark:border-gray-700 shadow-sm overflow-hidden">
                 <div ref={scrollRef} className="flex-1 overflow-y-auto p-6 space-y-4">
-                  {messages.map((msg, i) => (
-                    <div key={i} className={`flex ${msg.role === 'user' ? 'justify-end' : 'justify-start'}`}><div className={`max-w-[80%] px-5 py-3 rounded-2xl text-sm shadow-sm ${msg.role === 'user' ? 'bg-blue-600 text-white rounded-tr-none' : 'bg-gray-100 dark:bg-gray-700 rounded-tl-none'}`}>{msg.content}</div></div>
-                  ))}
+                  {messages.map((msg, i) => (<div key={i} className={`flex ${msg.role === 'user' ? 'justify-end' : 'justify-start'}`}><div className={`max-w-[80%] px-5 py-3 rounded-2xl text-sm shadow-sm ${msg.role === 'user' ? 'bg-blue-600 text-white rounded-tr-none' : 'bg-gray-100 dark:bg-gray-700 rounded-tl-none'}`}>{msg.content}</div></div>))}
                   {isChatLoading && <div className="text-xs text-gray-400 ml-4 animate-pulse">A analisar...</div>}
                 </div>
                 <div className="p-4 border-t dark:border-gray-700 bg-gray-50 dark:bg-gray-900"><form onSubmit={handleSendChatMessage} className="flex gap-2 relative"><input type="text" value={chatInput} onChange={(e) => setChatInput(e.target.value)} placeholder="Pergunte ao Contabilista IA..." className="flex-1 bg-white dark:bg-gray-800 border dark:border-gray-700 rounded-xl px-4 py-3 text-sm focus:ring-2 focus:ring-blue-500 outline-none shadow-sm"/><button type="submit" disabled={isChatLoading || !chatInput.trim()} className="bg-blue-600 text-white p-3 rounded-xl hover:bg-blue-700 shadow-md disabled:opacity-50"><Send size={18} /></button></form></div>
               </div>
             } />
 
-            {/* ✅ PÁGINA DE GESTÃO DA EMPRESA (Agora com NIF e Morada) */}
             <Route path="company" element={isOwner ? (
                 <div className="max-w-4xl mx-auto space-y-6">
-                  {/* CÓDIGO DE CONVITE */}
                   <div className="bg-white dark:bg-gray-800 rounded-2xl shadow-sm border dark:border-gray-700 p-6 flex flex-col md:flex-row items-center justify-between gap-6">
                     <div><h4 className="font-bold text-blue-900 dark:text-white mb-1">{t('settings.invite_code')}</h4><p className="text-sm text-gray-500 dark:text-gray-400">{t('settings.invite_text')}</p></div>
                     <div className="flex items-center gap-3 bg-gray-50 dark:bg-gray-900 p-3 rounded-xl border border-gray-200 dark:border-gray-700">
@@ -473,26 +404,18 @@ export default function Dashboard() {
                       <button onClick={copyCode} className="p-2 text-gray-400 hover:text-blue-600"><Copy className="w-4 h-4"/></button>
                     </div>
                   </div>
-
-                  {/* FORMULÁRIO DE DADOS DA EMPRESA */}
                   <div className="bg-white dark:bg-gray-800 rounded-2xl shadow-sm border dark:border-gray-700 p-8">
                       <div className="flex justify-between items-center mb-6">
                           <h2 className="text-xl font-bold flex items-center gap-2"><Building2 className="text-blue-600"/> Dados Fiscais da Empresa</h2>
                           <button onClick={handleSaveCompany} disabled={savingCompany} className="bg-blue-600 text-white px-4 py-2 rounded-xl flex items-center gap-2 font-bold hover:bg-blue-700 shadow-md transition-all">{savingCompany ? 'A guardar...' : <><Save size={18}/> Guardar Dados</>}</button>
                       </div>
-                      
                       <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                           <div><label className="block text-sm font-bold mb-2 text-gray-700 dark:text-gray-300">Nome da Entidade</label><input value={companyForm.name} onChange={e => setCompanyForm({...companyForm, name: e.target.value})} className="w-full p-3 border rounded-xl dark:bg-gray-900 dark:border-gray-700 focus:ring-2 focus:ring-blue-500 outline-none" placeholder="Ex: Minha Empresa Lda"/></div>
                           <div><label className="block text-sm font-bold mb-2 text-gray-700 dark:text-gray-300">NIF / VAT Number</label><input value={companyForm.nif} onChange={e => setCompanyForm({...companyForm, nif: e.target.value})} className="w-full p-3 border rounded-xl dark:bg-gray-900 dark:border-gray-700 focus:ring-2 focus:ring-blue-500 outline-none" placeholder="Ex: 500 123 456"/></div>
                           <div className="md:col-span-2"><label className="block text-sm font-bold mb-2 text-gray-700 dark:text-gray-300">Morada Fiscal (Sede)</label><input value={companyForm.address} onChange={e => setCompanyForm({...companyForm, address: e.target.value})} className="w-full p-3 border rounded-xl dark:bg-gray-900 dark:border-gray-700 focus:ring-2 focus:ring-blue-500 outline-none" placeholder="Ex: Av. da Liberdade, 100, Lisboa"/></div>
                       </div>
                   </div>
-
-                  {/* TABELA DE MEMBROS */}
-                  <div className="bg-white dark:bg-gray-800 rounded-2xl shadow-sm border dark:border-gray-700 p-8">
-                    <h3 className="text-lg font-bold mb-4 flex gap-2 items-center"><Users className="text-blue-600"/> {t('settings.team_members')}</h3>
-                    <div className="text-center py-12 border-2 border-dashed rounded-xl text-gray-500">{t('settings.no_members')}</div>
-                  </div>
+                  <div className="bg-white dark:bg-gray-800 rounded-2xl shadow-sm border dark:border-gray-700 p-8"><h3 className="text-lg font-bold mb-4 flex gap-2 items-center"><Users className="text-blue-600"/> {t('settings.team_members')}</h3><div className="text-center py-12 border-2 border-dashed rounded-xl text-gray-500">{t('settings.no_members')}</div></div>
                 </div>
               ) : <div className="text-center py-12"><Shield className="w-16 h-16 mx-auto mb-4 text-gray-300"/><h3 className="text-xl font-bold dark:text-white">Acesso Restrito</h3></div>
             } />
@@ -516,7 +439,7 @@ export default function Dashboard() {
         </div>
       </main>
 
-      {/* MODAL PERFIL (SÓ NOME E CARGO) */}
+      {/* MODAL PERFIL */}
       {isProfileModalOpen && (
         <div className="fixed inset-0 z-[100] flex items-center justify-center bg-black/50 backdrop-blur-sm p-4">
           <div className="bg-white dark:bg-gray-800 rounded-2xl p-6 w-full max-w-lg shadow-2xl border dark:border-gray-700 max-h-[90vh] overflow-y-auto">
@@ -531,6 +454,36 @@ export default function Dashboard() {
               <button onClick={handleSaveProfile} disabled={savingProfile} className="px-5 py-2.5 bg-blue-600 text-white rounded-xl font-bold">{savingProfile ? 'Guardando...' : t('common.save')}</button>
             </div>
           </div>
+        </div>
+      )}
+
+      {/* ✅ MODAL GENÉRICO PARA CLIENTES E FORNECEDORES */}
+      {showEntityModal && (
+        <div className="fixed inset-0 z-[100] flex items-center justify-center bg-black/50 backdrop-blur-sm p-4">
+            <div className="bg-white dark:bg-gray-800 rounded-2xl p-6 w-full max-w-lg shadow-xl border dark:border-gray-700">
+                <div className="flex justify-between items-center mb-4">
+                    <h3 className="text-xl font-bold flex gap-2 items-center text-gray-700 dark:text-white">
+                        {entityType === 'client' ? <Briefcase size={20} className="text-blue-500"/> : <Truck size={20} className="text-orange-500"/>} 
+                        Novo {entityType === 'client' ? 'Cliente' : 'Fornecedor'}
+                    </h3>
+                </div>
+                <div className="space-y-4">
+                    <div><label className="text-xs font-bold text-gray-400 uppercase tracking-wider mb-1 block">Nome / Empresa</label><input placeholder="Ex: Tech Solutions Lda" value={newEntity.name} onChange={e => setNewEntity({...newEntity, name: e.target.value})} className="w-full p-3 border dark:border-gray-600 rounded-xl dark:bg-gray-900 bg-gray-50 outline-none"/></div>
+                    <div className="grid grid-cols-2 gap-4">
+                        <div><label className="text-xs font-bold text-gray-400 uppercase tracking-wider mb-1 block">NIF</label><input placeholder="999888777" value={newEntity.nif} onChange={e => setNewEntity({...newEntity, nif: e.target.value})} className="w-full p-3 border dark:border-gray-600 rounded-xl dark:bg-gray-900 bg-gray-50 outline-none"/></div>
+                        <div><label className="text-xs font-bold text-gray-400 uppercase tracking-wider mb-1 block">Email</label><input placeholder="geral@cliente.com" value={newEntity.email} onChange={e => setNewEntity({...newEntity, email: e.target.value})} className="w-full p-3 border dark:border-gray-600 rounded-xl dark:bg-gray-900 bg-gray-50 outline-none"/></div>
+                    </div>
+                    <div><label className="text-xs font-bold text-gray-400 uppercase tracking-wider mb-1 block">Morada</label><input placeholder="Rua..." value={newEntity.address} onChange={e => setNewEntity({...newEntity, address: e.target.value})} className="w-full p-3 border dark:border-gray-600 rounded-xl dark:bg-gray-900 bg-gray-50 outline-none"/></div>
+                    <div className="grid grid-cols-2 gap-4">
+                        <div><label className="text-xs font-bold text-gray-400 uppercase tracking-wider mb-1 block">Cidade</label><input placeholder="Lisboa" value={newEntity.city} onChange={e => setNewEntity({...newEntity, city: e.target.value})} className="w-full p-3 border dark:border-gray-600 rounded-xl dark:bg-gray-900 bg-gray-50 outline-none"/></div>
+                        <div><label className="text-xs font-bold text-gray-400 uppercase tracking-wider mb-1 block">País</label><select value={newEntity.country} onChange={e => setNewEntity({...newEntity, country: e.target.value})} className="w-full p-3 border dark:border-gray-600 rounded-xl dark:bg-gray-900 bg-gray-50 outline-none">{countries.map(c => <option key={c} value={c}>{c}</option>)}</select></div>
+                    </div>
+                </div>
+                <div className="flex justify-end gap-3 mt-8 pt-4 border-t dark:border-gray-700">
+                    <button onClick={() => setShowEntityModal(false)} className="px-6 py-3 text-gray-500 font-medium hover:bg-gray-100 dark:hover:bg-gray-700 rounded-xl transition-colors">Cancelar</button>
+                    <button onClick={handleCreateEntity} className="px-6 py-3 bg-blue-600 text-white rounded-xl font-bold hover:bg-blue-700 shadow-lg transition-transform active:scale-95">Criar Ficha</button>
+                </div>
+            </div>
         </div>
       )}
 
