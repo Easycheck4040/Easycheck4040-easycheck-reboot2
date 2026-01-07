@@ -3,9 +3,30 @@ import { Routes, Route, Link, useLocation, useNavigate } from 'react-router-dom'
 import { useTranslation } from 'react-i18next';
 import { supabase } from '../supabase/client';
 import { 
-  LayoutDashboard, MessageSquare, FileText, Users, BarChart3, Settings, LogOut, Menu, X, Globe, Moon, Sun, ChevronDown, Eye, EyeOff, User, Trash2, AlertTriangle, Building2, Copy, Send, Shield, Mail, Plus, Search, FileCheck, Calculator, TrendingUp, Archive, TrendingDown, Landmark, PieChart, FileSpreadsheet, Bell, Calendar, Printer, List, BookOpen, CreditCard, Box, Save, Briefcase, Truck, RefreshCw, CheckCircle
+  LayoutDashboard, MessageSquare, FileText, Users, BarChart3, Settings, LogOut, Menu, X, Globe, Moon, Sun, ChevronDown, Eye, EyeOff, User, Trash2, AlertTriangle, Building2, Copy, Send, Shield, Mail, Plus, Search, FileCheck, Calculator, TrendingUp, Archive, TrendingDown, Landmark, PieChart, FileSpreadsheet, Bell, Calendar, Printer, List, BookOpen, CreditCard, Box, Save, Briefcase, Truck, RefreshCw, CheckCircle, AlertCircle
 } from 'lucide-react';
 
+// --- DADOS ESTÁTICOS (Movidos para fora para evitar erros) ---
+const COUNTRIES = ["Portugal", "Brasil", "Angola", "Moçambique", "Cabo Verde", "France", "Deutschland", "United Kingdom", "España", "United States", "Italia", "Belgique", "Suisse", "Luxembourg"];
+
+const LANGUAGES = [ 
+  { code: 'pt', label: 'Português', flag: '🇵🇹' }, 
+  { code: 'en', label: 'English', flag: '🇬🇧' }, 
+  { code: 'fr', label: 'Français', flag: '🇫🇷' }, 
+  { code: 'es', label: 'Español', flag: '🇪🇸' }, 
+  { code: 'de', label: 'Deutsch', flag: '🇩🇪' }, 
+  { code: 'it', label: 'Italiano', flag: '🇮🇹' } 
+];
+
+const DEFAULT_RATES: any = { 'EUR': 1, 'USD': 1.05, 'BRL': 6.15, 'AOA': 930, 'MZN': 69, 'CVE': 110.27, 'CHF': 0.94, 'GBP': 0.83 };
+
+const COUNTRY_CURRENCY_MAP: any = { "Portugal": "EUR", "France": "EUR", "Deutschland": "EUR", "España": "EUR", "Italia": "EUR", "Belgique": "EUR", "Luxembourg": "EUR", "Brasil": "BRL", "United States": "USD", "United Kingdom": "GBP", "Angola": "AOA", "Moçambique": "MZN", "Cabo Verde": "CVE", "Suisse": "CHF" };
+
+const CURRENCY_SYMBOLS: any = { 'EUR': '€', 'USD': '$', 'BRL': 'R$', 'AOA': 'Kz', 'MZN': 'MT', 'CVE': 'Esc', 'CHF': 'CHF', 'GBP': '£' };
+
+const CURRENCY_NAMES: any = { 'EUR': 'Euro', 'USD': 'Dólar Americano', 'BRL': 'Real Brasileiro', 'AOA': 'Kwanza', 'MZN': 'Metical', 'CVE': 'Escudo', 'CHF': 'Franco Suíço', 'GBP': 'Libra' };
+
+// --- COMPONENTE PRINCIPAL ---
 export default function Dashboard() {
   const { t, i18n } = useTranslation();
   const location = useLocation();
@@ -58,17 +79,19 @@ export default function Dashboard() {
   const [newAsset, setNewAsset] = useState({ name: '', purchase_date: new Date().toISOString().split('T')[0], purchase_value: '', lifespan_years: 3 });
   const [newEntity, setNewEntity] = useState({ name: '', nif: '', email: '', address: '', city: '', postal_code: '', country: 'Portugal' });
 
-  // ESTADO DA NOVA FATURA
+  // ESTADO DA FATURA
   const [invoiceData, setInvoiceData] = useState({
       client_id: '',
+      type: 'Fatura',
       date: new Date().toISOString().split('T')[0],
       due_date: new Date(new Date().setDate(new Date().getDate() + 30)).toISOString().split('T')[0],
-      number: 'Rascunho',
+      exemption_reason: '',
       items: [{ description: '', quantity: 1, price: 0, tax: 23 }] 
   });
 
   const [savingProfile, setSavingProfile] = useState(false);
   const [savingCompany, setSavingCompany] = useState(false);
+  const [exchangeRates, setExchangeRates] = useState<any>(DEFAULT_RATES);
 
   // --- CHAT IA ---
   const [messages, setMessages] = useState([{ role: 'assistant', content: 'Olá! Sou o seu assistente EasyCheck IA. Em que posso ajudar hoje?' }]);
@@ -76,25 +99,21 @@ export default function Dashboard() {
   const [isChatLoading, setIsChatLoading] = useState(false);
   const scrollRef = useRef<HTMLDivElement>(null);
 
-  const countries = ["Portugal", "Brasil", "Angola", "Moçambique", "Cabo Verde", "France", "Deutschland", "United Kingdom", "España", "United States", "Italia", "Belgique", "Suisse", "Luxembourg"];
-  
-  const languages = [ { code: 'pt', label: 'Português', flag: '🇵🇹' }, { code: 'en', label: 'English', flag: '🇬🇧' }, { code: 'fr', label: 'Français', flag: '🇫🇷' }, { code: 'es', label: 'Español', flag: '🇪🇸' }, { code: 'de', label: 'Deutsch', flag: '🇩🇪' }, { code: 'it', label: 'Italiano', flag: '🇮🇹' } ];
+  // TIPOS DE FATURA
+  const invoiceTypes = [
+      "Fatura", "Fatura-Recibo", "Fatura Simplificada", "Fatura Proforma", 
+      "Nota de Crédito", "Nota de Débito", "Recibo", 
+      "Fatura Intracomunitária", "Fatura Isenta / Autoliquidação"
+  ];
 
-  const defaultRates: any = { 'EUR': 1, 'USD': 1.05, 'BRL': 6.15, 'AOA': 930, 'MZN': 69, 'CVE': 110.27, 'CHF': 0.94, 'GBP': 0.83 };
-  const [exchangeRates, setExchangeRates] = useState<any>(defaultRates);
-
-  const countryCurrencyMap: any = { "Portugal": "EUR", "France": "EUR", "Deutschland": "EUR", "España": "EUR", "Italia": "EUR", "Belgique": "EUR", "Luxembourg": "EUR", "Brasil": "BRL", "United States": "USD", "United Kingdom": "GBP", "Angola": "AOA", "Moçambique": "MZN", "Cabo Verde": "CVE", "Suisse": "CHF" };
-  const currencySymbols: any = { 'EUR': '€', 'USD': '$', 'BRL': 'R$', 'AOA': 'Kz', 'MZN': 'MT', 'CVE': 'Esc', 'CHF': 'CHF', 'GBP': '£' };
-  const currencyNames: any = { 'EUR': 'Euro', 'USD': 'Dólar Americano', 'BRL': 'Real Brasileiro', 'AOA': 'Kwanza', 'MZN': 'Metical', 'CVE': 'Escudo', 'CHF': 'Franco Suíço', 'GBP': 'Libra' };
-
-  const getCurrencyCode = (country: string) => countryCurrencyMap[country] || 'EUR';
-  const getCurrencySymbol = (code: string) => currencySymbols[code] || '€';
+  // Helpers
+  const getCurrencyCode = (country: string) => COUNTRY_CURRENCY_MAP[country] || 'EUR';
+  const getCurrencySymbol = (code: string) => CURRENCY_SYMBOLS[code] || '€';
 
   const currentCurrency = companyForm.currency || 'EUR';
   const conversionRate = exchangeRates[currentCurrency] || 1;
   const displaySymbol = getCurrencySymbol(currentCurrency);
 
-  // CÁLCULOS DINÂMICOS
   const totalRevenue = transactions.filter(t => t.type === 'income').reduce((acc, curr) => acc + curr.amount, 0) * conversionRate;
   const totalExpenses = transactions.filter(t => t.type === 'expense').reduce((acc, curr) => acc + curr.amount, 0) * conversionRate;
   const currentBalance = totalRevenue - totalExpenses;
@@ -112,7 +131,7 @@ export default function Dashboard() {
             setEditForm({ fullName: profile.full_name, jobTitle: profile.job_title || '', email: user.email || '' });
             const initialCurrency = profile.currency || getCurrencyCode(profile.country || 'Portugal');
             setCompanyForm({ name: profile.company_name, country: profile.country || 'Portugal', currency: initialCurrency, address: profile.company_address || '', nif: profile.company_nif || '' });
-            if (profile.custom_exchange_rates) { setExchangeRates({ ...defaultRates, ...profile.custom_exchange_rates }); }
+            if (profile.custom_exchange_rates) { setExchangeRates({ ...DEFAULT_RATES, ...profile.custom_exchange_rates }); }
         }
         const { data: tr } = await supabase.from('transactions').select('*').order('date', { ascending: false }); if (tr) setTransactions(tr);
         const { data: inv } = await supabase.from('invoices').select('*, clients(name)').order('created_at', { ascending: false }); if (inv) setRealInvoices(inv);
@@ -128,6 +147,29 @@ export default function Dashboard() {
 
   useEffect(() => { if (scrollRef.current) scrollRef.current.scrollTop = scrollRef.current.scrollHeight; }, [messages]);
 
+  // IVA INTELIGENTE
+  useEffect(() => {
+      if (!invoiceData.client_id) return;
+      const selectedClient = clients.find(c => c.id === invoiceData.client_id);
+      if (!selectedClient) return;
+
+      let newTax = 23; 
+      let exemption = '';
+
+      if (invoiceData.type === 'Fatura Isenta / Autoliquidação') {
+          newTax = 0; exemption = 'IVA - Autoliquidação (Artigo 6.º)';
+      } 
+      else if (invoiceData.type === 'Fatura Intracomunitária') {
+          newTax = 0; exemption = 'Isento Artigo 14.º do RITI';
+      }
+      else if (selectedClient.country && selectedClient.country !== companyForm.country) {
+          newTax = 0; exemption = 'Isento Artigo 14.º do CIVA (Exportação)';
+      }
+
+      const updatedItems = invoiceData.items.map(item => ({ ...item, tax: newTax }));
+      setInvoiceData(prev => ({ ...prev, items: updatedItems, exemption_reason: exemption }));
+  }, [invoiceData.client_id, invoiceData.type]);
+
   const toggleTheme = () => { document.documentElement.classList.toggle('dark'); setIsDark(!isDark); };
   const toggleFinancials = () => setShowFinancials(!showFinancials);
   const selectLanguage = (code: string) => { i18n.changeLanguage(code); setIsLangMenuOpen(false); };
@@ -141,7 +183,7 @@ export default function Dashboard() {
       setCompanyForm({ ...companyForm, country: selectedCountry, currency: newCurrency });
   };
 
-  const handleRateChange = (currency: string, value: string) => { setExchangeRates(prev => ({ ...prev, [currency]: parseFloat(value) || 0 })); };
+  const handleRateChange = (currency: string, value: string) => { setExchangeRates((prev: any) => ({ ...prev, [currency]: parseFloat(value) || 0 })); };
 
   const handleSendChatMessage = async (e: React.FormEvent) => {
     e.preventDefault(); if (!chatInput.trim() || isChatLoading) return;
@@ -154,10 +196,9 @@ export default function Dashboard() {
     } catch { setMessages(prev => [...prev, { role: 'assistant', content: '⚠️ Erro de conexão.' }]); } finally { setIsChatLoading(false); }
   };
 
-  // --- ACTIONS ---
-
   const handleAddInvoiceItem = () => {
-      setInvoiceData({ ...invoiceData, items: [...invoiceData.items, { description: '', quantity: 1, price: 0, tax: 23 }] });
+      const currentTax = invoiceData.items.length > 0 ? invoiceData.items[0].tax : 23;
+      setInvoiceData({ ...invoiceData, items: [...invoiceData.items, { description: '', quantity: 1, price: 0, tax: currentTax }] });
   };
 
   const handleRemoveInvoiceItem = (index: number) => {
@@ -192,9 +233,11 @@ export default function Dashboard() {
       const { data: invoice, error } = await supabase.from('invoices').insert([{
           user_id: userData.id,
           client_id: invoiceData.client_id,
+          type: invoiceData.type,
           invoice_number: `FT ${new Date().getFullYear()}/${realInvoices.length + 1}`,
           date: invoiceData.date,
           due_date: invoiceData.due_date,
+          exemption_reason: invoiceData.exemption_reason,
           subtotal: totals.subtotal,
           tax_total: totals.taxTotal,
           total: totals.total,
@@ -214,16 +257,17 @@ export default function Dashboard() {
 
       await supabase.from('invoice_items').insert(itemsToInsert);
 
-      alert("Fatura criada com sucesso!");
+      alert(`${invoiceData.type} emitida com sucesso!`);
       const { data: updatedInvoices } = await supabase.from('invoices').select('*, clients(name)').order('created_at', { ascending: false });
       if (updatedInvoices) setRealInvoices(updatedInvoices);
       
       setShowInvoiceForm(false);
       setInvoiceData({
           client_id: '',
+          type: 'Fatura',
           date: new Date().toISOString().split('T')[0],
           due_date: new Date(new Date().setDate(new Date().getDate() + 30)).toISOString().split('T')[0],
-          number: 'Rascunho',
+          exemption_reason: '',
           items: [{ description: '', quantity: 1, price: 0, tax: 23 }]
       });
   };
@@ -344,7 +388,7 @@ export default function Dashboard() {
             <div className="relative">
               <button onClick={() => setIsLangMenuOpen(!isLangMenuOpen)} className="p-2 flex gap-2 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-lg"><Globe className="w-5 h-5"/><ChevronDown className="w-3 h-3"/></button>
               {isLangMenuOpen && <div className="absolute right-0 mt-2 w-48 bg-white dark:bg-gray-800 rounded-xl shadow-xl border dark:border-gray-700 z-40">
-                {languages.map(l => <button key={l.code} onClick={() => selectLanguage(l.code)} className="w-full text-left px-4 py-3 text-sm hover:bg-gray-50 dark:hover:bg-gray-700 flex gap-2"><span>{l.flag}</span>{l.label}</button>)}
+                {LANGUAGES.map(l => <button key={l.code} onClick={() => selectLanguage(l.code)} className="w-full text-left px-4 py-3 text-sm hover:bg-gray-50 dark:hover:bg-gray-700 flex gap-2"><span>{l.flag}</span>{l.label}</button>)}
               </div>}
             </div>
             
@@ -379,16 +423,19 @@ export default function Dashboard() {
                   {/* RECEITA */}
                   <div className="bg-white dark:bg-gray-800 p-6 rounded-2xl shadow-sm border dark:border-gray-700">
                     <div className="flex justify-between items-center mb-2"><h3 className="text-gray-500 text-sm font-medium uppercase tracking-wider">Receita Mensal</h3><button onClick={toggleFinancials} className="text-gray-400">{showFinancials ? <Eye className="w-4 h-4"/> : <EyeOff className="w-4 h-4"/>}</button></div>
+                    {/* VALOR CONVERTIDO */}
                     <p className="text-3xl font-bold text-green-600 dark:text-green-400">{showFinancials ? `${displaySymbol} ${totalRevenue.toFixed(2)}` : '••••••'}</p>
                   </div>
                   {/* DESPESA */}
                   <div className="bg-white dark:bg-gray-800 p-6 rounded-2xl shadow-sm border dark:border-gray-700">
                     <div className="flex justify-between items-center mb-2"><h3 className="text-gray-500 text-sm font-medium uppercase tracking-wider">Despesas</h3><button onClick={toggleFinancials} className="text-gray-400">{showFinancials ? <Eye className="w-4 h-4"/> : <EyeOff className="w-4 h-4"/>}</button></div>
+                    {/* VALOR CONVERTIDO */}
                     <p className="text-3xl font-bold text-red-500 dark:text-red-400">{showFinancials ? `${displaySymbol} ${totalExpenses.toFixed(2)}` : '••••••'}</p>
                   </div>
                   {/* SALDO */}
                   <div className="bg-white dark:bg-gray-800 p-6 rounded-2xl shadow-sm border dark:border-gray-700">
                     <div className="flex justify-between items-center mb-2"><h3 className="text-gray-500 text-sm font-medium uppercase tracking-wider">Saldo Atual</h3><button onClick={toggleFinancials} className="text-gray-400">{showFinancials ? <Eye className="w-4 h-4"/> : <EyeOff className="w-4 h-4"/>}</button></div>
+                    {/* VALOR CONVERTIDO */}
                     <p className={`text-3xl font-bold ${currentBalance >= 0 ? 'text-blue-600 dark:text-blue-400' : 'text-red-600 dark:text-red-400'}`}>{showFinancials ? `${displaySymbol} ${currentBalance.toFixed(2)}` : '••••••'}</p>
                   </div>
                 </div>
@@ -505,7 +552,7 @@ export default function Dashboard() {
                                         <div className="bg-white dark:bg-gray-800 rounded-2xl border dark:border-gray-700 shadow-sm overflow-hidden">
                                             <table className="w-full text-sm text-left">
                                                 <thead className="bg-gray-50 dark:bg-gray-700 text-gray-500 uppercase text-xs">
-                                                    <tr><th className="px-6 py-3">Número</th><th className="px-6 py-3">Cliente</th><th className="px-6 py-3">Data</th><th className="px-6 py-3">Status</th><th className="px-6 py-3 text-right">Total</th></tr>
+                                                    <tr><th className="px-6 py-3">Número</th><th className="px-6 py-3">Cliente</th><th className="px-6 py-3">Tipo</th><th className="px-6 py-3">Data</th><th className="px-6 py-3 text-right">Total</th></tr>
                                                 </thead>
                                                 <tbody>
                                                     {realInvoices.length === 0 ? <tr><td colSpan={5} className="text-center py-8 text-gray-400">Nenhuma fatura emitida.</td></tr> : 
@@ -513,8 +560,8 @@ export default function Dashboard() {
                                                             <tr key={inv.id} className="border-b dark:border-gray-700">
                                                                 <td className="px-6 py-4 font-mono font-bold text-blue-600">{inv.invoice_number}</td>
                                                                 <td className="px-6 py-4">{inv.clients?.name || 'Cliente Removido'}</td>
+                                                                <td className="px-6 py-4 text-xs uppercase font-bold">{inv.type}</td>
                                                                 <td className="px-6 py-4">{new Date(inv.date).toLocaleDateString()}</td>
-                                                                <td className="px-6 py-4"><span className="px-2 py-1 bg-green-100 text-green-700 rounded-full text-xs font-bold uppercase">{inv.status}</span></td>
                                                                 <td className="px-6 py-4 text-right font-bold">{inv.currency} {inv.total}</td>
                                                             </tr>
                                                         ))
@@ -524,14 +571,30 @@ export default function Dashboard() {
                                         </div>
                                     </>
                                 ) : (
-                                    /* ✅ FORMULÁRIO DE CRIAÇÃO DE FATURA */
+                                    /* ✅ FORMULÁRIO DE CRIAÇÃO DE FATURA COMPLETO */
                                     <div className="bg-white dark:bg-gray-800 rounded-2xl shadow-xl border dark:border-gray-700 p-8 animate-fade-in-up">
                                         <div className="flex justify-between items-start mb-8 pb-6 border-b dark:border-gray-700">
                                             <div>
-                                                <h2 className="text-2xl font-bold flex items-center gap-2"><FileText className="text-blue-600"/> Nova Fatura</h2>
-                                                <p className="text-gray-500 text-sm mt-1">Preencha os dados abaixo para emitir o documento.</p>
+                                                <h2 className="text-2xl font-bold flex items-center gap-2"><FileText className="text-blue-600"/> Emitir Novo Documento</h2>
+                                                <p className="text-gray-500 text-sm mt-1">Selecione o tipo de documento e preencha os dados.</p>
                                             </div>
                                             <button onClick={() => setShowInvoiceForm(false)} className="text-gray-400 hover:text-gray-600"><X size={24}/></button>
+                                        </div>
+
+                                        {/* TIPO DE DOCUMENTO */}
+                                        <div className="mb-6">
+                                            <label className="block text-sm font-bold mb-2">Tipo de Documento</label>
+                                            <div className="flex gap-2 overflow-x-auto pb-2">
+                                                {invoiceTypes.map(t => (
+                                                    <button 
+                                                        key={t} 
+                                                        onClick={() => setInvoiceData({...invoiceData, type: t})}
+                                                        className={`px-4 py-2 rounded-full text-xs font-bold whitespace-nowrap border transition-all ${invoiceData.type === t ? 'bg-blue-600 text-white border-blue-600' : 'bg-white dark:bg-gray-900 border-gray-200 dark:border-gray-600 hover:bg-gray-50'}`}
+                                                    >
+                                                        {t}
+                                                    </button>
+                                                ))}
+                                            </div>
                                         </div>
 
                                         <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
@@ -552,6 +615,17 @@ export default function Dashboard() {
                                                 <input type="date" className="w-full p-3 border rounded-xl dark:bg-gray-900 outline-none" value={invoiceData.due_date} onChange={e => setInvoiceData({...invoiceData, due_date: e.target.value})}/>
                                             </div>
                                         </div>
+
+                                        {/* ALERTAS DE IVA */}
+                                        {invoiceData.exemption_reason && (
+                                            <div className="bg-yellow-50 dark:bg-yellow-900/20 border border-yellow-200 dark:border-yellow-700 p-4 rounded-xl mb-6 flex gap-3 items-center">
+                                                <AlertCircle className="text-yellow-600"/>
+                                                <div>
+                                                    <p className="font-bold text-yellow-800 dark:text-yellow-200 text-sm">Regime de Isenção Aplicado</p>
+                                                    <p className="text-xs text-yellow-700 dark:text-yellow-300">{invoiceData.exemption_reason}</p>
+                                                </div>
+                                            </div>
+                                        )}
 
                                         {/* LINHAS DA FATURA */}
                                         <div className="mb-8">
@@ -593,7 +667,7 @@ export default function Dashboard() {
 
                                         <div className="flex justify-end gap-4 mt-8">
                                             <button onClick={() => setShowInvoiceForm(false)} className="px-6 py-3 rounded-xl border font-medium hover:bg-gray-50 dark:hover:bg-gray-700">Cancelar</button>
-                                            <button onClick={handleSaveInvoice} className="px-6 py-3 rounded-xl bg-blue-600 text-white font-bold hover:bg-blue-700 shadow-lg flex items-center gap-2"><CheckCircle size={20}/> Emitir Fatura</button>
+                                            <button onClick={handleSaveInvoice} className="px-6 py-3 rounded-xl bg-blue-600 text-white font-bold hover:bg-blue-700 shadow-lg flex items-center gap-2"><CheckCircle size={20}/> Emitir {invoiceData.type}</button>
                                         </div>
                                     </div>
                                 )}
@@ -643,37 +717,35 @@ export default function Dashboard() {
               ) : <div className="text-center py-12"><Shield className="w-16 h-16 mx-auto mb-4 text-gray-300"/><h3 className="text-xl font-bold dark:text-white">Acesso Restrito</h3></div>
             } />
 
-            {/* ✅ SETTINGS COM MENU DE CÂMBIO MODERNO */}
+            {/* ✅ SETTINGS COM MENU DE CÂMBIO MODERNO (CORRIGIDO: CURR em vez de CURRENCY para evitar erros) */}
             <Route path="settings" element={
                  <div className="max-w-4xl mx-auto space-y-6">
-                    {/* Configuração Geral */}
                     <div className="bg-white dark:bg-gray-800 rounded-2xl shadow-sm border dark:border-gray-700 p-8">
                         <h2 className="text-2xl font-bold mb-6 flex gap-2 items-center"><Settings/> Definições Globais</h2>
                         <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                            <div><label className="block text-sm font-bold mb-1">País da Sede</label><select value={companyForm.country} onChange={handleCountryChange} className="w-full p-3 border rounded-xl dark:bg-gray-900 dark:border-gray-600">{countries.map(c => <option key={c} value={c}>{c}</option>)}</select></div>
+                            <div><label className="block text-sm font-bold mb-1">País da Sede</label><select value={companyForm.country} onChange={handleCountryChange} className="w-full p-3 border rounded-xl dark:bg-gray-900 dark:border-gray-600">{COUNTRIES.map(c => <option key={c} value={c}>{c}</option>)}</select></div>
                             <div><label className="block text-sm font-bold mb-1">Moeda Principal</label><input value={companyForm.currency} onChange={e => setCompanyForm({...companyForm, currency: e.target.value})} className="w-full p-3 border rounded-xl dark:bg-gray-900 dark:border-gray-600" disabled/></div>
                         </div>
                     </div>
 
-                    {/* ✅ MENU DE TAXAS DE CÂMBIO */}
                     <div className="bg-white dark:bg-gray-800 rounded-2xl shadow-sm border dark:border-gray-700 p-8">
                         <h2 className="text-xl font-bold mb-4 flex gap-2 items-center text-blue-600"><RefreshCw/> Gestão de Taxas de Câmbio</h2>
                         <p className="text-sm text-gray-500 mb-6">Defina o valor de 1 EURO (€) nas moedas internacionais que utiliza.</p>
                         
                         <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-4">
-                            {Object.keys(defaultRates).filter(k => k !== 'EUR').map(currency => (
-                                <div key={currency} className="bg-gray-50 dark:bg-gray-900 p-4 rounded-xl border dark:border-gray-700 flex items-center justify-between">
+                            {Object.keys(DEFAULT_RATES).filter(k => k !== 'EUR').map(curr => (
+                                <div key={curr} className="bg-gray-50 dark:bg-gray-900 p-4 rounded-xl border dark:border-gray-700 flex items-center justify-between">
                                     <div>
-                                        <p className="font-bold text-lg">{currency}</p>
-                                        <p className="text-xs text-gray-500">{currencyNames[currency]}</p>
+                                        <p className="font-bold text-lg">{curr}</p>
+                                        <p className="text-xs text-gray-500">{CURRENCY_NAMES[curr]}</p>
                                     </div>
                                     <div className="flex items-center gap-2">
                                         <span className="text-gray-400 text-sm">1 € =</span>
                                         <input 
                                             type="number" 
                                             step="0.01" 
-                                            value={exchangeRates[currency]} 
-                                            onChange={(e) => handleRateChange(currency, e.target.value)}
+                                            value={exchangeRates[curr]} 
+                                            onChange={(e) => handleRateChange(curr, e.target.value)}
                                             className="w-20 p-2 text-right font-bold rounded-lg border focus:ring-2 focus:ring-blue-500 outline-none dark:bg-gray-800 dark:border-gray-600"
                                         />
                                     </div>
@@ -731,7 +803,7 @@ export default function Dashboard() {
                     <div><label className="text-xs font-bold text-gray-400 uppercase tracking-wider mb-1 block">Morada</label><input placeholder="Rua..." value={newEntity.address} onChange={e => setNewEntity({...newEntity, address: e.target.value})} className="w-full p-3 border dark:border-gray-600 rounded-xl dark:bg-gray-900 bg-gray-50 outline-none"/></div>
                     <div className="grid grid-cols-2 gap-4">
                         <div><label className="text-xs font-bold text-gray-400 uppercase tracking-wider mb-1 block">Cidade</label><input placeholder="Lisboa" value={newEntity.city} onChange={e => setNewEntity({...newEntity, city: e.target.value})} className="w-full p-3 border dark:border-gray-600 rounded-xl dark:bg-gray-900 bg-gray-50 outline-none"/></div>
-                        <div><label className="text-xs font-bold text-gray-400 uppercase tracking-wider mb-1 block">País</label><select value={newEntity.country} onChange={e => setNewEntity({...newEntity, country: e.target.value})} className="w-full p-3 border dark:border-gray-600 rounded-xl dark:bg-gray-900 bg-gray-50 outline-none">{countries.map(c => <option key={c} value={c}>{c}</option>)}</select></div>
+                        <div><label className="text-xs font-bold text-gray-400 uppercase tracking-wider mb-1 block">País</label><select value={newEntity.country} onChange={e => setNewEntity({...newEntity, country: e.target.value})} className="w-full p-3 border dark:border-gray-600 rounded-xl dark:bg-gray-900 bg-gray-50 outline-none">{COUNTRIES.map(c => <option key={c} value={c}>{c}</option>)}</select></div>
                     </div>
                 </div>
                 <div className="flex justify-end gap-3 mt-8 pt-4 border-t dark:border-gray-700">
