@@ -5,45 +5,51 @@ import { supabase } from '../supabase/client';
 import jsPDF from 'jspdf';
 import autoTable from 'jspdf-autotable';
 import { 
-  LayoutDashboard, MessageSquare, FileText, Users, BarChart3, Settings, LogOut, Menu, X, Globe, Moon, Sun, ChevronDown, Eye, EyeOff, User, Trash2, AlertTriangle, Building2, Copy, Send, Shield, Mail, Plus, Search, FileCheck, Calculator, TrendingUp, Archive, TrendingDown, Landmark, PieChart, FileSpreadsheet, Bell, Calendar, Printer, List, BookOpen, CreditCard, Box, Save, Briefcase, Truck, RefreshCw, CheckCircle, AlertCircle, Edit2, FileDown
+  LayoutDashboard, MessageSquare, FileText, Users, BarChart3, Settings, LogOut, Menu, X, Globe, Moon, Sun, ChevronDown, Eye, EyeOff, User, Trash2, AlertTriangle, Building2, Copy, Send, Shield, Mail, Plus, Search, FileCheck, Calculator, TrendingUp, Archive, TrendingDown, Landmark, PieChart, FileSpreadsheet, Bell, Calendar, Printer, List, BookOpen, CreditCard, Box, Save, Briefcase, Truck, RefreshCw, CheckCircle, AlertCircle, Edit2, Download, Image as ImageIcon
 } from 'lucide-react';
 
 // --- DADOS ESTÁTICOS ---
 
 const countries = ["Portugal", "Brasil", "Angola", "Moçambique", "Cabo Verde", "France", "Deutschland", "United Kingdom", "España", "United States", "Italia", "Belgique", "Suisse", "Luxembourg"];
 
-const invoiceTypes = [
-    "Fatura", "Fatura-Recibo", "Fatura Simplificada", "Fatura Proforma", 
-    "Nota de Crédito", "Nota de Débito", "Recibo", 
-    "Fatura Intracomunitária", "Fatura Isenta / Autoliquidação"
-];
+// ✅ PREFIXOS PARA CADA TIPO DE DOCUMENTO
+const invoiceTypesMap: any = {
+    "Fatura": "FT",
+    "Fatura-Recibo": "FR",
+    "Fatura Simplificada": "FS",
+    "Fatura Proforma": "FP",
+    "Nota de Crédito": "NC",
+    "Nota de Débito": "ND",
+    "Recibo": "RC",
+    "Fatura Intracomunitária": "FI",
+    "Fatura Isenta / Autoliquidação": "FA"
+};
+const invoiceTypes = Object.keys(invoiceTypesMap);
 
 const languages = [ { code: 'pt', label: 'Português', flag: '🇵🇹' }, { code: 'en', label: 'English', flag: '🇬🇧' }, { code: 'fr', label: 'Français', flag: '🇫🇷' }, { code: 'es', label: 'Español', flag: '🇪🇸' }, { code: 'de', label: 'Deutsch', flag: '🇩🇪' }, { code: 'it', label: 'Italiano', flag: '🇮🇹' } ];
 
-// Taxas de Câmbio Padrão
 const defaultRates: Record<string, number> = { 'EUR': 1, 'USD': 1.05, 'BRL': 6.15, 'AOA': 930, 'MZN': 69, 'CVE': 110.27, 'CHF': 0.94, 'GBP': 0.83 };
 
-// Mapeamento de Moedas
 const countryCurrencyMap: Record<string, string> = { "Portugal": "EUR", "France": "EUR", "Deutschland": "EUR", "España": "EUR", "Italia": "EUR", "Belgique": "EUR", "Luxembourg": "EUR", "Brasil": "BRL", "United States": "USD", "United Kingdom": "GBP", "Angola": "AOA", "Moçambique": "MZN", "Cabo Verde": "CVE", "Suisse": "CHF" };
 const currencySymbols: Record<string, string> = { 'EUR': '€', 'USD': '$', 'BRL': 'R$', 'AOA': 'Kz', 'MZN': 'MT', 'CVE': 'Esc', 'CHF': 'CHF', 'GBP': '£' };
 const currencyNames: Record<string, string> = { 'EUR': 'Euro', 'USD': 'Dólar Americano', 'BRL': 'Real Brasileiro', 'AOA': 'Kwanza', 'MZN': 'Metical', 'CVE': 'Escudo', 'CHF': 'Franco Suíço', 'GBP': 'Libra' };
 
-// IVA por País (Sugestões Oficiais)
+// ✅ IVA POR PAÍS (SUGESTÕES)
 const vatRatesByCountry: Record<string, number[]> = {
     "Portugal": [23, 13, 6, 0],
     "Luxembourg": [17, 14, 8, 3, 0],
-    "Brasil": [17, 18, 12, 7, 0],
+    "Brasil": [17, 18, 12, 0],
     "Angola": [14, 7, 5, 0],
     "Moçambique": [16, 0],
     "Cabo Verde": [15, 0],
-    "France": [20, 10, 5.5, 2.1, 0],
+    "France": [20, 10, 5.5, 0],
     "Deutschland": [19, 7, 0],
     "España": [21, 10, 4, 0],
-    "Italia": [22, 10, 5, 4, 0],
+    "Italia": [22, 10, 5, 0],
     "Belgique": [21, 12, 6, 0],
-    "Suisse": [8.1, 2.6, 3.8, 0],
+    "Suisse": [8.1, 2.6, 0],
     "United Kingdom": [20, 5, 0],
-    "United States": [0, 5, 6, 7, 8, 9, 10]
+    "United States": [0, 5, 10]
 };
 
 export default function Dashboard() {
@@ -82,18 +88,19 @@ export default function Dashboard() {
   const [showAssetModal, setShowAssetModal] = useState(false);
   const [showEntityModal, setShowEntityModal] = useState(false); 
   const [showInvoiceForm, setShowInvoiceForm] = useState(false);
+  const [showPreviewModal, setShowPreviewModal] = useState(false); // ✅ NOVO: MODAL DE PREVIEW
   const [entityType, setEntityType] = useState<'client' | 'supplier'>('client'); 
   const [deleteConfirmation, setDeleteConfirmation] = useState('');
   const [isDeleting, setIsDeleting] = useState(false);
   
   const [editForm, setEditForm] = useState({ fullName: '', jobTitle: '', email: '' });
-  const [companyForm, setCompanyForm] = useState({ name: '', country: 'Portugal', currency: 'EUR', address: '', nif: '' });
+  // ✅ ADICIONADO LOGO E FOOTER
+  const [companyForm, setCompanyForm] = useState({ name: '', country: 'Portugal', currency: 'EUR', address: '', nif: '', logo_url: '', footer: '' });
   
   const [newTransaction, setNewTransaction] = useState({ description: '', amount: '', type: 'expense', category: '', date: new Date().toISOString().split('T')[0] });
   const [newAsset, setNewAsset] = useState({ name: '', purchase_date: new Date().toISOString().split('T')[0], purchase_value: '', lifespan_years: 3 });
   const [newEntity, setNewEntity] = useState({ name: '', nif: '', email: '', address: '', city: '', postal_code: '', country: 'Portugal' });
 
-  // ESTADO DA FATURA
   const [invoiceData, setInvoiceData] = useState({
       client_id: '',
       type: 'Fatura',
@@ -102,9 +109,6 @@ export default function Dashboard() {
       exemption_reason: '',
       items: [{ description: '', quantity: 1, price: 0, tax: 0 }] 
   });
-  
-  // ✅ ESTADO PARA CONTROLAR QUAIS LINHAS ESTÃO EM "MODO MANUAL"
-  const [manualTaxLines, setManualTaxLines] = useState<Record<number, boolean>>({});
 
   const [savingProfile, setSavingProfile] = useState(false);
   const [savingCompany, setSavingCompany] = useState(false);
@@ -143,7 +147,15 @@ export default function Dashboard() {
             setProfileData(profile);
             setEditForm({ fullName: profile.full_name, jobTitle: profile.job_title || '', email: user.email || '' });
             const initialCurrency = profile.currency || getCurrencyCode(profile.country || 'Portugal');
-            setCompanyForm({ name: profile.company_name, country: profile.country || 'Portugal', currency: initialCurrency, address: profile.company_address || '', nif: profile.company_nif || '' });
+            setCompanyForm({ 
+                name: profile.company_name, 
+                country: profile.country || 'Portugal', 
+                currency: initialCurrency, 
+                address: profile.company_address || '', 
+                nif: profile.company_nif || '',
+                logo_url: profile.logo_url || '', // ✅ CARREGA LOGO
+                footer: profile.company_footer || '' // ✅ CARREGA FOOTER
+            });
             if (profile.custom_exchange_rates) { setExchangeRates({ ...defaultRates, ...profile.custom_exchange_rates }); }
         }
         const { data: tr } = await supabase.from('transactions').select('*').order('date', { ascending: false }); if (tr) setTransactions(tr);
@@ -160,24 +172,28 @@ export default function Dashboard() {
 
   useEffect(() => { if (scrollRef.current) scrollRef.current.scrollTop = scrollRef.current.scrollHeight; }, [messages]);
 
-  // IVA INTELIGENTE (Padrão)
+  // ✅ IVA INTELIGENTE (SEM FORÇAR SOBRESCRITA)
   useEffect(() => {
       if (!invoiceData.client_id) return;
       
       const defaultRate = getCurrentCountryVatRates()[0]; 
+      let newTax = defaultRate;
       let exemption = '';
 
-      if (invoiceData.type === 'Fatura Isenta / Autoliquidação') { exemption = 'IVA - Autoliquidação'; } 
-      else if (invoiceData.type === 'Fatura Intracomunitária') { exemption = 'Isento Artigo 14.º RITI'; }
+      if (invoiceData.type.includes('Isenta') || invoiceData.type.includes('Intracomunitária')) { 
+          newTax = 0; 
+          exemption = invoiceData.type.includes('Intracomunitária') ? 'Isento Artigo 14.º RITI' : 'IVA - Autoliquidação'; 
+      }
 
+      // Só altera se a taxa for 0 e ainda não tivermos mudado manualmente
       const updatedItems = invoiceData.items.map(item => ({ 
           ...item, 
-          tax: item.tax === 0 && !exemption ? defaultRate : item.tax 
+          tax: item.tax === 0 && newTax !== 0 ? newTax : item.tax 
       }));
       
       setInvoiceData(prev => ({ ...prev, items: updatedItems, exemption_reason: exemption }));
 
-  }, [invoiceData.type, companyForm.country]); 
+  }, [invoiceData.type]); 
 
   const toggleTheme = () => { document.documentElement.classList.toggle('dark'); setIsDark(!isDark); };
   const toggleFinancials = () => setShowFinancials(!showFinancials);
@@ -207,64 +223,6 @@ export default function Dashboard() {
 
   // --- ACTIONS ---
 
-  // ✅ GERAR PDF
-  const handleDownloadPDF = async (invoice: any) => {
-      const doc = new jsPDF();
-      
-      // 1. Cabeçalho
-      doc.setFontSize(20);
-      doc.setTextColor(40);
-      doc.text(invoice.type || "Fatura", 14, 22);
-      
-      doc.setFontSize(10);
-      doc.text(`Nº: ${invoice.invoice_number}`, 150, 22);
-      doc.text(`Data: ${new Date(invoice.date).toLocaleDateString()}`, 150, 28);
-      
-      // 2. Dados Empresa e Cliente
-      doc.setFontSize(12);
-      doc.text("De:", 14, 40);
-      doc.setFontSize(10);
-      doc.text(profileData?.company_name || "Sua Empresa", 14, 46);
-      doc.text(profileData?.country || "", 14, 52);
-      doc.text(`NIF: ${profileData?.company_nif || "N/A"}`, 14, 58);
-
-      doc.setFontSize(12);
-      doc.text("Para:", 120, 40);
-      doc.setFontSize(10);
-      doc.text(invoice.clients?.name || "Cliente Final", 120, 46);
-      doc.text(invoice.clients?.address || "", 120, 52);
-      doc.text(`NIF: ${invoice.clients?.nif || "N/A"}`, 120, 58);
-
-      // 3. Obter Itens da Base de Dados
-      const { data: items } = await supabase.from('invoice_items').select('*').eq('invoice_id', invoice.id);
-      
-      if (items) {
-          const tableData = items.map(item => [
-              item.description,
-              item.quantity,
-              `${invoice.currency} ${item.unit_price}`,
-              `${item.tax_rate}%`,
-              `${invoice.currency} ${(item.quantity * item.unit_price).toFixed(2)}`
-          ]);
-
-          autoTable(doc, {
-              head: [['Descrição', 'Qtd', 'Preço Unit.', 'IVA', 'Total']],
-              body: tableData,
-              startY: 70,
-          });
-
-          // 4. Totais
-          const finalY = (doc as any).lastAutoTable.finalY + 10;
-          doc.text(`Subtotal: ${invoice.currency} ${invoice.subtotal.toFixed(2)}`, 140, finalY);
-          doc.text(`IVA: ${invoice.currency} ${invoice.tax_total.toFixed(2)}`, 140, finalY + 6);
-          doc.setFontSize(12);
-          doc.setFont("helvetica", "bold");
-          doc.text(`Total: ${invoice.currency} ${invoice.total.toFixed(2)}`, 140, finalY + 14);
-      }
-
-      doc.save(`${invoice.invoice_number}.pdf`);
-  };
-
   const handleAddInvoiceItem = () => {
       const currentTax = getCurrentCountryVatRates()[0];
       setInvoiceData({ ...invoiceData, items: [...invoiceData.items, { description: '', quantity: 1, price: 0, tax: currentTax }] });
@@ -282,11 +240,6 @@ export default function Dashboard() {
       setInvoiceData({ ...invoiceData, items: newItems });
   };
 
-  // ✅ Alternar entre Manual e Automático para uma linha
-  const toggleTaxMode = (index: number) => {
-      setManualTaxLines(prev => ({...prev, [index]: !prev[index]}));
-  };
-
   const calculateInvoiceTotals = () => {
       let subtotal = 0;
       let taxTotal = 0;
@@ -298,22 +251,136 @@ export default function Dashboard() {
       return { subtotal, taxTotal, total: subtotal + taxTotal };
   };
 
-  const handleSaveInvoice = async () => {
-      if (!invoiceData.client_id) return alert("Selecione um cliente.");
-      if (invoiceData.items.length === 0) return alert("Adicione pelo menos um item.");
-
+  // ✅ GERADOR DE PDF PROFISSIONAL
+  const generatePDF = () => {
+      const doc = new jsPDF();
       const totals = calculateInvoiceTotals();
+      const client = clients.find(c => c.id === invoiceData.client_id) || { name: 'Cliente Final', address: '', nif: '' };
       
+      // Cor de Fundo do Header
+      doc.setFillColor(245, 247, 250);
+      doc.rect(0, 0, 210, 40, 'F');
+
+      // Logo (Se existir)
+      if (companyForm.logo_url) {
+          // Aqui assumimos que é uma URL válida. Num caso real, pode ser preciso converter para base64.
+          // doc.addImage(companyForm.logo_url, 'PNG', 15, 10, 30, 30);
+          doc.setFontSize(10);
+          doc.text("Logo", 15, 20); // Placeholder se a imagem falhar
+      }
+
+      // Dados da Empresa (Header)
+      doc.setFontSize(16);
+      doc.setTextColor(40);
+      doc.text(companyForm.name || 'Minha Empresa', 140, 15);
+      doc.setFontSize(10);
+      doc.setTextColor(100);
+      doc.text(companyForm.address || 'Morada da Empresa', 140, 22);
+      doc.text(`NIF: ${companyForm.nif || '999999999'}`, 140, 27);
+      doc.text(companyForm.country, 140, 32);
+
+      // Título do Documento
+      doc.setFontSize(22);
+      doc.setTextColor(0, 0, 0);
+      const prefix = invoiceTypesMap[invoiceData.type] || 'DOC';
+      const number = `${prefix} ${new Date().getFullYear()}/${realInvoices.length + 1}`;
+      doc.text(invoiceData.type.toUpperCase(), 15, 55);
+      doc.setFontSize(12);
+      doc.setTextColor(100);
+      doc.text(`# ${number}`, 15, 62);
+
+      // Dados do Cliente
+      doc.setFontSize(11);
+      doc.setTextColor(0);
+      doc.text("Faturar a:", 15, 80);
+      doc.setFont("helvetica", "bold");
+      doc.text(client.name, 15, 86);
+      doc.setFont("helvetica", "normal");
+      doc.text(client.address || '', 15, 91);
+      doc.text(`NIF: ${client.nif || 'N/A'}`, 15, 96);
+      doc.text(client.city || '', 15, 101);
+
+      // Datas
+      doc.text(`Data: ${invoiceData.date}`, 140, 86);
+      doc.text(`Vencimento: ${invoiceData.due_date}`, 140, 91);
+
+      // Tabela de Itens (AutoTable)
+      const tableColumn = ["Descrição", "Qtd", "Preço Un.", "IVA %", "Total"];
+      const tableRows: any[] = [];
+
+      invoiceData.items.forEach(item => {
+        const itemData = [
+          item.description,
+          item.quantity,
+          `${displaySymbol} ${item.price.toFixed(2)}`,
+          `${item.tax}%`,
+          `${displaySymbol} ${(item.quantity * item.price).toFixed(2)}`
+        ];
+        tableRows.push(itemData);
+      });
+
+      autoTable(doc, {
+        head: [tableColumn],
+        body: tableRows,
+        startY: 110,
+        theme: 'grid',
+        headStyles: { fillColor: [66, 133, 244] }, // Azul Google
+        styles: { fontSize: 10 },
+      });
+
+      // Totais
+      const finalY = (doc as any).lastAutoTable.finalY + 10;
+      doc.text(`Subtotal:`, 140, finalY);
+      doc.text(`${displaySymbol} ${totals.subtotal.toFixed(2)}`, 180, finalY, { align: 'right' });
+      
+      doc.text(`Imposto (IVA):`, 140, finalY + 7);
+      doc.text(`${displaySymbol} ${totals.taxTotal.toFixed(2)}`, 180, finalY + 7, { align: 'right' });
+
+      doc.setFontSize(14);
+      doc.setFont("helvetica", "bold");
+      doc.text(`TOTAL:`, 140, finalY + 15);
+      doc.text(`${displaySymbol} ${totals.total.toFixed(2)}`, 180, finalY + 15, { align: 'right' });
+
+      // Footer
+      if (companyForm.footer) {
+          doc.setFontSize(8);
+          doc.setTextColor(150);
+          doc.text(companyForm.footer, 105, 280, { align: 'center' });
+      }
+      doc.text("Processado por EasyCheck software certificado.", 105, 290, { align: 'center' });
+
+      return doc;
+  };
+
+  const handleDownloadPDF = () => {
+      const doc = generatePDF();
+      doc.save(`Fatura_${Date.now()}.pdf`);
+      // Depois de baixar, gravar e fechar
+      handleSaveInvoice();
+  };
+
+  // ✅ PREVIEW ANTES DE GRAVAR
+  const handlePreview = () => {
+      if (!invoiceData.client_id) return alert("Selecione um cliente.");
+      if (invoiceData.items.length === 0) return alert("Adicione itens.");
+      setShowPreviewModal(true);
+  };
+
+  const handleSaveInvoice = async () => {
+      const totals = calculateInvoiceTotals();
+      const prefix = invoiceTypesMap[invoiceData.type] || 'DOC';
+      const docNumber = `${prefix} ${new Date().getFullYear()}/${realInvoices.length + 1}`;
+
       const { data: invoice, error } = await supabase.from('invoices').insert([{
           user_id: userData.id,
           client_id: invoiceData.client_id,
           type: invoiceData.type,
-          invoice_number: `FT ${new Date().getFullYear()}/${realInvoices.length + 1}`,
+          invoice_number: docNumber,
           date: invoiceData.date,
           due_date: invoiceData.due_date,
           exemption_reason: invoiceData.exemption_reason,
           subtotal: totals.subtotal,
-          tax_total: totals.taxTotal, 
+          tax_total: totals.taxTotal,
           total: totals.total,
           currency: currentCurrency,
           status: 'sent'
@@ -331,10 +398,11 @@ export default function Dashboard() {
 
       await supabase.from('invoice_items').insert(itemsToInsert);
 
-      alert(`${invoiceData.type} emitida com sucesso!`);
+      // Recarregar
       const { data: updatedInvoices } = await supabase.from('invoices').select('*, clients(name)').order('created_at', { ascending: false });
       if (updatedInvoices) setRealInvoices(updatedInvoices);
       
+      setShowPreviewModal(false);
       setShowInvoiceForm(false);
       setInvoiceData({
           client_id: '',
@@ -342,8 +410,18 @@ export default function Dashboard() {
           date: new Date().toISOString().split('T')[0],
           due_date: new Date(new Date().setDate(new Date().getDate() + 30)).toISOString().split('T')[0],
           exemption_reason: '',
-          items: [{ description: '', quantity: 1, price: 0, tax: getCurrentCountryVatRates()[0] }]
+          items: [{ description: '', quantity: 1, price: 0, tax: 0 }]
       });
+  };
+
+  // ✅ APAGAR FATURA (SEGURANÇA)
+  const handleDeleteInvoice = async (id: string) => {
+      if (window.confirm("ATENÇÃO: Apagar uma fatura emitida é ilegal em muitos países.\nTem a certeza absoluta?")) {
+          if (window.prompt("Escreva 'APAGAR' para confirmar:") === 'APAGAR') {
+             const { error } = await supabase.from('invoices').delete().eq('id', id);
+             if (!error) setRealInvoices(prev => prev.filter(i => i.id !== id));
+          }
+      }
   };
 
   const handleCreateTransaction = async () => {
@@ -396,7 +474,17 @@ export default function Dashboard() {
   const handleSaveCompany = async () => {
     setSavingCompany(true);
     try {
-        const updates = { company_name: companyForm.name, company_nif: companyForm.nif, company_address: companyForm.address, country: companyForm.country, currency: companyForm.currency, custom_exchange_rates: exchangeRates, updated_at: new Date() };
+        const updates = { 
+            company_name: companyForm.name, 
+            company_nif: companyForm.nif, 
+            company_address: companyForm.address, 
+            country: companyForm.country, 
+            currency: companyForm.currency, 
+            custom_exchange_rates: exchangeRates, 
+            logo_url: companyForm.logo_url, // ✅ GRAVA LOGO
+            company_footer: companyForm.footer, // ✅ GRAVA FOOTER
+            updated_at: new Date() 
+        };
         await supabase.from('profiles').update(updates).eq('id', userData.id);
         setProfileData({ ...profileData, ...updates });
         alert(`Dados da Empresa e Moeda (${companyForm.currency}) atualizados!`);
@@ -421,8 +509,6 @@ export default function Dashboard() {
     { icon: Building2, label: t('dashboard.menu.company'), path: '/dashboard/company', hidden: !isOwner, special: true },
     { icon: Settings, label: t('dashboard.menu.settings'), path: '/dashboard/settings' },
   ];
-
-  const invoiceTotals = calculateInvoiceTotals();
 
   return (
     <div className="flex h-screen bg-gray-50 dark:bg-gray-900 transition-colors duration-300 font-sans text-gray-900 dark:text-gray-100">
@@ -494,22 +580,16 @@ export default function Dashboard() {
             <Route path="/" element={
               <div className="space-y-6">
                 <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-                  {/* RECEITA */}
                   <div className="bg-white dark:bg-gray-800 p-6 rounded-2xl shadow-sm border dark:border-gray-700">
                     <div className="flex justify-between items-center mb-2"><h3 className="text-gray-500 text-sm font-medium uppercase tracking-wider">Receita Mensal</h3><button onClick={toggleFinancials} className="text-gray-400">{showFinancials ? <Eye className="w-4 h-4"/> : <EyeOff className="w-4 h-4"/>}</button></div>
-                    {/* VALOR CONVERTIDO */}
                     <p className="text-3xl font-bold text-green-600 dark:text-green-400">{showFinancials ? `${displaySymbol} ${totalRevenue.toFixed(2)}` : '••••••'}</p>
                   </div>
-                  {/* DESPESA */}
                   <div className="bg-white dark:bg-gray-800 p-6 rounded-2xl shadow-sm border dark:border-gray-700">
                     <div className="flex justify-between items-center mb-2"><h3 className="text-gray-500 text-sm font-medium uppercase tracking-wider">Despesas</h3><button onClick={toggleFinancials} className="text-gray-400">{showFinancials ? <Eye className="w-4 h-4"/> : <EyeOff className="w-4 h-4"/>}</button></div>
-                    {/* VALOR CONVERTIDO */}
                     <p className="text-3xl font-bold text-red-500 dark:text-red-400">{showFinancials ? `${displaySymbol} ${totalExpenses.toFixed(2)}` : '••••••'}</p>
                   </div>
-                  {/* SALDO */}
                   <div className="bg-white dark:bg-gray-800 p-6 rounded-2xl shadow-sm border dark:border-gray-700">
                     <div className="flex justify-between items-center mb-2"><h3 className="text-gray-500 text-sm font-medium uppercase tracking-wider">Saldo Atual</h3><button onClick={toggleFinancials} className="text-gray-400">{showFinancials ? <Eye className="w-4 h-4"/> : <EyeOff className="w-4 h-4"/>}</button></div>
-                    {/* VALOR CONVERTIDO */}
                     <p className={`text-3xl font-bold ${currentBalance >= 0 ? 'text-blue-600 dark:text-blue-400' : 'text-red-600 dark:text-red-400'}`}>{showFinancials ? `${displaySymbol} ${currentBalance.toFixed(2)}` : '••••••'}</p>
                   </div>
                 </div>
@@ -624,7 +704,7 @@ export default function Dashboard() {
                                         <div className="bg-white dark:bg-gray-800 rounded-2xl border dark:border-gray-700 shadow-sm overflow-hidden">
                                             <table className="w-full text-sm text-left">
                                                 <thead className="bg-gray-50 dark:bg-gray-700 text-gray-500 uppercase text-xs">
-                                                    <tr><th className="px-6 py-3">Número</th><th className="px-6 py-3">Cliente</th><th className="px-6 py-3">Tipo</th><th className="px-6 py-3">Data</th><th className="px-6 py-3 text-right">Total</th><th className="px-6 py-3"></th></tr>
+                                                    <tr><th className="px-6 py-3">Número</th><th className="px-6 py-3">Cliente</th><th className="px-6 py-3">Tipo</th><th className="px-6 py-3">Data</th><th className="px-6 py-3 text-right">Total</th><th className="px-6 py-3 text-right">Ação</th></tr>
                                                 </thead>
                                                 <tbody>
                                                     {realInvoices.length === 0 ? <tr><td colSpan={6} className="text-center py-8 text-gray-400">Nenhuma fatura emitida.</td></tr> : 
@@ -635,10 +715,7 @@ export default function Dashboard() {
                                                                 <td className="px-6 py-4 text-xs uppercase font-bold">{inv.type}</td>
                                                                 <td className="px-6 py-4">{new Date(inv.date).toLocaleDateString()}</td>
                                                                 <td className="px-6 py-4 text-right font-bold">{inv.currency} {inv.total}</td>
-                                                                <td className="px-6 py-4 text-right">
-                                                                    {/* ✅ BOTÃO PDF */}
-                                                                    <button onClick={() => handleDownloadPDF(inv)} className="text-gray-400 hover:text-blue-600"><FileDown size={18}/></button>
-                                                                </td>
+                                                                <td className="px-6 py-4 text-right"><button onClick={() => handleDeleteInvoice(inv.id)} className="text-red-400 hover:text-red-600"><Trash2 size={16}/></button></td>
                                                             </tr>
                                                         ))
                                                     }
@@ -647,7 +724,7 @@ export default function Dashboard() {
                                         </div>
                                     </>
                                 ) : (
-                                    /* ✅ FORMULÁRIO DE CRIAÇÃO DE FATURA */
+                                    /* ✅ FORMULÁRIO DE CRIAÇÃO DE FATURA COMPLETO */
                                     <div className="bg-white dark:bg-gray-800 rounded-2xl shadow-xl border dark:border-gray-700 p-8 animate-fade-in-up">
                                         <div className="flex justify-between items-start mb-8 pb-6 border-b dark:border-gray-700">
                                             <div>
@@ -680,6 +757,7 @@ export default function Dashboard() {
                                                     <option value="">Selecione um cliente...</option>
                                                     {clients.map(c => <option key={c.id} value={c.id}>{c.name}</option>)}
                                                 </select>
+                                                {clients.length === 0 && <p className="text-xs text-red-500 mt-1">Crie um cliente primeiro na aba Clientes.</p>}
                                             </div>
                                             <div>
                                                 <label className="block text-sm font-bold mb-2">Data Emissão</label>
@@ -707,32 +785,38 @@ export default function Dashboard() {
                                                 <tbody className="divide-y dark:divide-gray-700">
                                                     {invoiceData.items.map((item, index) => (
                                                         <tr key={index}>
-                                                            <td className="py-3"><input className="w-full bg-transparent outline-none font-medium" placeholder="Descrição" value={item.description} onChange={e => updateInvoiceItem(index, 'description', e.target.value)}/></td>
+                                                            <td className="py-3"><input className="w-full bg-transparent outline-none font-medium" placeholder="Nome do produto/serviço" value={item.description} onChange={e => updateInvoiceItem(index, 'description', e.target.value)}/></td>
                                                             <td className="py-3"><input type="number" className="w-full bg-transparent outline-none text-center" value={item.quantity} onChange={e => updateInvoiceItem(index, 'quantity', e.target.value)}/></td>
                                                             <td className="py-3"><input type="number" className="w-full bg-transparent outline-none text-right" value={item.price} onChange={e => updateInvoiceItem(index, 'price', e.target.value)}/></td>
                                                             
-                                                            {/* ✅ IVA HÍBRIDO: Input de texto se editável, senão Dropdown */}
+                                                            {/* ✅ IVA HÍBRIDO (INPUT + BOTÃO "LÁPIS") */}
                                                             <td className="py-3 flex items-center justify-end gap-2 relative">
-                                                                {manualTaxLines[index] ? (
-                                                                    <input 
-                                                                        type="number" 
-                                                                        className="w-16 bg-transparent outline-none text-right font-bold border-b border-blue-500 text-blue-600"
-                                                                        value={item.tax}
-                                                                        onChange={e => updateInvoiceItem(index, 'tax', e.target.value)}
-                                                                        autoFocus
-                                                                    />
-                                                                ) : (
-                                                                    <div className="flex items-center gap-1">
-                                                                        <select 
-                                                                            className="bg-transparent outline-none text-right font-bold appearance-none cursor-pointer"
-                                                                            value={item.tax} 
-                                                                            onChange={e => updateInvoiceItem(index, 'tax', e.target.value)}
-                                                                        >
-                                                                            {getCurrentCountryVatRates().map(rate => <option key={rate} value={rate}>{rate}%</option>)}
-                                                                        </select>
-                                                                        <button onClick={() => toggleTaxMode(index)} className="text-gray-400 hover:text-blue-600"><Edit2 size={12}/></button>
+                                                                <input 
+                                                                    type="number" 
+                                                                    className="w-16 bg-transparent outline-none text-right font-bold border-b border-dashed border-gray-300 focus:border-blue-500" 
+                                                                    value={item.tax} 
+                                                                    onChange={e => updateInvoiceItem(index, 'tax', e.target.value)}
+                                                                />
+                                                                {/* Botão Mágico de Sugestões */}
+                                                                <div className="relative group">
+                                                                    <button className="p-1 bg-gray-100 dark:bg-gray-700 rounded-full hover:bg-blue-100 dark:hover:bg-blue-900/50 text-gray-500 hover:text-blue-600 transition-colors">
+                                                                        <Edit2 size={12}/>
+                                                                    </button>
+                                                                    <div className="absolute right-0 top-full mt-2 w-48 bg-white dark:bg-gray-800 border dark:border-gray-700 shadow-xl rounded-xl p-2 z-50 hidden group-hover:block animate-fade-in-up">
+                                                                        <p className="text-[10px] uppercase text-gray-400 font-bold mb-2 px-2 border-b dark:border-gray-700 pb-1">Taxas {companyForm.country}</p>
+                                                                        <div className="grid grid-cols-2 gap-1">
+                                                                            {getCurrentCountryVatRates().map(rate => (
+                                                                                <button 
+                                                                                    key={rate} 
+                                                                                    onClick={() => updateInvoiceItem(index, 'tax', rate.toString())} 
+                                                                                    className="text-center px-2 py-1.5 text-xs hover:bg-blue-50 dark:hover:bg-blue-900/20 rounded-lg font-medium transition-colors"
+                                                                                >
+                                                                                    {rate}%
+                                                                                </button>
+                                                                            ))}
+                                                                        </div>
                                                                     </div>
-                                                                )}
+                                                                </div>
                                                             </td>
 
                                                             <td className="py-3 text-right font-bold">{displaySymbol} {(item.quantity * item.price).toFixed(2)}</td>
@@ -747,15 +831,15 @@ export default function Dashboard() {
                                         {/* TOTAIS */}
                                         <div className="flex justify-end border-t dark:border-gray-700 pt-6">
                                             <div className="w-64 space-y-2">
-                                                <div className="flex justify-between text-gray-500"><span>Subtotal</span><span>{displaySymbol} {invoiceTotals.subtotal.toFixed(2)}</span></div>
-                                                <div className="flex justify-between text-gray-500"><span>IVA</span><span>{displaySymbol} {invoiceTotals.taxTotal.toFixed(2)}</span></div>
-                                                <div className="flex justify-between text-xl font-bold text-gray-800 dark:text-white pt-2 border-t dark:border-gray-700"><span>Total</span><span>{displaySymbol} {invoiceTotals.total.toFixed(2)}</span></div>
+                                                <div className="flex justify-between text-gray-500"><span>Subtotal</span><span>{displaySymbol} {calculateInvoiceTotals().subtotal.toFixed(2)}</span></div>
+                                                <div className="flex justify-between text-gray-500"><span>IVA / Taxas</span><span>{displaySymbol} {calculateInvoiceTotals().taxTotal.toFixed(2)}</span></div>
+                                                <div className="flex justify-between text-xl font-bold text-gray-800 dark:text-white pt-2 border-t dark:border-gray-700"><span>Total</span><span>{displaySymbol} {calculateInvoiceTotals().total.toFixed(2)}</span></div>
                                             </div>
                                         </div>
 
                                         <div className="flex justify-end gap-4 mt-8">
                                             <button onClick={() => setShowInvoiceForm(false)} className="px-6 py-3 rounded-xl border font-medium hover:bg-gray-50 dark:hover:bg-gray-700">Cancelar</button>
-                                            <button onClick={handleSaveInvoice} className="px-6 py-3 rounded-xl bg-blue-600 text-white font-bold hover:bg-blue-700 shadow-lg flex items-center gap-2"><CheckCircle size={20}/> Emitir {invoiceData.type}</button>
+                                            <button onClick={handlePreview} className="px-6 py-3 rounded-xl bg-blue-600 text-white font-bold hover:bg-blue-700 shadow-lg flex items-center gap-2"><Eye size={20}/> Pré-visualizar</button>
                                         </div>
                                     </div>
                                 )}
@@ -798,6 +882,14 @@ export default function Dashboard() {
                           <div><label className="block text-sm font-bold mb-2 text-gray-700 dark:text-gray-300">Nome da Entidade</label><input value={companyForm.name} onChange={e => setCompanyForm({...companyForm, name: e.target.value})} className="w-full p-3 border rounded-xl dark:bg-gray-900 dark:border-gray-700 focus:ring-2 focus:ring-blue-500 outline-none" placeholder="Ex: Minha Empresa Lda"/></div>
                           <div><label className="block text-sm font-bold mb-2 text-gray-700 dark:text-gray-300">NIF / VAT Number</label><input value={companyForm.nif} onChange={e => setCompanyForm({...companyForm, nif: e.target.value})} className="w-full p-3 border rounded-xl dark:bg-gray-900 dark:border-gray-700 focus:ring-2 focus:ring-blue-500 outline-none" placeholder="Ex: 500 123 456"/></div>
                           <div className="md:col-span-2"><label className="block text-sm font-bold mb-2 text-gray-700 dark:text-gray-300">Morada Fiscal (Sede)</label><input value={companyForm.address} onChange={e => setCompanyForm({...companyForm, address: e.target.value})} className="w-full p-3 border rounded-xl dark:bg-gray-900 dark:border-gray-700 focus:ring-2 focus:ring-blue-500 outline-none" placeholder="Ex: Av. da Liberdade, 100, Lisboa"/></div>
+                      </div>
+                      {/* CONFIGURAÇÃO DE LOGO E FOOTER */}
+                      <div className="mt-6 pt-6 border-t dark:border-gray-700">
+                          <h3 className="text-lg font-bold mb-4">Personalização de Faturas</h3>
+                          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                              <div><label className="block text-sm font-bold mb-2">URL do Logótipo</label><input value={companyForm.logo_url} onChange={e => setCompanyForm({...companyForm, logo_url: e.target.value})} className="w-full p-3 border rounded-xl dark:bg-gray-900" placeholder="https://..."/></div>
+                              <div><label className="block text-sm font-bold mb-2">Rodapé da Fatura</label><input value={companyForm.footer} onChange={e => setCompanyForm({...companyForm, footer: e.target.value})} className="w-full p-3 border rounded-xl dark:bg-gray-900" placeholder="Ex: Capital Social 5000€ - CRC Lisboa"/></div>
+                          </div>
                       </div>
                   </div>
                   <div className="bg-white dark:bg-gray-800 rounded-2xl shadow-sm border dark:border-gray-700 p-8"><h3 className="text-lg font-bold mb-4 flex gap-2 items-center"><Users className="text-blue-600"/> {t('settings.team_members')}</h3><div className="text-center py-12 border-2 border-dashed rounded-xl text-gray-500">{t('settings.no_members')}</div></div>
@@ -871,6 +963,100 @@ export default function Dashboard() {
               <button onClick={handleSaveProfile} disabled={savingProfile} className="px-5 py-2.5 bg-blue-600 text-white rounded-xl font-bold">{savingProfile ? 'Guardando...' : t('common.save')}</button>
             </div>
           </div>
+        </div>
+      )}
+
+      {/* ✅ PREVIEW MODAL */}
+      {showPreviewModal && (
+        <div className="fixed inset-0 z-[200] flex items-center justify-center bg-black/80 backdrop-blur-sm p-4">
+            <div className="bg-white dark:bg-gray-800 w-full h-full max-w-5xl rounded-2xl shadow-2xl flex flex-col overflow-hidden animate-scale-in">
+                {/* Header do Preview */}
+                <div className="bg-gray-900 text-white p-4 flex justify-between items-center shrink-0">
+                    <h3 className="font-bold flex gap-2 items-center"><Eye size={20}/> Pré-visualização da Fatura</h3>
+                    <div className="flex gap-4">
+                        <button onClick={() => setShowPreviewModal(false)} className="text-gray-400 hover:text-white transition-colors">Fechar</button>
+                        <button onClick={handleDownloadPDF} className="bg-blue-600 hover:bg-blue-700 px-4 py-2 rounded-lg font-bold flex items-center gap-2"><Download size={18}/> Baixar PDF</button>
+                    </div>
+                </div>
+
+                {/* CORPO DA FATURA (PAPEL) */}
+                <div className="flex-1 overflow-y-auto p-8 bg-gray-100 dark:bg-gray-900 flex justify-center">
+                    <div id="invoice-preview" className="bg-white text-gray-900 w-[210mm] min-h-[297mm] p-12 shadow-xl relative">
+                        {/* Header Fatura */}
+                        <div className="flex justify-between items-start mb-12">
+                            <div>
+                                {companyForm.logo_url ? <img src={companyForm.logo_url} className="h-16 w-auto object-contain mb-4"/> : <div className="h-16 w-16 bg-gray-200 rounded-lg flex items-center justify-center text-gray-400 mb-4"><ImageIcon/></div>}
+                                <h1 className="text-3xl font-bold text-gray-800">{invoiceData.type.toUpperCase()}</h1>
+                                <p className="text-gray-500 font-mono mt-1"># RASCUNHO</p>
+                            </div>
+                            <div className="text-right">
+                                <h2 className="font-bold text-xl">{companyForm.name || 'Nome da Empresa'}</h2>
+                                <p className="text-sm text-gray-500">{companyForm.address}</p>
+                                <p className="text-sm text-gray-500">NIF: {companyForm.nif}</p>
+                                <p className="text-sm text-gray-500">{companyForm.country}</p>
+                            </div>
+                        </div>
+
+                        {/* Dados Cliente e Datas */}
+                        <div className="flex justify-between mb-12">
+                            <div>
+                                <h3 className="text-xs font-bold text-gray-400 uppercase tracking-wider mb-2">Faturado a:</h3>
+                                {clients.find(c => c.id === invoiceData.client_id) && (
+                                    <>
+                                        <p className="font-bold text-lg">{clients.find(c => c.id === invoiceData.client_id)?.name}</p>
+                                        <p className="text-sm text-gray-600">{clients.find(c => c.id === invoiceData.client_id)?.address}</p>
+                                        <p className="text-sm text-gray-600">NIF: {clients.find(c => c.id === invoiceData.client_id)?.nif}</p>
+                                        <p className="text-sm text-gray-600">{clients.find(c => c.id === invoiceData.client_id)?.city}, {clients.find(c => c.id === invoiceData.client_id)?.country}</p>
+                                    </>
+                                )}
+                            </div>
+                            <div className="text-right">
+                                <div className="mb-2"><span className="text-gray-500 text-sm">Data de Emissão:</span> <span className="font-bold">{new Date(invoiceData.date).toLocaleDateString()}</span></div>
+                                <div><span className="text-gray-500 text-sm">Vencimento:</span> <span className="font-bold">{new Date(invoiceData.due_date).toLocaleDateString()}</span></div>
+                            </div>
+                        </div>
+
+                        {/* Tabela de Itens */}
+                        <table className="w-full mb-8">
+                            <thead>
+                                <tr className="border-b-2 border-gray-100">
+                                    <th className="text-left py-3 text-sm font-bold text-gray-600 uppercase">Descrição</th>
+                                    <th className="text-center py-3 text-sm font-bold text-gray-600 uppercase">Qtd</th>
+                                    <th className="text-right py-3 text-sm font-bold text-gray-600 uppercase">Preço Un.</th>
+                                    <th className="text-right py-3 text-sm font-bold text-gray-600 uppercase">IVA</th>
+                                    <th className="text-right py-3 text-sm font-bold text-gray-600 uppercase">Total</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {invoiceData.items.map((item, i) => (
+                                    <tr key={i} className="border-b border-gray-50">
+                                        <td className="py-4 text-sm font-medium">{item.description}</td>
+                                        <td className="py-4 text-sm text-center">{item.quantity}</td>
+                                        <td className="py-4 text-sm text-right">{displaySymbol} {item.price.toFixed(2)}</td>
+                                        <td className="py-4 text-sm text-right">{item.tax}%</td>
+                                        <td className="py-4 text-sm text-right font-bold">{displaySymbol} {(item.quantity * item.price).toFixed(2)}</td>
+                                    </tr>
+                                ))}
+                            </tbody>
+                        </table>
+
+                        {/* Totais */}
+                        <div className="flex justify-end">
+                            <div className="w-64 space-y-2">
+                                <div className="flex justify-between text-gray-500 text-sm"><span>Subtotal:</span><span>{displaySymbol} {calculateInvoiceTotals().subtotal.toFixed(2)}</span></div>
+                                <div className="flex justify-between text-gray-500 text-sm"><span>Impostos (IVA):</span><span>{displaySymbol} {calculateInvoiceTotals().taxTotal.toFixed(2)}</span></div>
+                                <div className="flex justify-between text-xl font-bold text-gray-900 pt-4 border-t border-gray-200"><span>Total:</span><span>{displaySymbol} {calculateInvoiceTotals().total.toFixed(2)}</span></div>
+                            </div>
+                        </div>
+
+                        {/* Footer */}
+                        <div className="absolute bottom-12 left-12 right-12 text-center border-t pt-8">
+                            <p className="text-xs text-gray-400">{companyForm.footer || "Obrigado pela sua preferência."}</p>
+                            <p className="text-[10px] text-gray-300 mt-1">Processado por EasyCheck Software Certificado</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
         </div>
       )}
 
