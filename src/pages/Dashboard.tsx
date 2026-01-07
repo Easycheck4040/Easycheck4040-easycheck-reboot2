@@ -3,7 +3,7 @@ import { Routes, Route, Link, useLocation, useNavigate } from 'react-router-dom'
 import { useTranslation } from 'react-i18next';
 import { supabase } from '../supabase/client';
 import { 
-  LayoutDashboard, MessageSquare, FileText, Users, BarChart3, Settings, LogOut, Menu, X, Globe, Moon, Sun, ChevronDown, Eye, EyeOff, User, Trash2, AlertTriangle, Building2, Copy, Send, Shield, Mail, Plus, Search, FileCheck, Calculator, TrendingUp, Archive, TrendingDown, Landmark, PieChart, FileSpreadsheet, Bell, Calendar, Printer, List, BookOpen, CreditCard, Box, Save, Briefcase, Truck, RefreshCw
+  LayoutDashboard, MessageSquare, FileText, Users, BarChart3, Settings, LogOut, Menu, X, Globe, Moon, Sun, ChevronDown, Eye, EyeOff, User, Trash2, AlertTriangle, Building2, Copy, Send, Shield, Mail, Plus, Search, FileCheck, Calculator, TrendingUp, Archive, TrendingDown, Landmark, PieChart, FileSpreadsheet, Bell, Calendar, Printer, List, BookOpen, CreditCard, Box, Save, Briefcase, Truck, RefreshCw, CheckCircle
 } from 'lucide-react';
 
 export default function Dashboard() {
@@ -45,6 +45,7 @@ export default function Dashboard() {
   const [showTransactionModal, setShowTransactionModal] = useState(false);
   const [showAssetModal, setShowAssetModal] = useState(false);
   const [showEntityModal, setShowEntityModal] = useState(false); 
+  const [showInvoiceForm, setShowInvoiceForm] = useState(false);
   const [entityType, setEntityType] = useState<'client' | 'supplier'>('client'); 
   const [deleteConfirmation, setDeleteConfirmation] = useState('');
   const [isDeleting, setIsDeleting] = useState(false);
@@ -57,11 +58,20 @@ export default function Dashboard() {
   const [newAsset, setNewAsset] = useState({ name: '', purchase_date: new Date().toISOString().split('T')[0], purchase_value: '', lifespan_years: 3 });
   const [newEntity, setNewEntity] = useState({ name: '', nif: '', email: '', address: '', city: '', postal_code: '', country: 'Portugal' });
 
+  // ESTADO DA NOVA FATURA
+  const [invoiceData, setInvoiceData] = useState({
+      client_id: '',
+      date: new Date().toISOString().split('T')[0],
+      due_date: new Date(new Date().setDate(new Date().getDate() + 30)).toISOString().split('T')[0],
+      number: 'Rascunho',
+      items: [{ description: '', quantity: 1, price: 0, tax: 23 }] 
+  });
+
   const [savingProfile, setSavingProfile] = useState(false);
   const [savingCompany, setSavingCompany] = useState(false);
 
-  // --- CHAT IA (MENSAGEM ALTERADA) ---
-  const [messages, setMessages] = useState([{ role: 'assistant', content: 'Olá! Sou o seu assistente IA EasyCheck. Em que posso ajudar hoje?' }]);
+  // --- CHAT IA (NOME ATUALIZADO COM "IA") ---
+  const [messages, setMessages] = useState([{ role: 'assistant', content: 'Olá! Sou o seu assistente EasyCheck IA. Em que posso ajudar hoje?' }]);
   const [chatInput, setChatInput] = useState('');
   const [isChatLoading, setIsChatLoading] = useState(false);
   const scrollRef = useRef<HTMLDivElement>(null);
@@ -70,18 +80,15 @@ export default function Dashboard() {
   
   const languages = [ { code: 'pt', label: 'Português', flag: '🇵🇹' }, { code: 'en', label: 'English', flag: '🇬🇧' }, { code: 'fr', label: 'Français', flag: '🇫🇷' }, { code: 'es', label: 'Español', flag: '🇪🇸' }, { code: 'de', label: 'Deutsch', flag: '🇩🇪' }, { code: 'it', label: 'Italiano', flag: '🇮🇹' } ];
 
-  // TAXAS DE CÂMBIO
   const defaultRates: any = { 'EUR': 1, 'USD': 1.05, 'BRL': 6.15, 'AOA': 930, 'MZN': 69, 'CVE': 110.27, 'CHF': 0.94, 'GBP': 0.83 };
   const [exchangeRates, setExchangeRates] = useState<any>(defaultRates);
 
   const countryCurrencyMap: any = { "Portugal": "EUR", "France": "EUR", "Deutschland": "EUR", "España": "EUR", "Italia": "EUR", "Belgique": "EUR", "Luxembourg": "EUR", "Brasil": "BRL", "United States": "USD", "United Kingdom": "GBP", "Angola": "AOA", "Moçambique": "MZN", "Cabo Verde": "CVE", "Suisse": "CHF" };
   const currencySymbols: any = { 'EUR': '€', 'USD': '$', 'BRL': 'R$', 'AOA': 'Kz', 'MZN': 'MT', 'CVE': 'Esc', 'CHF': 'CHF', 'GBP': '£' };
-  const currencyNames: any = { 'EUR': 'Euro', 'USD': 'Dólar Americano', 'BRL': 'Real Brasileiro', 'AOA': 'Kwanza', 'MZN': 'Metical', 'CVE': 'Escudo', 'CHF': 'Franco Suíço', 'GBP': 'Libra' };
-
+  
   const getCurrencyCode = (country: string) => countryCurrencyMap[country] || 'EUR';
   const getCurrencySymbol = (code: string) => currencySymbols[code] || '€';
 
-  // CÁLCULOS DINÂMICOS
   const currentCurrency = companyForm.currency || 'EUR';
   const conversionRate = exchangeRates[currentCurrency] || 1;
   const displaySymbol = getCurrencySymbol(currentCurrency);
@@ -106,7 +113,7 @@ export default function Dashboard() {
             if (profile.custom_exchange_rates) { setExchangeRates({ ...defaultRates, ...profile.custom_exchange_rates }); }
         }
         const { data: tr } = await supabase.from('transactions').select('*').order('date', { ascending: false }); if (tr) setTransactions(tr);
-        const { data: inv } = await supabase.from('invoices').select('*'); if (inv) setRealInvoices(inv);
+        const { data: inv } = await supabase.from('invoices').select('*, clients(name)').order('created_at', { ascending: false }); if (inv) setRealInvoices(inv);
         const { data: acc } = await supabase.from('accounting_accounts').select('*'); if (acc) setChartOfAccounts(acc);
         const { data: ass } = await supabase.from('accounting_assets').select('*'); if (ass) setAssets(ass);
         const { data: cl } = await supabase.from('clients').select('*'); if (cl) setClients(cl);
@@ -143,6 +150,81 @@ export default function Dashboard() {
       const data = await response.json();
       if (data.reply) setMessages(prev => [...prev, { role: 'assistant', content: data.reply }]);
     } catch { setMessages(prev => [...prev, { role: 'assistant', content: '⚠️ Erro de conexão.' }]); } finally { setIsChatLoading(false); }
+  };
+
+  // --- ACTIONS ---
+
+  const handleAddInvoiceItem = () => {
+      setInvoiceData({ ...invoiceData, items: [...invoiceData.items, { description: '', quantity: 1, price: 0, tax: 23 }] });
+  };
+
+  const handleRemoveInvoiceItem = (index: number) => {
+      const newItems = [...invoiceData.items];
+      newItems.splice(index, 1);
+      setInvoiceData({ ...invoiceData, items: newItems });
+  };
+
+  const updateInvoiceItem = (index: number, field: string, value: string) => {
+      const newItems: any = [...invoiceData.items];
+      newItems[index][field] = field === 'description' ? value : parseFloat(value) || 0;
+      setInvoiceData({ ...invoiceData, items: newItems });
+  };
+
+  const calculateInvoiceTotals = () => {
+      let subtotal = 0;
+      let taxTotal = 0;
+      invoiceData.items.forEach(item => {
+          const lineTotal = item.quantity * item.price;
+          subtotal += lineTotal;
+          taxTotal += lineTotal * (item.tax / 100);
+      });
+      return { subtotal, taxTotal, total: subtotal + taxTotal };
+  };
+
+  const handleSaveInvoice = async () => {
+      if (!invoiceData.client_id) return alert("Selecione um cliente.");
+      if (invoiceData.items.length === 0) return alert("Adicione pelo menos um item.");
+
+      const totals = calculateInvoiceTotals();
+      
+      const { data: invoice, error } = await supabase.from('invoices').insert([{
+          user_id: userData.id,
+          client_id: invoiceData.client_id,
+          invoice_number: `FT ${new Date().getFullYear()}/${realInvoices.length + 1}`,
+          date: invoiceData.date,
+          due_date: invoiceData.due_date,
+          subtotal: totals.subtotal,
+          tax_total: totals.taxTotal,
+          total: totals.total,
+          currency: currentCurrency,
+          status: 'sent'
+      }]).select().single();
+
+      if (error) return alert("Erro ao criar fatura: " + error.message);
+
+      const itemsToInsert = invoiceData.items.map(item => ({
+          invoice_id: invoice.id,
+          description: item.description,
+          quantity: item.quantity,
+          unit_price: item.price,
+          tax_rate: item.tax
+      }));
+
+      await supabase.from('invoice_items').insert(itemsToInsert);
+
+      alert("Fatura criada com sucesso!");
+      // Recarregar faturas para trazer o nome do cliente corretamente
+      const { data: updatedInvoices } = await supabase.from('invoices').select('*, clients(name)').order('created_at', { ascending: false });
+      if (updatedInvoices) setRealInvoices(updatedInvoices);
+      
+      setShowInvoiceForm(false);
+      setInvoiceData({
+          client_id: '',
+          date: new Date().toISOString().split('T')[0],
+          due_date: new Date(new Date().setDate(new Date().getDate() + 30)).toISOString().split('T')[0],
+          number: 'Rascunho',
+          items: [{ description: '', quantity: 1, price: 0, tax: 23 }]
+      });
   };
 
   const handleCreateTransaction = async () => {
@@ -221,6 +303,8 @@ export default function Dashboard() {
     { icon: Settings, label: t('dashboard.menu.settings'), path: '/dashboard/settings' },
   ];
 
+  const invoiceTotals = calculateInvoiceTotals();
+
   return (
     <div className="flex h-screen bg-gray-50 dark:bg-gray-900 transition-colors duration-300 font-sans text-gray-900 dark:text-gray-100">
       
@@ -294,16 +378,19 @@ export default function Dashboard() {
                   {/* RECEITA */}
                   <div className="bg-white dark:bg-gray-800 p-6 rounded-2xl shadow-sm border dark:border-gray-700">
                     <div className="flex justify-between items-center mb-2"><h3 className="text-gray-500 text-sm font-medium uppercase tracking-wider">Receita Mensal</h3><button onClick={toggleFinancials} className="text-gray-400">{showFinancials ? <Eye className="w-4 h-4"/> : <EyeOff className="w-4 h-4"/>}</button></div>
+                    {/* VALOR CONVERTIDO */}
                     <p className="text-3xl font-bold text-green-600 dark:text-green-400">{showFinancials ? `${displaySymbol} ${totalRevenue.toFixed(2)}` : '••••••'}</p>
                   </div>
                   {/* DESPESA */}
                   <div className="bg-white dark:bg-gray-800 p-6 rounded-2xl shadow-sm border dark:border-gray-700">
                     <div className="flex justify-between items-center mb-2"><h3 className="text-gray-500 text-sm font-medium uppercase tracking-wider">Despesas</h3><button onClick={toggleFinancials} className="text-gray-400">{showFinancials ? <Eye className="w-4 h-4"/> : <EyeOff className="w-4 h-4"/>}</button></div>
+                    {/* VALOR CONVERTIDO */}
                     <p className="text-3xl font-bold text-red-500 dark:text-red-400">{showFinancials ? `${displaySymbol} ${totalExpenses.toFixed(2)}` : '••••••'}</p>
                   </div>
                   {/* SALDO */}
                   <div className="bg-white dark:bg-gray-800 p-6 rounded-2xl shadow-sm border dark:border-gray-700">
                     <div className="flex justify-between items-center mb-2"><h3 className="text-gray-500 text-sm font-medium uppercase tracking-wider">Saldo Atual</h3><button onClick={toggleFinancials} className="text-gray-400">{showFinancials ? <Eye className="w-4 h-4"/> : <EyeOff className="w-4 h-4"/>}</button></div>
+                    {/* VALOR CONVERTIDO */}
                     <p className={`text-3xl font-bold ${currentBalance >= 0 ? 'text-blue-600 dark:text-blue-400' : 'text-red-600 dark:text-red-400'}`}>{showFinancials ? `${displaySymbol} ${currentBalance.toFixed(2)}` : '••••••'}</p>
                   </div>
                 </div>
@@ -348,6 +435,7 @@ export default function Dashboard() {
                                         <tbody>{transactions.length === 0 ? <tr><td colSpan={5} className="text-center py-8 text-gray-400">Sem movimentos.</td></tr> : transactions.map(t => (
                                             <tr key={t.id} className="border-b dark:border-gray-700 hover:bg-gray-50 dark:hover:bg-gray-800">
                                                 <td className="px-6 py-4">{new Date(t.date).toLocaleDateString()}</td><td className="px-6 py-4 font-medium">{t.description}</td><td className="px-6 py-4"><span className="px-2 py-1 bg-gray-100 dark:bg-gray-700 rounded-full text-xs">{t.category}</span></td>
+                                                {/* ✅ CONVERTE NA TABELA */}
                                                 <td className={`px-6 py-4 text-right font-bold ${t.type === 'income' ? 'text-green-600' : 'text-red-500'}`}>{t.type === 'income' ? '+' : '-'} {displaySymbol} {(t.amount * conversionRate).toFixed(2)}</td>
                                                 <td className="px-6 py-4 text-right"><button onClick={() => handleDeleteTransaction(t.id)} className="text-red-400 hover:text-red-600 p-2"><Trash2 size={16}/></button></td>
                                             </tr>
@@ -406,8 +494,115 @@ export default function Dashboard() {
                                 </div>
                             </div>
                         )}
+
+                        {/* ✅ ABA FATURAS (INVOICES) */}
+                        {accountingTab === 'invoices' && (
+                            <div className="space-y-6">
+                                {!showInvoiceForm ? (
+                                    <>
+                                        <div className="flex justify-between items-center">
+                                            <h3 className="font-bold text-lg">Faturas Emitidas</h3>
+                                            <button onClick={() => setShowInvoiceForm(true)} className="bg-blue-600 text-white px-4 py-2 rounded-lg flex items-center gap-2 hover:bg-blue-700 shadow-lg"><Plus size={18}/> Criar Nova Fatura</button>
+                                        </div>
+                                        <div className="bg-white dark:bg-gray-800 rounded-2xl border dark:border-gray-700 shadow-sm overflow-hidden">
+                                            <table className="w-full text-sm text-left">
+                                                <thead className="bg-gray-50 dark:bg-gray-700 text-gray-500 uppercase text-xs">
+                                                    <tr><th className="px-6 py-3">Número</th><th className="px-6 py-3">Cliente</th><th className="px-6 py-3">Data</th><th className="px-6 py-3">Status</th><th className="px-6 py-3 text-right">Total</th></tr>
+                                                </thead>
+                                                <tbody>
+                                                    {realInvoices.length === 0 ? <tr><td colSpan={5} className="text-center py-8 text-gray-400">Nenhuma fatura emitida.</td></tr> : 
+                                                        realInvoices.map(inv => (
+                                                            <tr key={inv.id} className="border-b dark:border-gray-700">
+                                                                <td className="px-6 py-4 font-mono font-bold text-blue-600">{inv.invoice_number}</td>
+                                                                <td className="px-6 py-4">{inv.clients?.name || 'Cliente Removido'}</td>
+                                                                <td className="px-6 py-4">{new Date(inv.date).toLocaleDateString()}</td>
+                                                                <td className="px-6 py-4"><span className="px-2 py-1 bg-green-100 text-green-700 rounded-full text-xs font-bold uppercase">{inv.status}</span></td>
+                                                                <td className="px-6 py-4 text-right font-bold">{inv.currency} {inv.total}</td>
+                                                            </tr>
+                                                        ))
+                                                    }
+                                                </tbody>
+                                            </table>
+                                        </div>
+                                    </>
+                                ) : (
+                                    /* ✅ FORMULÁRIO DE CRIAÇÃO DE FATURA */
+                                    <div className="bg-white dark:bg-gray-800 rounded-2xl shadow-xl border dark:border-gray-700 p-8 animate-fade-in-up">
+                                        <div className="flex justify-between items-start mb-8 pb-6 border-b dark:border-gray-700">
+                                            <div>
+                                                <h2 className="text-2xl font-bold flex items-center gap-2"><FileText className="text-blue-600"/> Nova Fatura</h2>
+                                                <p className="text-gray-500 text-sm mt-1">Preencha os dados abaixo para emitir o documento.</p>
+                                            </div>
+                                            <button onClick={() => setShowInvoiceForm(false)} className="text-gray-400 hover:text-gray-600"><X size={24}/></button>
+                                        </div>
+
+                                        <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
+                                            <div>
+                                                <label className="block text-sm font-bold mb-2">Cliente</label>
+                                                <select className="w-full p-3 border rounded-xl dark:bg-gray-900 outline-none focus:ring-2 focus:ring-blue-500" value={invoiceData.client_id} onChange={e => setInvoiceData({...invoiceData, client_id: e.target.value})}>
+                                                    <option value="">Selecione um cliente...</option>
+                                                    {clients.map(c => <option key={c.id} value={c.id}>{c.name}</option>)}
+                                                </select>
+                                                {clients.length === 0 && <p className="text-xs text-red-500 mt-1">Crie um cliente primeiro na aba Clientes.</p>}
+                                            </div>
+                                            <div>
+                                                <label className="block text-sm font-bold mb-2">Data Emissão</label>
+                                                <input type="date" className="w-full p-3 border rounded-xl dark:bg-gray-900 outline-none" value={invoiceData.date} onChange={e => setInvoiceData({...invoiceData, date: e.target.value})}/>
+                                            </div>
+                                            <div>
+                                                <label className="block text-sm font-bold mb-2">Vencimento</label>
+                                                <input type="date" className="w-full p-3 border rounded-xl dark:bg-gray-900 outline-none" value={invoiceData.due_date} onChange={e => setInvoiceData({...invoiceData, due_date: e.target.value})}/>
+                                            </div>
+                                        </div>
+
+                                        {/* LINHAS DA FATURA */}
+                                        <div className="mb-8">
+                                            <table className="w-full text-sm">
+                                                <thead>
+                                                    <tr className="border-b dark:border-gray-700 text-left text-gray-500 uppercase text-xs">
+                                                        <th className="py-2 w-1/2">Descrição</th>
+                                                        <th className="py-2 w-20 text-center">Qtd</th>
+                                                        <th className="py-2 w-32 text-right">Preço Un.</th>
+                                                        <th className="py-2 w-24 text-right">IVA %</th>
+                                                        <th className="py-2 w-32 text-right">Total</th>
+                                                        <th className="py-2 w-10"></th>
+                                                    </tr>
+                                                </thead>
+                                                <tbody className="divide-y dark:divide-gray-700">
+                                                    {invoiceData.items.map((item, index) => (
+                                                        <tr key={index}>
+                                                            <td className="py-3"><input className="w-full bg-transparent outline-none font-medium" placeholder="Nome do produto/serviço" value={item.description} onChange={e => updateInvoiceItem(index, 'description', e.target.value)}/></td>
+                                                            <td className="py-3"><input type="number" className="w-full bg-transparent outline-none text-center" value={item.quantity} onChange={e => updateInvoiceItem(index, 'quantity', e.target.value)}/></td>
+                                                            <td className="py-3"><input type="number" className="w-full bg-transparent outline-none text-right" value={item.price} onChange={e => updateInvoiceItem(index, 'price', e.target.value)}/></td>
+                                                            <td className="py-3"><input type="number" className="w-full bg-transparent outline-none text-right" value={item.tax} onChange={e => updateInvoiceItem(index, 'tax', e.target.value)}/></td>
+                                                            <td className="py-3 text-right font-bold">{displaySymbol} {(item.quantity * item.price).toFixed(2)}</td>
+                                                            <td className="py-3 text-center"><button onClick={() => handleRemoveInvoiceItem(index)} className="text-red-400 hover:text-red-600"><Trash2 size={16}/></button></td>
+                                                        </tr>
+                                                    ))}
+                                                </tbody>
+                                            </table>
+                                            <button onClick={handleAddInvoiceItem} className="mt-4 text-blue-600 font-bold text-sm flex items-center gap-1 hover:underline"><Plus size={16}/> Adicionar Linha</button>
+                                        </div>
+
+                                        {/* TOTAIS */}
+                                        <div className="flex justify-end border-t dark:border-gray-700 pt-6">
+                                            <div className="w-64 space-y-2">
+                                                <div className="flex justify-between text-gray-500"><span>Subtotal</span><span>{displaySymbol} {invoiceTotals.subtotal.toFixed(2)}</span></div>
+                                                <div className="flex justify-between text-gray-500"><span>IVA / Taxas</span><span>{displaySymbol} {invoiceTotals.taxTotal.toFixed(2)}</span></div>
+                                                <div className="flex justify-between text-xl font-bold text-gray-800 dark:text-white pt-2 border-t dark:border-gray-700"><span>Total</span><span>{displaySymbol} {invoiceTotals.total.toFixed(2)}</span></div>
+                                            </div>
+                                        </div>
+
+                                        <div className="flex justify-end gap-4 mt-8">
+                                            <button onClick={() => setShowInvoiceForm(false)} className="px-6 py-3 rounded-xl border font-medium hover:bg-gray-50 dark:hover:bg-gray-700">Cancelar</button>
+                                            <button onClick={handleSaveInvoice} className="px-6 py-3 rounded-xl bg-blue-600 text-white font-bold hover:bg-blue-700 shadow-lg flex items-center gap-2"><CheckCircle size={20}/> Emitir Fatura</button>
+                                        </div>
+                                    </div>
+                                )}
+                            </div>
+                        )}
                         
-                        {['journal', 'invoices', 'purchases', 'banking', 'taxes', 'reports'].includes(accountingTab) && (
+                        {['journal', 'purchases', 'banking', 'taxes', 'reports'].includes(accountingTab) && (
                             <div className="flex flex-col items-center justify-center py-20 bg-white dark:bg-gray-800 rounded-2xl border dark:border-gray-700"><Archive className="w-16 h-16 text-gray-300 mb-4"/><h3 className="text-xl font-bold">Módulo {accountingTab.toUpperCase()}</h3><p className="text-gray-500">Pronto para {profileData?.country}.</p></div>
                         )}
                     </div>
