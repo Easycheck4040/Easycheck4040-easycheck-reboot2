@@ -70,7 +70,7 @@ export default function Dashboard() {
   const [savingProfile, setSavingProfile] = useState(false);
   const [savingCompany, setSavingCompany] = useState(false);
 
-  // --- CHAT IA (NOME ATUALIZADO COM "IA") ---
+  // --- CHAT IA ---
   const [messages, setMessages] = useState([{ role: 'assistant', content: 'Olá! Sou o seu assistente EasyCheck IA. Em que posso ajudar hoje?' }]);
   const [chatInput, setChatInput] = useState('');
   const [isChatLoading, setIsChatLoading] = useState(false);
@@ -85,7 +85,8 @@ export default function Dashboard() {
 
   const countryCurrencyMap: any = { "Portugal": "EUR", "France": "EUR", "Deutschland": "EUR", "España": "EUR", "Italia": "EUR", "Belgique": "EUR", "Luxembourg": "EUR", "Brasil": "BRL", "United States": "USD", "United Kingdom": "GBP", "Angola": "AOA", "Moçambique": "MZN", "Cabo Verde": "CVE", "Suisse": "CHF" };
   const currencySymbols: any = { 'EUR': '€', 'USD': '$', 'BRL': 'R$', 'AOA': 'Kz', 'MZN': 'MT', 'CVE': 'Esc', 'CHF': 'CHF', 'GBP': '£' };
-  
+  const currencyNames: any = { 'EUR': 'Euro', 'USD': 'Dólar Americano', 'BRL': 'Real Brasileiro', 'AOA': 'Kwanza', 'MZN': 'Metical', 'CVE': 'Escudo', 'CHF': 'Franco Suíço', 'GBP': 'Libra' };
+
   const getCurrencyCode = (country: string) => countryCurrencyMap[country] || 'EUR';
   const getCurrencySymbol = (code: string) => currencySymbols[code] || '€';
 
@@ -213,7 +214,7 @@ export default function Dashboard() {
       await supabase.from('invoice_items').insert(itemsToInsert);
 
       alert("Fatura criada com sucesso!");
-      // Recarregar faturas para trazer o nome do cliente corretamente
+      // Recarregar faturas
       const { data: updatedInvoices } = await supabase.from('invoices').select('*, clients(name)').order('created_at', { ascending: false });
       if (updatedInvoices) setRealInvoices(updatedInvoices);
       
