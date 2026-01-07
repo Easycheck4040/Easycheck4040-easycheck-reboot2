@@ -3,10 +3,10 @@ import { Routes, Route, Link, useLocation, useNavigate } from 'react-router-dom'
 import { useTranslation } from 'react-i18next';
 import { supabase } from '../supabase/client';
 import { 
-  LayoutDashboard, MessageSquare, FileText, Users, BarChart3, Settings, LogOut, Menu, X, Globe, Moon, Sun, ChevronDown, Eye, EyeOff, User, Trash2, AlertTriangle, Building2, Copy, Send, Shield, Mail, Plus, Search, FileCheck, Calculator, TrendingUp, Archive, TrendingDown, Landmark, PieChart, FileSpreadsheet, Bell, Calendar, Printer, List, BookOpen, CreditCard, Box, Save, Briefcase, Truck, RefreshCw, CheckCircle, AlertCircle
+  LayoutDashboard, MessageSquare, FileText, Users, BarChart3, Settings, LogOut, Menu, X, Globe, Moon, Sun, ChevronDown, Eye, EyeOff, User, Trash2, AlertTriangle, Building2, Copy, Send, Shield, Mail, Plus, Search, FileCheck, Calculator, TrendingUp, Archive, TrendingDown, Landmark, PieChart, FileSpreadsheet, Bell, Calendar, Printer, List, BookOpen, CreditCard, Box, Save, Briefcase, Truck, RefreshCw, CheckCircle, AlertCircle, ChevronRight
 } from 'lucide-react';
 
-// --- DADOS ESTÁTICOS (Movidos para fora para evitar erros) ---
+// --- DADOS ESTÁTICOS ---
 
 const countries = ["Portugal", "Brasil", "Angola", "Moçambique", "Cabo Verde", "France", "Deutschland", "United Kingdom", "España", "United States", "Italia", "Belgique", "Suisse", "Luxembourg"];
 
@@ -26,7 +26,7 @@ const countryCurrencyMap: Record<string, string> = { "Portugal": "EUR", "France"
 const currencySymbols: Record<string, string> = { 'EUR': '€', 'USD': '$', 'BRL': 'R$', 'AOA': 'Kz', 'MZN': 'MT', 'CVE': 'Esc', 'CHF': 'CHF', 'GBP': '£' };
 const currencyNames: Record<string, string> = { 'EUR': 'Euro', 'USD': 'Dólar Americano', 'BRL': 'Real Brasileiro', 'AOA': 'Kwanza', 'MZN': 'Metical', 'CVE': 'Escudo', 'CHF': 'Franco Suíço', 'GBP': 'Libra' };
 
-// IVA por País
+// IVA por País (Sugestões)
 const vatRatesByCountry: Record<string, number[]> = {
     "Portugal": [23, 13, 6, 0],
     "Luxembourg": [17, 14, 8, 3, 0],
@@ -91,6 +91,7 @@ export default function Dashboard() {
   const [newAsset, setNewAsset] = useState({ name: '', purchase_date: new Date().toISOString().split('T')[0], purchase_value: '', lifespan_years: 3 });
   const [newEntity, setNewEntity] = useState({ name: '', nif: '', email: '', address: '', city: '', postal_code: '', country: 'Portugal' });
 
+  // ESTADO DA FATURA
   const [invoiceData, setInvoiceData] = useState({
       client_id: '',
       type: 'Fatura',
@@ -111,6 +112,8 @@ export default function Dashboard() {
   // --- HELPERS ---
   const getCurrencyCode = (country: string) => countryCurrencyMap[country] || 'EUR';
   const getCurrencySymbol = (code: string) => currencySymbols[code] || '€';
+  
+  // Obter taxas de sugestão
   const getCurrentCountryVatRates = () => {
       const country = companyForm.country || "Portugal";
       return vatRatesByCountry[country] || [23, 0];
@@ -153,7 +156,7 @@ export default function Dashboard() {
 
   useEffect(() => { if (scrollRef.current) scrollRef.current.scrollTop = scrollRef.current.scrollHeight; }, [messages]);
 
-  // --- IVA INTELIGENTE ---
+  // IVA INTELIGENTE (Define padrão inicial, mas não bloqueia edição)
   useEffect(() => {
       if (!invoiceData.client_id) return;
       
@@ -164,10 +167,15 @@ export default function Dashboard() {
       if (invoiceData.type === 'Fatura Isenta / Autoliquidação') { newTax = 0; exemption = 'IVA - Autoliquidação'; } 
       else if (invoiceData.type === 'Fatura Intracomunitária') { newTax = 0; exemption = 'Isento Artigo 14.º RITI'; }
 
-      const updatedItems = invoiceData.items.map(item => ({ ...item, tax: newTax }));
+      // Só atualiza se a taxa atual for 0 (evita sobrescrever edições manuais se o tipo não mudou)
+      const updatedItems = invoiceData.items.map(item => ({ 
+          ...item, 
+          tax: item.tax === 0 && newTax !== 0 ? newTax : item.tax 
+      }));
+      
       setInvoiceData(prev => ({ ...prev, items: updatedItems, exemption_reason: exemption }));
 
-  }, [invoiceData.client_id, invoiceData.type, companyForm.country]);
+  }, [invoiceData.type]); // Removi client_id das deps para não resetar quando se muda cliente
 
   const toggleTheme = () => { document.documentElement.classList.toggle('dark'); setIsDark(!isDark); };
   const toggleFinancials = () => setShowFinancials(!showFinancials);
@@ -198,7 +206,7 @@ export default function Dashboard() {
   // --- ACTIONS ---
 
   const handleAddInvoiceItem = () => {
-      const currentTax = invoiceData.items.length > 0 ? invoiceData.items[0].tax : getCurrentCountryVatRates()[0];
+      const currentTax = getCurrentCountryVatRates()[0];
       setInvoiceData({ ...invoiceData, items: [...invoiceData.items, { description: '', quantity: 1, price: 0, tax: currentTax }] });
   };
 
@@ -636,7 +644,7 @@ export default function Dashboard() {
                                                         <th className="py-2 w-1/2">Descrição</th>
                                                         <th className="py-2 w-20 text-center">Qtd</th>
                                                         <th className="py-2 w-32 text-right">Preço Un.</th>
-                                                        <th className="py-2 w-24 text-right">IVA %</th>
+                                                        <th className="py-2 w-32 text-right">IVA %</th>
                                                         <th className="py-2 w-32 text-right">Total</th>
                                                         <th className="py-2 w-10"></th>
                                                     </tr>
@@ -648,17 +656,24 @@ export default function Dashboard() {
                                                             <td className="py-3"><input type="number" className="w-full bg-transparent outline-none text-center" value={item.quantity} onChange={e => updateInvoiceItem(index, 'quantity', e.target.value)}/></td>
                                                             <td className="py-3"><input type="number" className="w-full bg-transparent outline-none text-right" value={item.price} onChange={e => updateInvoiceItem(index, 'price', e.target.value)}/></td>
                                                             
-                                                            {/* ✅ IVA INTELIGENTE: SELECT AUTOMÁTICO */}
-                                                            <td className="py-3">
-                                                                <select 
-                                                                    className="w-full bg-transparent outline-none text-right" 
+                                                            {/* ✅ IVA HÍBRIDO (INPUT + SUGESTÕES) */}
+                                                            <td className="py-3 flex items-center justify-end gap-2">
+                                                                <input 
+                                                                    type="number" 
+                                                                    className="w-16 bg-transparent outline-none text-right font-bold border-b border-dashed border-gray-300 focus:border-blue-500" 
                                                                     value={item.tax} 
                                                                     onChange={e => updateInvoiceItem(index, 'tax', e.target.value)}
-                                                                >
-                                                                    {getCurrentCountryVatRates().map(rate => (
-                                                                        <option key={rate} value={rate}>{rate}%</option>
-                                                                    ))}
-                                                                </select>
+                                                                />
+                                                                {/* Botão de Sugestão Rápida */}
+                                                                <div className="relative group">
+                                                                    <button className="text-gray-400 hover:text-blue-600"><ChevronDown size={14}/></button>
+                                                                    <div className="absolute right-0 top-full mt-1 bg-white dark:bg-gray-900 border dark:border-gray-700 shadow-xl rounded-lg p-2 z-50 hidden group-hover:block min-w-[80px]">
+                                                                        <p className="text-[10px] uppercase text-gray-400 font-bold mb-1 px-2">{companyForm.country}</p>
+                                                                        {getCurrentCountryVatRates().map(rate => (
+                                                                            <button key={rate} onClick={() => updateInvoiceItem(index, 'tax', rate.toString())} className="block w-full text-right px-2 py-1 text-xs hover:bg-gray-100 dark:hover:bg-gray-800 rounded">{rate}%</button>
+                                                                        ))}
+                                                                    </div>
+                                                                </div>
                                                             </td>
 
                                                             <td className="py-3 text-right font-bold">{displaySymbol} {(item.quantity * item.price).toFixed(2)}</td>
@@ -757,7 +772,6 @@ export default function Dashboard() {
                                     </div>
                                     <div className="flex items-center gap-2">
                                         <span className="text-gray-400 text-sm">1 € =</span>
-                                        {/* CORREÇÃO: Input em minúscula */}
                                         <input 
                                             type="number" 
                                             step="0.01" 
