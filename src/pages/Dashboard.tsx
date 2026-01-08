@@ -11,7 +11,7 @@ import {
   TrendingDown, Landmark, PieChart, FileSpreadsheet, Bell, Calendar, Printer, List, 
   BookOpen, CreditCard, Box, Save, Briefcase, Truck, RefreshCw, CheckCircle, 
   AlertCircle, Edit2, Download, Image as ImageIcon, UploadCloud, AlertOctagon, 
-  TrendingUp as TrendingUpIcon, FileInput, MoreVertical, XCircle
+  TrendingUp as TrendingUpIcon, MoreVertical
 } from 'lucide-react';
 
 // --- DADOS ESTÁTICOS & CONFIGURAÇÕES ---
@@ -97,14 +97,14 @@ export default function Dashboard() {
   
   const API_URL = window.location.hostname === 'localhost' ? 'http://localhost:3000' : 'https://easycheck-api.onrender.com';
 
-  // --- ESTADOS DE UI E NAVEGAÇÃO ---
+  // --- ESTADOS ---
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
   const [isProfileDropdownOpen, setIsProfileDropdownOpen] = useState(false);
   const [showFinancials, setShowFinancials] = useState(true); 
   const [showPageCode, setShowPageCode] = useState(false);
   const [isDark, setIsDark] = useState(false);
 
-  // --- ESTADOS DE DADOS (SUPABASE) ---
+  // --- DADOS (SUPABASE) ---
   const [userData, setUserData] = useState<any>(null);
   const [profileData, setProfileData] = useState<any>(null);
   const [loadingUser, setLoadingUser] = useState(true);
@@ -119,7 +119,7 @@ export default function Dashboard() {
   const [provisions, setProvisions] = useState<any[]>([]);
   const [exchangeRates, setExchangeRates] = useState<any>(defaultRates);
 
-  // --- ESTADOS DE MODAIS ---
+  // --- MODAIS ---
   const [isDeleteModalOpen, setIsDeleteModalOpen] = useState(false);
   const [isProfileModalOpen, setIsProfileModalOpen] = useState(false);
   const [showTransactionModal, setShowTransactionModal] = useState(false);
@@ -131,7 +131,7 @@ export default function Dashboard() {
   const [showDoubtfulModal, setShowDoubtfulModal] = useState(false);
   const [showAmortSchedule, setShowAmortSchedule] = useState(false);
   
-  // --- ESTADOS DE EDIÇÃO E FORMULÁRIOS ---
+  // --- EDIÇÃO E FORMULÁRIOS ---
   const [entityType, setEntityType] = useState<'client' | 'supplier'>('client'); 
   const [editingEntityId, setEditingEntityId] = useState<string | null>(null);
   const [editingProvisionId, setEditingProvisionId] = useState<string | null>(null);
@@ -205,7 +205,7 @@ export default function Dashboard() {
 
   const getInitials = (name: string) => name ? (name.split(' ').length > 1 ? (name.split(' ')[0][0] + name.split(' ')[name.split(' ').length - 1][0]) : name.substring(0, 2)).toUpperCase() : 'EC';
 
-  // --- LÓGICA DE AMORTIZAÇÃO (LINEAR & DEGRESSIVA) ---
+  // --- LÓGICA DE AMORTIZAÇÃO ---
   const calculateAmortizationSchedule = (asset: any) => {
       if (!asset) return [];
       const schedule = [];
@@ -213,7 +213,6 @@ export default function Dashboard() {
       const lifespan = parseInt(asset.lifespan_years);
       const startYear = new Date(asset.purchase_date).getFullYear();
       
-      // Coeficientes fiscais comuns para degressivo
       let coef = 1.5;
       if (lifespan >= 5 && lifespan < 6) coef = 2.0;
       if (lifespan >= 6) coef = 2.5;
@@ -223,25 +222,20 @@ export default function Dashboard() {
 
       for (let i = 0; i < lifespan; i++) {
           let annuity = 0;
-          
           if (asset.amortization_method === 'linear') {
               annuity = asset.purchase_value / lifespan;
           } else {
-              // Método Degressivo com passagem a linear quando compensa
               const remainingYears = lifespan - i;
               const currentLinearAnnuity = currentValue / remainingYears;
               const currentDegressiveAnnuity = currentValue * degressiveRate;
 
               if (currentDegressiveAnnuity < currentLinearAnnuity || i === lifespan - 1) {
-                  annuity = currentLinearAnnuity; // Troca para linear no fim
+                  annuity = currentLinearAnnuity; 
               } else {
                   annuity = currentDegressiveAnnuity;
               }
           }
-
-          // Ajuste final para não ir abaixo de zero
           if (currentValue - annuity < 0.01) annuity = currentValue;
-
           schedule.push({
               year: startYear + i,
               startValue: currentValue,
@@ -290,7 +284,6 @@ export default function Dashboard() {
             if (profile.custom_exchange_rates) { setExchangeRates({ ...defaultRates, ...profile.custom_exchange_rates }); }
         }
         
-        // Fetch Parallel Data
         const [tr, inv, acc, ass, cl, sup, prov] = await Promise.all([
              supabase.from('transactions').select('*').order('date', { ascending: false }),
              supabase.from('invoices').select('*, clients(name)').order('created_at', { ascending: false }),
@@ -316,7 +309,6 @@ export default function Dashboard() {
 
   useEffect(() => { if (scrollRef.current) scrollRef.current.scrollTop = scrollRef.current.scrollHeight; }, [messages]);
 
-  // Atualiza taxa de IVA padrão quando muda o tipo de fatura
   useEffect(() => {
       if (!invoiceData.client_id) return;
       const defaultRate = getCurrentCountryVatRates()[0]; 
@@ -326,7 +318,6 @@ export default function Dashboard() {
           newTax = 0; 
           exemption = invoiceData.type.includes('Intracomunitária') ? 'Isento Artigo 14.º RITI' : 'IVA - Autoliquidação'; 
       }
-      // Apenas atualiza se o utilizador não editou manualmente (simplificação)
       const updatedItems = invoiceData.items.map(item => ({ 
           ...item, 
           tax: (item.tax === 0 && newTax !== 0) || (item.tax !== 0 && newTax === 0) ? newTax : item.tax 
@@ -351,7 +342,6 @@ export default function Dashboard() {
       setExchangeRates((prev: any) => ({ ...prev, [currency]: parseFloat(value) || 0 })); 
   };
 
-  // --- UPLOAD LOGO PARA SUPABASE STORAGE ---
   const handleLogoUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
       if (!e.target.files || e.target.files.length === 0) return;
       setUploadingLogo(true);
@@ -371,9 +361,7 @@ export default function Dashboard() {
               .getPublicUrl(fileName);
 
           setCompanyForm(prev => ({ ...prev, logo_url: publicUrl }));
-          // Atualiza logo no profile imediatamente para não perder se sair
           await supabase.from('profiles').update({ logo_url: publicUrl }).eq('id', userData.id);
-          
           alert("Logo carregado com sucesso!");
       } catch (error: any) { 
           alert("Erro ao carregar logo: " + error.message); 
@@ -390,7 +378,6 @@ export default function Dashboard() {
 
   const handleSaveInvoice = async () => {
       const totals = calculateInvoiceTotals();
-      // Gera número se não existir
       let docNumber = invoiceData.invoice_number;
       if (!docNumber) {
           const prefix = invoiceTypesMap[invoiceData.type] || 'DOC';
@@ -398,11 +385,8 @@ export default function Dashboard() {
       }
       
       let error, data;
-      // Se tiver ID, apaga antiga para recriar (Simples UPDATE seria melhor, mas estrutura relacional complexa)
-      // Para consistência de integridade no exemplo: UPDATE simples no header, delete/insert nos items
       
       if (invoiceData.id) {
-          // Update Invoice Header
           const res = await supabase.from('invoices').update({
              client_id: invoiceData.client_id, type: invoiceData.type, date: invoiceData.date, 
              due_date: invoiceData.due_date, exemption_reason: invoiceData.exemption_reason, 
@@ -410,10 +394,8 @@ export default function Dashboard() {
           }).eq('id', invoiceData.id).select().single();
           error = res.error; data = res.data;
           
-          // Remove old items
           if (!error) await supabase.from('invoice_items').delete().eq('invoice_id', invoiceData.id);
       } else {
-          // Insert New
           const res = await supabase.from('invoices').insert([{ 
               user_id: userData.id, client_id: invoiceData.client_id, type: invoiceData.type, 
               invoice_number: docNumber, date: invoiceData.date, due_date: invoiceData.due_date, 
@@ -425,14 +407,12 @@ export default function Dashboard() {
 
       if (error) return alert("Erro ao guardar fatura: " + error.message);
       
-      // Insert Items
       const itemsToInsert = invoiceData.items.map(item => ({ 
           invoice_id: data.id, description: item.description, quantity: item.quantity, 
           unit_price: item.price, tax_rate: item.tax 
       }));
       await supabase.from('invoice_items').insert(itemsToInsert);
 
-      // Refresh
       const { data: updatedInvoices } = await supabase.from('invoices').select('*, clients(name)').order('created_at', { ascending: false }); 
       if (updatedInvoices) setRealInvoices(updatedInvoices);
       
@@ -475,26 +455,42 @@ export default function Dashboard() {
       } 
   };
 
-  // --- PDF GENERATION ENGINE ---
-  const generatePDFBlob = async (): Promise<Blob> => {
+  // --- PDF GENERATION ENGINE (CORRIGIDA) ---
+  const generatePDFBlob = async (dataOverride?: any): Promise<Blob> => {
       const doc = new jsPDF();
-      const totals = calculateInvoiceTotals();
-      const client = clients.find(c => c.id === invoiceData.client_id) || { name: 'Cliente Final', address: '', nif: '', city: '', postal_code: '', country: '' };
+      
+      // Usa os dados passados (da lista) OU os dados do formulário (invoiceData)
+      const dataToUse = dataOverride || invoiceData;
+      
+      // Calcular totais localmente se vier da lista
+      let subtotal = 0;
+      let taxTotal = 0;
+      dataToUse.items.forEach((item: any) => {
+          // Normalize names
+          const price = item.price !== undefined ? item.price : item.unit_price;
+          const tax = item.tax !== undefined ? item.tax : item.tax_rate;
+          const qty = item.quantity;
+          
+          const lineTotal = qty * price;
+          subtotal += lineTotal;
+          taxTotal += lineTotal * (tax / 100);
+      });
+      const totals = { subtotal, taxTotal, total: subtotal + taxTotal };
+
+      const client = clients.find(c => c.id === dataToUse.client_id) || { name: 'Cliente Final', address: '', nif: '', city: '', postal_code: '', country: '' };
       
       // Header Background
       doc.setFillColor(245, 247, 250); doc.rect(0, 0, 210, 50, 'F');
       
-      // Logo (Async loading helper)
+      // Logo
       if (companyForm.logo_url) {
           try {
               const img = new Image();
               img.src = companyForm.logo_url;
               img.crossOrigin = "Anonymous"; 
               await new Promise((resolve) => { img.onload = resolve; img.onerror = resolve; });
-              // Draw simple canvas or use direct addImage if CORS allows
               doc.addImage(img, 'PNG', 15, 10, 40, 30);
           } catch (e) {
-              console.log("Logo error", e);
               doc.setFontSize(16); doc.text(companyForm.name.substring(0, 5).toUpperCase(), 15, 25);
           }
       }
@@ -506,8 +502,8 @@ export default function Dashboard() {
       doc.text(`${companyForm.country}, NIF: ${companyForm.nif || 'N/A'}`, 200, 27, { align: 'right' });
 
       // Invoice Title
-      doc.setFontSize(22); doc.setTextColor(0); doc.text(invoiceData.type.toUpperCase(), 15, 70);
-      const docNum = invoiceData.invoice_number || "RASCUNHO";
+      doc.setFontSize(22); doc.setTextColor(0); doc.text(dataToUse.type.toUpperCase(), 15, 70);
+      const docNum = dataToUse.invoice_number || "RASCUNHO";
       doc.setFontSize(11); doc.setTextColor(100); doc.text(docNum, 15, 76);
 
       // Client Info
@@ -520,13 +516,21 @@ export default function Dashboard() {
       if(client.nif) doc.text(`NIF: ${client.nif}`, 15, clientY);
 
       // Dates
-      doc.text(`Data Emissão: ${invoiceData.date}`, 140, 96); 
-      doc.text(`Vencimento: ${invoiceData.due_date}`, 140, 101);
+      doc.text(`Data Emissão: ${dataToUse.date}`, 140, 96); 
+      doc.text(`Vencimento: ${dataToUse.due_date}`, 140, 101);
 
       // Table
-      const tableRows = invoiceData.items.map(item => [ 
-          item.description, item.quantity, `${displaySymbol} ${item.price.toFixed(2)}`, `${item.tax}%`, `${displaySymbol} ${(item.quantity * item.price).toFixed(2)}` 
-      ]);
+      const tableRows = dataToUse.items.map((item: any) => {
+          const price = item.price !== undefined ? item.price : item.unit_price;
+          const tax = item.tax !== undefined ? item.tax : item.tax_rate;
+          return [ 
+            item.description, 
+            item.quantity, 
+            `${displaySymbol} ${price.toFixed(2)}`, 
+            `${tax}%`, 
+            `${displaySymbol} ${(item.quantity * price).toFixed(2)}` 
+          ];
+      });
       
       autoTable(doc, { 
           head: [["Descrição", "Qtd", "Preço", "IVA", "Total"]], 
@@ -545,9 +549,9 @@ export default function Dashboard() {
       doc.setFontSize(14); doc.setFont("helvetica", "bold"); doc.text(`TOTAL:`, 150, finalY + 14); doc.text(`${displaySymbol} ${totals.total.toFixed(2)}`, 195, finalY + 14, { align: 'right' });
 
       // Exemption Reason
-      if (invoiceData.exemption_reason) { 
+      if (dataToUse.exemption_reason) { 
           doc.setFontSize(9); doc.setFont("helvetica", "normal"); 
-          doc.text(`Motivo Isenção: ${invoiceData.exemption_reason}`, 15, finalY + 30); 
+          doc.text(`Motivo Isenção: ${dataToUse.exemption_reason}`, 15, finalY + 30); 
       }
 
       // Footer
@@ -560,22 +564,40 @@ export default function Dashboard() {
       return doc.output('blob');
   };
 
-  const handlePreview = async () => { 
-      if (!invoiceData.client_id) return alert("Selecione um cliente."); 
-      if (invoiceData.items.length === 0) return alert("Adicione itens à fatura."); 
-      
-      const blob = await generatePDFBlob();
-      const url = URL.createObjectURL(blob);
-      setPdfPreviewUrl(url);
-      setShowPreviewModal(true); 
+  const handleQuickPreview = async (invoice: any) => {
+    // 1. Buscar os itens da fatura na base de dados
+    const { data: items } = await supabase.from('invoice_items').select('*').eq('invoice_id', invoice.id);
+    if (!items) return alert("Erro ao carregar itens da fatura.");
+
+    // 2. Construir objeto completo
+    const fullInvoiceData = {
+        ...invoice,
+        items: items.map((i: any) => ({
+            description: i.description,
+            quantity: i.quantity,
+            price: i.unit_price,
+            tax: i.tax_rate
+        }))
+    };
+
+    // 3. Gerar e mostrar
+    try {
+        const blob = await generatePDFBlob(fullInvoiceData);
+        const url = URL.createObjectURL(blob);
+        setPdfPreviewUrl(url);
+        setShowPreviewModal(true);
+    } catch (error) {
+        console.error(error);
+        alert("Erro ao gerar pré-visualização.");
+    }
   };
 
   const handleDownloadPDF = async () => {
-    const blob = await generatePDFBlob();
+    const blob = await generatePDFBlob(); // Usa o estado atual para download no form (não usado no histórico)
     const url = URL.createObjectURL(blob);
     const link = document.createElement('a');
     link.href = url;
-    link.download = `${invoiceData.type}_${invoiceData.invoice_number || 'new'}.pdf`;
+    link.download = `EasyCheck_Documento.pdf`;
     link.click();
   };
 
@@ -819,7 +841,17 @@ export default function Dashboard() {
                                                                 <td className="px-6 py-4 text-xs uppercase font-bold">{inv.type}</td>
                                                                 <td className="px-6 py-4">{new Date(inv.date).toLocaleDateString()}</td>
                                                                 <td className="px-6 py-4 text-right font-bold">{inv.currency} {inv.total}</td>
-                                                                <td className="px-6 py-4 text-right flex justify-end gap-2"><button onClick={() => handleEditInvoice(inv)} className="text-blue-500 hover:text-blue-700"><Edit2 size={16}/></button><button onClick={() => handleDeleteInvoice(inv.id)} className="text-red-400 hover:text-red-600"><Trash2 size={16}/></button></td>
+                                                                <td className="px-6 py-4 text-right flex justify-end gap-2">
+                                                                    <button onClick={() => handleQuickPreview(inv)} title="Pré-visualizar PDF" className="text-gray-500 hover:text-blue-600 transition-colors bg-gray-100 dark:bg-gray-700 p-2 rounded-lg mr-1">
+                                                                        <Eye size={16}/>
+                                                                    </button>
+                                                                    <button onClick={() => handleEditInvoice(inv)} title="Editar" className="text-blue-500 hover:text-blue-700 bg-blue-50 dark:bg-blue-900/20 p-2 rounded-lg mr-1">
+                                                                        <Edit2 size={16}/>
+                                                                    </button>
+                                                                    <button onClick={() => handleDeleteInvoice(inv.id)} title="Apagar" className="text-red-400 hover:text-red-600 bg-red-50 dark:bg-red-900/20 p-2 rounded-lg">
+                                                                        <Trash2 size={16}/>
+                                                                    </button>
+                                                                </td>
                                                             </tr>
                                                         ))
                                                     }
@@ -872,7 +904,25 @@ export default function Dashboard() {
                                                             <td className="py-3"><input type="number" className="w-full bg-transparent outline-none text-right" value={item.price} onChange={e => updateInvoiceItem(index, 'price', e.target.value)}/></td>
                                                             <td className="py-3 flex items-center justify-end gap-2 relative">
                                                                 <input type="number" className="w-16 bg-transparent outline-none text-right font-bold border-b border-dashed border-gray-300 focus:border-blue-500" value={item.tax} onChange={e => updateInvoiceItem(index, 'tax', e.target.value)}/>
-                                                                <div className="relative group"><button className="p-1 bg-gray-100 dark:bg-gray-700 rounded-full hover:bg-blue-100"><MoreVertical size={12}/></button><div className="absolute right-0 top-full mt-2 w-32 bg-white dark:bg-gray-800 border dark:border-gray-700 shadow-xl rounded-xl p-2 z-50 hidden group-hover:block"><p className="text-[10px] uppercase text-gray-400 font-bold mb-2">Taxas {companyForm.country}</p><div className="grid grid-cols-2 gap-1">{getCurrentCountryVatRates().map(rate => (<button key={rate} onClick={() => updateInvoiceItem(index, 'tax', rate.toString())} className="text-center px-2 py-1.5 text-xs hover:bg-blue-50 rounded-lg font-medium">{rate}%</button>))}</div></div></div>
+                                                                
+                                                                {/* DROPDOWN IVA CORRIGIDO: pt-2 para ponte invisível */}
+                                                                <div className="relative group">
+                                                                    <button className="p-1 bg-gray-100 dark:bg-gray-700 rounded-full hover:bg-blue-100 dark:hover:bg-blue-900/50 text-gray-500 hover:text-blue-600 transition-colors">
+                                                                        <Edit2 size={12}/>
+                                                                    </button>
+                                                                    <div className="absolute right-0 top-full pt-2 w-48 z-50 hidden group-hover:block animate-fade-in-up">
+                                                                        <div className="bg-white dark:bg-gray-800 border dark:border-gray-700 shadow-xl rounded-xl p-3">
+                                                                            <p className="text-[10px] uppercase text-gray-400 font-bold mb-2 px-2 border-b dark:border-gray-700 pb-1">Taxas {companyForm.country}</p>
+                                                                            <div className="grid grid-cols-2 gap-1">
+                                                                                {getCurrentCountryVatRates().map(rate => (
+                                                                                    <button key={rate} onClick={() => updateInvoiceItem(index, 'tax', rate.toString())} className="text-center px-2 py-1.5 text-xs hover:bg-blue-50 dark:hover:bg-blue-900/20 rounded-lg font-medium transition-colors text-gray-700 dark:text-gray-300">
+                                                                                        {rate}%
+                                                                                    </button>
+                                                                                ))}
+                                                                            </div>
+                                                                        </div>
+                                                                    </div>
+                                                                </div>
                                                             </td>
                                                             <td className="py-3 text-right font-bold">{displaySymbol} {(item.quantity * item.price).toFixed(2)}</td>
                                                             <td className="py-3 text-center"><button onClick={() => handleRemoveInvoiceItem(index)} className="text-red-400 hover:text-red-600"><Trash2 size={16}/></button></td>
@@ -885,7 +935,6 @@ export default function Dashboard() {
 
                                         <div className="flex justify-end gap-4 mt-8">
                                             <button onClick={() => setShowInvoiceForm(false)} className="px-6 py-3 rounded-xl border font-medium hover:bg-gray-50 dark:hover:bg-gray-700">Cancelar</button>
-                                            <button onClick={handlePreview} className="px-6 py-3 rounded-xl bg-gray-800 dark:bg-gray-600 text-white font-bold hover:opacity-90 flex items-center gap-2"><Eye size={20}/> Pré-visualizar</button>
                                             <button onClick={handleSaveInvoice} className="px-6 py-3 rounded-xl bg-blue-600 text-white font-bold hover:bg-blue-700 shadow-lg flex items-center gap-2"><CheckCircle size={20}/> Emitir {invoiceData.type}</button>
                                         </div>
                                     </div>
