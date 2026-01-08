@@ -11,7 +11,7 @@ import {
   TrendingDown, Landmark, PieChart, FileSpreadsheet, Bell, Calendar, Printer, List, 
   BookOpen, CreditCard, Box, Save, Briefcase, Truck, RefreshCw, CheckCircle, 
   AlertCircle, Edit2, Download, Image as ImageIcon, UploadCloud, AlertOctagon, 
-  TrendingUp as TrendingUpIcon, MoreVertical
+  TrendingUp as TrendingUpIcon, MoreVertical, RefreshCcw
 } from 'lucide-react';
 
 // --- DADOS ESTÁTICOS & CONFIGURAÇÕES ---
@@ -100,6 +100,7 @@ export default function Dashboard() {
   // --- ESTADOS ---
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
   const [isProfileDropdownOpen, setIsProfileDropdownOpen] = useState(false);
+  const [isLangMenuOpen, setIsLangMenuOpen] = useState(false); // ✅ VOLTOU
   const [showFinancials, setShowFinancials] = useState(true); 
   const [showPageCode, setShowPageCode] = useState(false);
   const [isDark, setIsDark] = useState(false);
@@ -126,7 +127,7 @@ export default function Dashboard() {
   const [showAssetModal, setShowAssetModal] = useState(false);
   const [showEntityModal, setShowEntityModal] = useState(false); 
   const [showInvoiceForm, setShowInvoiceForm] = useState(false);
-  const [showPreviewModal, setShowPreviewModal] = useState(false); // Modal Fullscreen Preview
+  const [showPreviewModal, setShowPreviewModal] = useState(false); 
   const [showProvisionModal, setShowProvisionModal] = useState(false);
   const [showDoubtfulModal, setShowDoubtfulModal] = useState(false);
   const [showAmortSchedule, setShowAmortSchedule] = useState(false);
@@ -204,6 +205,24 @@ export default function Dashboard() {
   const totalInvoicesCount = realInvoices.length;
 
   const getInitials = (name: string) => name ? (name.split(' ').length > 1 ? (name.split(' ')[0][0] + name.split(' ')[name.split(' ').length - 1][0]) : name.substring(0, 2)).toUpperCase() : 'EC';
+
+  // --- ACTIONS ---
+
+  const toggleTheme = () => { document.documentElement.classList.toggle('dark'); setIsDark(!isDark); };
+  const toggleFinancials = () => setShowFinancials(!showFinancials);
+  const selectLanguage = (code: string) => { i18n.changeLanguage(code); setIsLangMenuOpen(false); };
+  const handleLogout = async () => { await supabase.auth.signOut(); navigate('/'); };
+  const copyCode = () => { navigator.clipboard.writeText(profileData?.company_code); alert("Código copiado!"); };
+
+  const handleCountryChange = (e: React.ChangeEvent<HTMLSelectElement>) => {
+      const selectedCountry = e.target.value;
+      const newCurrency = getCurrencyCode(selectedCountry);
+      setCompanyForm({ ...companyForm, country: selectedCountry, currency: newCurrency });
+  };
+  
+  const handleRateChange = (currency: string, value: string) => { 
+      setExchangeRates((prev: any) => ({ ...prev, [currency]: parseFloat(value) || 0 })); 
+  };
 
   // --- LÓGICA DE AMORTIZAÇÃO ---
   const calculateAmortizationSchedule = (asset: any) => {
@@ -325,23 +344,7 @@ export default function Dashboard() {
       setInvoiceData(prev => ({ ...prev, items: updatedItems, exemption_reason: exemption }));
   }, [invoiceData.type]); 
 
-  // --- ACTIONS GERAIS ---
-
-  const toggleTheme = () => { document.documentElement.classList.toggle('dark'); setIsDark(!isDark); };
-  const toggleFinancials = () => setShowFinancials(!showFinancials);
-  const handleLogout = async () => { await supabase.auth.signOut(); navigate('/'); };
-  const copyCode = () => { navigator.clipboard.writeText(profileData?.company_code); alert("Código copiado!"); };
-
-  const handleCountryChange = (e: React.ChangeEvent<HTMLSelectElement>) => {
-      const selectedCountry = e.target.value;
-      const newCurrency = getCurrencyCode(selectedCountry);
-      setCompanyForm({ ...companyForm, country: selectedCountry, currency: newCurrency });
-  };
-  
-  const handleRateChange = (currency: string, value: string) => { 
-      setExchangeRates((prev: any) => ({ ...prev, [currency]: parseFloat(value) || 0 })); 
-  };
-
+  // --- LOGO UPLOAD ---
   const handleLogoUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
       if (!e.target.files || e.target.files.length === 0) return;
       setUploadingLogo(true);
@@ -455,7 +458,7 @@ export default function Dashboard() {
       } 
   };
 
-  // --- PDF GENERATION ENGINE (CORRIGIDA) ---
+  // --- PDF GENERATION ENGINE ---
   const generatePDFBlob = async (dataOverride?: any): Promise<Blob> => {
       const doc = new jsPDF();
       
@@ -692,6 +695,23 @@ export default function Dashboard() {
             </h2>
           </div>
           <div className="flex items-center gap-4">
+            {/* ✅ BOTÃO DE LÍNGUAS RESTAURADO */}
+            <div className="relative">
+                <button onClick={() => setIsLangMenuOpen(!isLangMenuOpen)} className="p-2 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-lg"><Globe className="w-5 h-5"/></button>
+                {isLangMenuOpen && (
+                  <>
+                    <div className="fixed inset-0 z-30" onClick={() => setIsLangMenuOpen(false)}></div>
+                    <div className="absolute top-12 right-0 w-48 bg-white dark:bg-gray-800 rounded-xl shadow-xl border dark:border-gray-700 z-40 overflow-hidden py-1">
+                      {languages.map((lang) => (
+                        <button key={lang.code} onClick={() => selectLanguage(lang.code)} className="w-full text-left px-4 py-3 hover:bg-gray-50 dark:hover:bg-gray-700 flex gap-3 items-center text-sm font-medium">
+                          <span>{lang.flag}</span>{lang.label}
+                        </button>
+                      ))}
+                    </div>
+                  </>
+                )}
+            </div>
+
             <button onClick={toggleTheme} className="p-2 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-lg">{isDark ? <Sun className="w-5 h-5"/> : <Moon className="w-5 h-5"/>}</button>
             <div className="relative">
               <button onClick={() => setIsProfileDropdownOpen(!isProfileDropdownOpen)} className="w-10 h-10 bg-gradient-to-tr from-blue-600 to-purple-600 rounded-full text-white font-bold shadow-md cursor-pointer hover:opacity-90">{getInitials(profileData?.full_name)}</button>
@@ -895,39 +915,54 @@ export default function Dashboard() {
                                         {/* LINHAS DA FATURA */}
                                         <div className="mb-8">
                                             <table className="w-full text-sm">
-                                                <thead><tr className="border-b dark:border-gray-700 text-left text-gray-500 uppercase text-xs"><th className="py-2 w-1/2">Descrição</th><th className="py-2 w-20 text-center">Qtd</th><th className="py-2 w-32 text-right">Preço Un.</th><th className="py-2 w-24 text-right">IVA %</th><th className="py-2 w-32 text-right">Total</th><th className="py-2 w-10"></th></tr></thead>
+                                                <thead><tr className="border-b dark:border-gray-700 text-left text-gray-500 uppercase text-xs"><th className="py-2 w-1/2">Descrição</th><th className="py-2 w-20 text-center">Qtd</th><th className="py-2 w-32 text-right">Preço Un.</th><th className="py-2 w-32 text-right">IVA %</th><th className="py-2 w-32 text-right">Total</th><th className="py-2 w-10"></th></tr></thead>
                                                 <tbody className="divide-y dark:divide-gray-700">
-                                                    {invoiceData.items.map((item, index) => (
-                                                        <tr key={index}>
-                                                            <td className="py-3"><input className="w-full bg-transparent outline-none font-medium" placeholder="Nome do produto/serviço" value={item.description} onChange={e => updateInvoiceItem(index, 'description', e.target.value)}/></td>
-                                                            <td className="py-3"><input type="number" className="w-full bg-transparent outline-none text-center" value={item.quantity} onChange={e => updateInvoiceItem(index, 'quantity', e.target.value)}/></td>
-                                                            <td className="py-3"><input type="number" className="w-full bg-transparent outline-none text-right" value={item.price} onChange={e => updateInvoiceItem(index, 'price', e.target.value)}/></td>
-                                                            <td className="py-3 flex items-center justify-end gap-2 relative">
-                                                                <input type="number" className="w-16 bg-transparent outline-none text-right font-bold border-b border-dashed border-gray-300 focus:border-blue-500" value={item.tax} onChange={e => updateInvoiceItem(index, 'tax', e.target.value)}/>
+                                                    {invoiceData.items.map((item, index) => {
+                                                        const currentRates = getCurrentCountryVatRates();
+                                                        return (
+                                                            <tr key={index}>
+                                                                <td className="py-3"><input className="w-full bg-transparent outline-none font-medium" placeholder="Nome do produto/serviço" value={item.description} onChange={e => updateInvoiceItem(index, 'description', e.target.value)}/></td>
+                                                                <td className="py-3"><input type="number" className="w-full bg-transparent outline-none text-center" value={item.quantity} onChange={e => updateInvoiceItem(index, 'quantity', e.target.value)}/></td>
+                                                                <td className="py-3"><input type="number" className="w-full bg-transparent outline-none text-right" value={item.price} onChange={e => updateInvoiceItem(index, 'price', e.target.value)}/></td>
                                                                 
-                                                                {/* DROPDOWN IVA CORRIGIDO: pt-2 para ponte invisível */}
-                                                                <div className="relative group">
-                                                                    <button className="p-1 bg-gray-100 dark:bg-gray-700 rounded-full hover:bg-blue-100 dark:hover:bg-blue-900/50 text-gray-500 hover:text-blue-600 transition-colors">
-                                                                        <Edit2 size={12}/>
-                                                                    </button>
-                                                                    <div className="absolute right-0 top-full pt-2 w-48 z-50 hidden group-hover:block animate-fade-in-up">
-                                                                        <div className="bg-white dark:bg-gray-800 border dark:border-gray-700 shadow-xl rounded-xl p-3">
-                                                                            <p className="text-[10px] uppercase text-gray-400 font-bold mb-2 px-2 border-b dark:border-gray-700 pb-1">Taxas {companyForm.country}</p>
-                                                                            <div className="grid grid-cols-2 gap-1">
-                                                                                {getCurrentCountryVatRates().map(rate => (
-                                                                                    <button key={rate} onClick={() => updateInvoiceItem(index, 'tax', rate.toString())} className="text-center px-2 py-1.5 text-xs hover:bg-blue-50 dark:hover:bg-blue-900/20 rounded-lg font-medium transition-colors text-gray-700 dark:text-gray-300">
-                                                                                        {rate}%
-                                                                                    </button>
-                                                                                ))}
-                                                                            </div>
-                                                                        </div>
+                                                                {/* ✅ DROPDOWN INTELIGENTE DE IVA */}
+                                                                <td className="py-3">
+                                                                    <div className="flex items-center justify-end gap-2">
+                                                                        <select 
+                                                                            className="w-full p-2 bg-transparent text-right border-b border-gray-200 dark:border-gray-700 outline-none cursor-pointer text-sm font-medium"
+                                                                            value={currentRates.includes(item.tax) ? item.tax : 'manual'}
+                                                                            onChange={(e) => {
+                                                                                if(e.target.value === 'manual') {
+                                                                                    // Mantém o valor atual mas permite edição no input ao lado (se implementado)
+                                                                                    // Neste caso, se escolher manual, vamos forçar um valor que trigger o input
+                                                                                    updateInvoiceItem(index, 'tax', '-1'); 
+                                                                                } else {
+                                                                                    updateInvoiceItem(index, 'tax', e.target.value);
+                                                                                }
+                                                                            }}
+                                                                        >
+                                                                            {currentRates.map(r => <option key={r} value={r}>{r}% - {r === currentRates[0] ? 'Normal' : r === 0 ? 'Isento' : 'Interm.'}</option>)}
+                                                                            <option value="manual">Manual / Outra...</option>
+                                                                        </select>
+                                                                        
+                                                                        {/* Input Manual aparece se for 'manual' ou valor não standard */}
+                                                                        {(!currentRates.includes(item.tax)) && (
+                                                                            <input 
+                                                                                type="number" 
+                                                                                className="w-16 p-1 border rounded text-right bg-yellow-50 dark:bg-yellow-900/20 text-xs font-bold"
+                                                                                value={item.tax === -1 ? 0 : item.tax} 
+                                                                                onChange={e => updateInvoiceItem(index, 'tax', e.target.value)}
+                                                                                autoFocus
+                                                                            />
+                                                                        )}
                                                                     </div>
-                                                                </div>
-                                                            </td>
-                                                            <td className="py-3 text-right font-bold">{displaySymbol} {(item.quantity * item.price).toFixed(2)}</td>
-                                                            <td className="py-3 text-center"><button onClick={() => handleRemoveInvoiceItem(index)} className="text-red-400 hover:text-red-600"><Trash2 size={16}/></button></td>
-                                                        </tr>
-                                                    ))}
+                                                                </td>
+
+                                                                <td className="py-3 text-right font-bold">{displaySymbol} {(item.quantity * item.price).toFixed(2)}</td>
+                                                                <td className="py-3 text-center"><button onClick={() => handleRemoveInvoiceItem(index)} className="text-red-400 hover:text-red-600"><Trash2 size={16}/></button></td>
+                                                            </tr>
+                                                        );
+                                                    })}
                                                 </tbody>
                                             </table>
                                             <button onClick={handleAddInvoiceItem} className="mt-4 text-blue-600 font-bold text-sm flex items-center gap-1 hover:underline"><Plus size={16}/> Adicionar Linha</button>
