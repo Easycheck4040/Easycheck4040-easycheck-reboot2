@@ -7,7 +7,7 @@ import Dashboard from './pages/Dashboard';
 import Onboard from './pages/Onboard';
 import Pricing from './pages/Pricing';
 import Contact from './pages/Contact'; // <--- Importação correta aqui
-import ProtectedRoute from './components/ProtectedRoute';
+import ProtectedRoute from './components/Layout/ProtectedRoute';
 
 // Componente auxiliar para esconder a Navbar no Dashboard
 function MainContent() {
