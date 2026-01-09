@@ -593,7 +593,7 @@ export default function Dashboard() {
     const link = document.createElement('a'); link.href = url; link.download = `EasyCheck_${invoiceData.invoice_number || 'Doc'}.pdf`; link.click();
   };
 
-  // ✅ --- GERADOR DE RELATÓRIOS FINANCEIROS ---
+  // ✅ --- GERADOR DE RELATÓRIOS FINANCEIROS (COM HIERARQUIA) ---
   const generateFinancialReport = (type: 'balancete' | 'dre') => {
     if (journalEntries.length === 0) return alert("Não há movimentos contabilísticos para gerar relatório.");
 
@@ -606,7 +606,7 @@ export default function Dashboard() {
     doc.setFontSize(14); doc.setTextColor(0, 0, 255); doc.text(title, 15, 30);
     doc.setTextColor(0);
 
-    // Cálculos
+    // 1. Agrupar saldos por conta
     const accountBalances: Record<string, {name: string, debit: number, credit: number}> = {};
     
     journalEntries.forEach(entry => {
@@ -614,7 +614,6 @@ export default function Dashboard() {
             const code = item.company_accounts?.code;
             const name = item.company_accounts?.name;
             if (!code) return;
-
             if (!accountBalances[code]) accountBalances[code] = { name, debit: 0, credit: 0 };
             accountBalances[code].debit += item.debit;
             accountBalances[code].credit += item.credit;
@@ -622,16 +621,25 @@ export default function Dashboard() {
     });
 
     const rows: any[] = [];
-    let totalDebit = 0;
-    let totalCredit = 0;
+    let totalDebit = 0; let totalCredit = 0;
+    let currentClass = "";
 
+    // 2. Criar linhas com Cabeçalhos de Classe
     Object.keys(accountBalances).sort().forEach(code => {
         const acc = accountBalances[code];
-        // Para DRE, filtramos apenas classes de Gastos (6) e Rendimentos (7)
         if (type === 'dre' && !code.startsWith('6') && !code.startsWith('7')) return;
+
+        // Inserir Cabeçalho de Classe (Ex: Classe 1, Classe 2...)
+        const accountClass = code.charAt(0);
+        if (accountClass !== currentClass) {
+            currentClass = accountClass;
+            // Linha visual para a classe (simulada)
+            rows.push([{ content: `CLASSE ${currentClass}`, colSpan: 5, styles: { fillColor: [240, 240, 240], fontStyle: 'bold' } }]);
+        }
 
         const balance = acc.debit - acc.credit;
         rows.push([ code, acc.name, displaySymbol + acc.debit.toFixed(2), displaySymbol + acc.credit.toFixed(2), displaySymbol + balance.toFixed(2) ]);
+        
         totalDebit += acc.debit;
         totalCredit += acc.credit;
     });
@@ -645,45 +653,54 @@ export default function Dashboard() {
         columnStyles: { 2: { halign: 'right' }, 3: { halign: 'right' }, 4: { halign: 'right' } }
     });
 
-    // Rodapé com Totais
     const finalY = (doc as any).lastAutoTable.finalY + 10;
     doc.setFont("helvetica", "bold");
     if (type === 'balancete') {
         doc.text(`Total Débito: ${displaySymbol} ${totalDebit.toFixed(2)}`, 15, finalY);
         doc.text(`Total Crédito: ${displaySymbol} ${totalCredit.toFixed(2)}`, 100, finalY);
         if (Math.abs(totalDebit - totalCredit) < 0.01) {
-            doc.setTextColor(0, 150, 0);
-            doc.text("✅ Contas Batem Certo (Partidas Dobradas)", 15, finalY + 10);
+            doc.setTextColor(0, 150, 0); doc.text("✅ Contas Batem Certo", 15, finalY + 10);
         } else {
-            doc.setTextColor(200, 0, 0);
-            doc.text("❌ Desequilíbrio detetado!", 15, finalY + 10);
+            doc.setTextColor(200, 0, 0); doc.text("❌ Desequilíbrio!", 15, finalY + 10);
         }
     } else {
         const result = totalCredit - totalDebit; 
-        doc.setFontSize(12);
-        doc.text(`Resultado Líquido do Período: ${displaySymbol} ${result.toFixed(2)}`, 15, finalY);
+        doc.setFontSize(12); doc.text(`Resultado Líquido: ${displaySymbol} ${result.toFixed(2)}`, 15, finalY);
     }
-
     window.open(URL.createObjectURL(doc.output('blob')), '_blank');
   };
 
   // --- GENERAL HANDLERS ---
   const handleCreateTransaction = async () => { 
       if (!newTransaction.amount || !newTransaction.description) return alert("Preencha dados."); 
-      const amountInEur = parseFloat(newTransaction.amount) / conversionRate; 
-      
       const { data: entry, error } = await supabase.from('journal_entries').insert([{ 
           user_id: userData.id, description: newTransaction.description, date: newTransaction.date 
       }]).select().single();
-
       if (!error && entry) { 
-          alert("Movimento criado! (Nota: Para movimentos contabilísticos precisos, use a faturação)");
+          alert("Movimento criado!");
           const { data: updatedJournal } = await supabase.from('journal_entries').select('*, journal_items(debit, credit, company_accounts(code, name))').order('date', { ascending: false });
           if(updatedJournal) setJournalEntries(updatedJournal);
           setShowTransactionModal(false); 
       } 
   };
   
+  // ⚠️ NOVO BOTÃO DE RESET (CUIDADO!)
+  const handleResetFinancials = async () => {
+      if(window.confirm("⚠️ ZONA DE PERIGO ⚠️\n\nIsto vai APAGAR:\n- Todas as Faturas\n- Todas as Compras\n- Todo o Diário\n\nTem a certeza absoluta?")) {
+          if(window.prompt("Escreva 'RESET' para confirmar:") === 'RESET') {
+              // Apagar tudo (Atenção: A ordem importa por causa das chaves estrangeiras)
+              await supabase.from('journal_items').delete().neq('id', '00000000-0000-0000-0000-000000000000'); // Hack para apagar tudo
+              await supabase.from('journal_entries').delete().neq('id', '00000000-0000-0000-0000-000000000000');
+              await supabase.from('invoice_items').delete().neq('id', '00000000-0000-0000-0000-000000000000');
+              await supabase.from('invoices').delete().neq('id', '00000000-0000-0000-0000-000000000000');
+              await supabase.from('purchases').delete().neq('id', '00000000-0000-0000-0000-000000000000');
+              
+              setJournalEntries([]); setRealInvoices([]); setPurchases([]);
+              alert("Sistema limpo com sucesso! Pode começar a trabalhar.");
+          }
+      }
+  };
+
   const handleCreateAsset = async () => { if (!newAsset.name || !newAsset.purchase_value) return alert("Preencha dados."); const valueInEur = parseFloat(newAsset.purchase_value) / conversionRate; let error, data; if (editingAssetId) { const res = await supabase.from('accounting_assets').update({ ...newAsset, purchase_value: valueInEur }).eq('id', editingAssetId).select(); error = res.error; data = res.data; if(!error && data) setAssets(prev => prev.map(a => a.id === editingAssetId ? data[0] : a)); } else { const res = await supabase.from('accounting_assets').insert([{ user_id: userData.id, name: newAsset.name, purchase_date: newAsset.purchase_date, purchase_value: valueInEur, lifespan_years: newAsset.lifespan_years, amortization_method: newAsset.amortization_method }]).select(); error = res.error; data = res.data; if(!error && data) setAssets([...assets, data[0]]); } if (!error) { setShowAssetModal(false); setEditingAssetId(null); setNewAsset({ name: '', category: 'Equipamento', purchase_date: new Date().toISOString().split('T')[0], purchase_value: '', lifespan_years: 3, amortization_method: 'linear' }); } };
   const handleDeleteAsset = async (id: string) => { if (!window.confirm("Apagar este ativo?")) return; const { error } = await supabase.from('accounting_assets').delete().eq('id', id); if (!error) setAssets(prev => prev.filter(a => a.id !== id)); };
   const handleEditAsset = (asset: any) => { setEditingAssetId(asset.id); setNewAsset({ name: asset.name, category: 'Equipamento', purchase_date: asset.purchase_date, purchase_value: asset.purchase_value, lifespan_years: asset.lifespan_years, amortization_method: asset.amortization_method }); setShowAssetModal(true); };
@@ -720,18 +737,14 @@ export default function Dashboard() {
       }; 
       await supabase.from('profiles').update(updates).eq('id', userData.id); 
       setProfileData({ ...profileData, ...updates }); 
-      
-      // CHAMAR A MAGIA DO SQL PARA CRIAR O PLANO DE CONTAS
       if(companyForm.country) {
           const { error: rpcError } = await supabase.rpc('init_company_accounting', { target_user_id: userData.id, target_country: companyForm.country });
-          if(rpcError) console.error("Erro ao gerar plano:", rpcError);
-          else {
+          if(!rpcError) {
               const { data: newAccounts } = await supabase.from('company_accounts').select('*').order('code', { ascending: true });
               if(newAccounts) setCompanyAccounts(newAccounts);
           }
       }
-
-      alert(`Dados guardados e Plano de Contas (${companyForm.country}) configurado!`); 
+      alert(`Dados guardados!`); 
   } catch { alert("Erro ao guardar."); } finally { setSavingCompany(false); } };
   
   const handleDeleteAccount = async () => { if (deleteConfirmation !== 'ELIMINAR') return alert(t('delete.confirm_text')); setIsDeleting(true); try { await supabase.rpc('delete_user'); await supabase.auth.signOut(); navigate('/'); } catch(e: any) { alert(e.message); } finally { setIsDeleting(false); } };
@@ -858,28 +871,39 @@ export default function Dashboard() {
                         {accountingTab === 'overview' && (
                             <div className="p-4">
                                 <div className="flex justify-between mb-4"><h3 className="font-bold flex gap-2"><BookOpen/> Diário Geral (Lançamentos)</h3><button onClick={()=>setShowTransactionModal(true)} className="bg-blue-600 text-white px-3 py-1 rounded text-sm"><Plus size={16}/></button></div>
-                                {/* TABELA DO DIÁRIO */}
-                                <div className="space-y-4">
-                                    {journalEntries.length === 0 ? <p className="text-gray-400 text-center py-8">Sem movimentos contabilísticos.</p> : journalEntries.map(entry => (
-                                        <div key={entry.id} className="border dark:border-gray-700 rounded-xl overflow-hidden shadow-sm text-sm">
-                                            <div className="bg-gray-50 dark:bg-gray-900 p-2 flex justify-between font-bold border-b dark:border-gray-700">
-                                                <span>{new Date(entry.date).toLocaleDateString()} - {entry.description}</span>
-                                                <span className="text-xs bg-gray-200 px-2 py-1 rounded">{entry.document_ref || 'MANUAL'}</span>
-                                            </div>
-                                            <table className="w-full text-xs">
-                                                <tbody>
-                                                    {entry.journal_items?.map((item: any, i: number) => (
-                                                        <tr key={i} className="border-b last:border-0 dark:border-gray-700">
-                                                            <td className="p-2 w-20 font-mono text-gray-500">{item.company_accounts?.code}</td>
-                                                            <td className="p-2">{item.company_accounts?.name}</td>
-                                                            <td className="p-2 text-right w-24 text-gray-600">{item.debit > 0 ? displaySymbol + item.debit.toFixed(2) : '-'}</td>
-                                                            <td className="p-2 text-right w-24 text-gray-600">{item.credit > 0 ? displaySymbol + item.credit.toFixed(2) : '-'}</td>
+                                
+                                {/* ✅ NOVA TABELA DENSA PROFISSIONAL */}
+                                <div className="overflow-x-auto border rounded-xl shadow-sm">
+                                    <table className="w-full text-xs text-left border-collapse">
+                                        <thead className="bg-gray-100 dark:bg-gray-700 uppercase font-bold text-gray-600">
+                                            <tr>
+                                                <th className="p-3 border-b dark:border-gray-600">Data</th>
+                                                <th className="p-3 border-b dark:border-gray-600">Doc</th>
+                                                <th className="p-3 border-b dark:border-gray-600">Conta</th>
+                                                <th className="p-3 border-b dark:border-gray-600">Descrição</th>
+                                                <th className="p-3 border-b dark:border-gray-600 text-right">Débito</th>
+                                                <th className="p-3 border-b dark:border-gray-600 text-right">Crédito</th>
+                                            </tr>
+                                        </thead>
+                                        <tbody>
+                                            {journalEntries.length === 0 ? (
+                                                <tr><td colSpan={6} className="p-8 text-center text-gray-400">Sem movimentos registados.</td></tr>
+                                            ) : (
+                                                journalEntries.map(entry => (
+                                                    entry.journal_items?.map((item: any, i: number) => (
+                                                        <tr key={`${entry.id}-${i}`} className="border-b last:border-0 dark:border-gray-700 hover:bg-gray-50 dark:hover:bg-gray-800">
+                                                            <td className="p-2 w-24 text-gray-500 font-mono">{i === 0 ? new Date(entry.date).toLocaleDateString() : ''}</td>
+                                                            <td className="p-2 w-24 font-bold text-blue-600">{i === 0 ? (entry.document_ref || 'MANUAL') : ''}</td>
+                                                            <td className="p-2 w-20 font-mono font-bold">{item.company_accounts?.code}</td>
+                                                            <td className="p-2 text-gray-700 dark:text-gray-300">{i === 0 ? entry.description : <span className="text-gray-400 ml-4">↳ {item.company_accounts?.name}</span>}</td>
+                                                            <td className="p-2 text-right w-24 font-mono">{item.debit > 0 ? displaySymbol + item.debit.toFixed(2) : ''}</td>
+                                                            <td className="p-2 text-right w-24 font-mono text-gray-600">{item.credit > 0 ? displaySymbol + item.credit.toFixed(2) : ''}</td>
                                                         </tr>
-                                                    ))}
-                                                </tbody>
-                                            </table>
-                                        </div>
-                                    ))}
+                                                    ))
+                                                ))
+                                            )}
+                                        </tbody>
+                                    </table>
                                 </div>
                             </div>
                         )}
@@ -1009,7 +1033,7 @@ export default function Dashboard() {
                             <div>
                                 <div className="p-4 flex justify-between bg-gray-50 dark:bg-gray-800 border-b dark:border-gray-700"><h3 className="font-bold flex gap-2"><Truck/> Fornecedores</h3><button onClick={()=>{setEditingEntityId(null);setNewEntity({name:'',nif:'',email:'',address:'',city:'',postal_code:'',country:'Portugal'});setEntityType('supplier');setShowEntityModal(true)}} className="bg-blue-600 text-white px-3 py-1.5 rounded text-sm font-bold flex gap-2"><Plus size={16}/> Novo</button></div>
                                 <table className="w-full text-xs text-left"><thead className="bg-gray-100 dark:bg-gray-700 uppercase"><tr><th className="p-3">Nome</th><th className="p-3">NIF</th><th className="p-3">Email</th><th className="p-3">Categoria</th><th className="p-3 text-right">Ações</th></tr></thead>
-                                <tbody>{suppliers.map(s=>(<tr key={s.id} className="border-b dark:border-gray-700"><td className="p-3 font-bold">{s.name}</td><td className="p-3 font-mono">{s.nif}</td><td className="p-3">{s.email}</td><td className="p-3"><span className="bg-gray-100 px-2 py-1 rounded text-[10px] uppercase font-bold">Geral</span></td><td className="p-3 text-right"><button onClick={()=>handleEditEntity(s,'supplier')} className="text-blue-500"><Edit2 size={14}/></button></td></tr>))}</tbody></table>
+                                <tbody>{suppliers.map(s=>(<tr key={s.id} className="border-b dark:border-gray-700"><td className="p-3 font-bold">{s.name}</td><td className="p-3 font-mono">{s.nif}</td><td className="p-3">{s.email}</td><td className="p-3"><span className="bg-gray-100 px-2 py-1 rounded text-[10px] uppercase font-bold">Geral</span></td><td className="p-3 text-right flex justify-end gap-2"><button onClick={()=>handleEditEntity(s,'supplier')} className="text-blue-500 hover:bg-blue-50 p-1 rounded"><Edit2 size={14}/></button><button onClick={()=>handleDeleteEntity(s.id, 'supplier')} className="text-red-500 hover:bg-red-50 p-1 rounded"><Trash2 size={14}/></button></td></tr>))}</tbody></table>
                             </div>
                         )}
                         {accountingTab === 'clients' && (<div><div className="p-4 border-b dark:border-gray-700 flex justify-between items-center bg-gray-50 dark:bg-gray-800"><h3 className="font-bold text-gray-700 dark:text-gray-200 flex items-center gap-2"><Users size={18}/> Gestão de Clientes</h3><button onClick={() => {setEditingEntityId(null); setNewEntity({ name: '', nif: '', email: '', address: '', city: '', postal_code: '', country: 'Portugal' }); setEntityType('client'); setShowEntityModal(true)}} className="bg-blue-600 text-white px-3 py-1.5 rounded-lg text-sm flex gap-2 items-center hover:bg-blue-700"><Plus size={16}/> Novo Cliente</button></div><table className="w-full text-xs text-left"><thead className="bg-gray-100 dark:bg-gray-700 text-gray-600 dark:text-gray-300 uppercase font-bold"><tr><th className="px-6 py-3">Entidade</th><th className="px-6 py-3">NIF</th><th className="px-6 py-3">Localidade</th><th className="px-6 py-3 text-center">Estado</th><th className="px-6 py-3 text-right">Saldo Corrente</th><th className="px-6 py-3 text-right">Ações</th></tr></thead><tbody className="divide-y dark:divide-gray-700">{clients.map(c => (<tr key={c.id} className={`hover:bg-gray-50 dark:hover:bg-gray-700 ${c.status === 'doubtful' ? 'bg-red-50 dark:bg-red-900/10' : ''}`}><td className="px-6 py-3 font-bold text-gray-700 dark:text-gray-200">{c.name}</td><td className="px-6 py-3 font-mono">{c.nif || 'N/A'}</td><td className="px-6 py-3 text-gray-500">{c.city}</td><td className="px-6 py-3 text-center"><span className={`px-2 py-0.5 rounded-full text-[10px] font-bold uppercase tracking-wider ${c.status === 'doubtful' ? 'bg-red-100 text-red-600' : 'bg-green-100 text-green-600'}`}>{c.status === 'doubtful' ? 'Risco' : 'Ativo'}</span></td><td className={`px-6 py-3 text-right font-mono font-bold ${c.status === 'doubtful' ? 'text-red-600' : 'text-gray-700 dark:text-gray-300'}`}>{c.doubtful_debt ? `${displaySymbol} ${c.doubtful_debt}` : '-'}</td><td className="px-6 py-3 text-right flex justify-end gap-2"><button onClick={() => handleOpenDoubtful(c)} className={`p-1.5 rounded hover:bg-gray-200 dark:hover:bg-gray-600 ${c.status === 'doubtful' ? 'text-red-500' : 'text-gray-400'}`}><AlertTriangle size={14}/></button><button onClick={() => handleEditEntity(c, 'client')} className="p-1.5 text-blue-500 hover:bg-blue-50 rounded"><Edit2 size={14}/></button><button onClick={() => handleDeleteEntity(c.id, 'client')} className="p-1.5 text-red-500 hover:bg-red-50 rounded"><Trash2 size={14}/></button></td></tr>))}</tbody></table></div>)}
@@ -1040,6 +1064,12 @@ export default function Dashboard() {
                             <div><label className="block text-xs font-bold mb-1">Logo</label><input type="file" onChange={handleLogoUpload} className="block w-full text-sm text-gray-500 file:mr-4 file:py-2 file:px-4 file:rounded-full file:border-0 file:text-sm file:font-semibold file:bg-blue-50 file:text-blue-700 hover:file:bg-blue-100"/>{uploadingLogo && <p className="text-xs text-blue-500 mt-1">A carregar...</p>}</div>
                             <div><label className="block text-xs font-bold mb-1">Template de Fundo (Imagem A4/PDF)</label><input type="file" onChange={handleTemplateUpload} className="block w-full text-sm text-gray-500 file:mr-4 file:py-2 file:px-4 file:rounded-full file:border-0 file:text-sm file:font-semibold file:bg-purple-50 file:text-purple-700 hover:file:bg-purple-100"/>{uploadingTemplate && <p className="text-xs text-purple-500 mt-1">A carregar...</p>}</div>
                         </div>
+                    </div>
+                    {/* ✅ ZONA DE PERIGO (RESET) */}
+                    <div className="bg-red-50 dark:bg-red-900/20 rounded-2xl border border-red-200 dark:border-red-800 p-8">
+                        <h2 className="text-xl font-bold mb-4 flex gap-2 text-red-700 dark:text-red-400"><AlertOctagon/> Zona de Perigo</h2>
+                        <p className="text-sm text-red-600 dark:text-red-300 mb-4">Se deseja reiniciar a sua contabilidade para começar do zero, use este botão. Isto apagará todas as faturas e movimentos.</p>
+                        <button onClick={handleResetFinancials} className="bg-red-600 text-white px-6 py-2 rounded-lg font-bold hover:bg-red-700">Reiniciar Dados Financeiros</button>
                     </div>
                     <div className="flex justify-end pt-4"><button onClick={handleSaveCompany} className="bg-blue-600 text-white px-8 py-3 rounded-xl font-bold">Guardar & Inicializar</button></div>
                 </div>
