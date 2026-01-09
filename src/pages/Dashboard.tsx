@@ -25,14 +25,8 @@ const countries = [
 ];
 
 const invoiceTypesMap: Record<string, string> = {
-    "Fatura": "FT",
-    "Fatura-Recibo": "FR",
-    "Fatura Simplificada": "FS",
-    "Fatura Proforma": "FP",
-    "Nota de Crédito": "NC",
-    "Nota de Débito": "ND",
-    "Recibo": "RC",
-    "Orçamento": "OR",
+    "Fatura": "FT", "Fatura-Recibo": "FR", "Fatura Simplificada": "FS", "Fatura Proforma": "FP",
+    "Nota de Crédito": "NC", "Nota de Débito": "ND", "Recibo": "RC", "Orçamento": "OR",
     "Guia de Transporte": "GT"
 };
 const invoiceTypes = Object.keys(invoiceTypesMap);
@@ -61,20 +55,11 @@ const currencySymbols: Record<string, string> = {
 };
 
 const vatRatesByCountry: Record<string, number[]> = {
-    "Portugal": [23, 13, 6, 0],
-    "Luxembourg": [17, 14, 8, 3, 0],
-    "Brasil": [17, 18, 12, 0],
-    "Angola": [14, 7, 5, 0],
-    "Moçambique": [16, 0],
-    "Cabo Verde": [15, 0],
-    "France": [20, 10, 5.5, 0],
-    "Deutschland": [19, 7, 0],
-    "España": [21, 10, 4, 0],
-    "Italia": [22, 10, 5, 0],
-    "Belgique": [21, 12, 6, 0],
-    "Suisse": [8.1, 2.6, 0],
-    "United Kingdom": [20, 5, 0],
-    "United States": [0, 5, 10]
+    "Portugal": [23, 13, 6, 0], "Luxembourg": [17, 14, 8, 3, 0], "Brasil": [17, 18, 12, 0],
+    "Angola": [14, 7, 5, 0], "Moçambique": [16, 0], "Cabo Verde": [15, 0],
+    "France": [20, 10, 5.5, 0], "Deutschland": [19, 7, 0], "España": [21, 10, 4, 0],
+    "Italia": [22, 10, 5, 0], "Belgique": [21, 12, 6, 0], "Suisse": [8.1, 2.6, 0],
+    "United Kingdom": [20, 5, 0], "United States": [0, 5, 10]
 };
 
 // ==========================================
@@ -133,21 +118,17 @@ export default function Dashboard() {
   const [suppliers, setSuppliers] = useState<any[]>([]); 
   const [provisions, setProvisions] = useState<any[]>([]);
   const [exchangeRates, setExchangeRates] = useState<any>(defaultRates);
+  const [chartOfAccounts, setChartOfAccounts] = useState<any[]>([]);
 
   // --- MODAIS ---
   const [modals, setModals] = useState({
-    invoice: false,
-    purchase: false,
-    entity: false,
-    asset: false,
-    transaction: false,
-    preview: false,
-    settings: false,
-    delete: false,
-    doubtful: false,
-    provision: false,
-    amortSchedule: false
+    invoice: false, purchase: false, entity: false, asset: false,
+    transaction: false, preview: false, settings: false, delete: false,
+    doubtful: false, provision: false, amortSchedule: false
   });
+  
+  const [isDeleteModalOpen, setIsDeleteModalOpen] = useState(false);
+  const [isProfileModalOpen, setIsProfileModalOpen] = useState(false);
 
   // --- FORMULÁRIOS & EDIÇÃO ---
   const [entityType, setEntityType] = useState<'client' | 'supplier'>('client'); 
@@ -168,10 +149,6 @@ export default function Dashboard() {
   
   const [editForm, setEditForm] = useState({ fullName: '', jobTitle: '', email: '' });
   
-  // Modais Específicos
-  const [isDeleteModalOpen, setIsDeleteModalOpen] = useState(false);
-  const [isProfileModalOpen, setIsProfileModalOpen] = useState(false);
-
   const [companyForm, setCompanyForm] = useState({ 
     name: '', country: 'Portugal', currency: 'EUR', 
     address: '', nif: '', logo_url: '', footer: '', 
@@ -195,7 +172,6 @@ export default function Dashboard() {
   const [savingProfile, setSavingProfile] = useState(false);
   const [savingCompany, setSavingCompany] = useState(false);
 
-  // Chat
   const [messages, setMessages] = useState([{ role: 'assistant', content: 'Olá! Sou o seu assistente EasyCheck IA. Em que posso ajudar hoje?' }]);
   const [chatInput, setChatInput] = useState('');
   const [isChatLoading, setIsChatLoading] = useState(false);
@@ -226,42 +202,20 @@ export default function Dashboard() {
       let currentValue = parseFloat(asset.purchase_value);
       const lifespan = parseInt(asset.lifespan_years);
       const startYear = new Date(asset.purchase_date).getFullYear();
-      
       let coef = 1.0;
-      if (asset.amortization_method === 'degressive') {
-        if (lifespan >= 5 && lifespan < 6) coef = 1.5;
-        else if (lifespan >= 6) coef = 2.0;
-        else coef = 2.5; 
-      }
-
+      if (asset.amortization_method === 'degressive') { if (lifespan >= 5 && lifespan < 6) coef = 1.5; else if (lifespan >= 6) coef = 2.0; else coef = 2.5; }
       const linearRate = 1 / lifespan;
       const degressiveRate = linearRate * coef;
-
       for (let i = 0; i < lifespan; i++) {
           let annuity = 0;
-          if (asset.amortization_method === 'linear') {
-              annuity = asset.purchase_value / lifespan;
-          } else {
-              const remainingYears = lifespan - i;
-              const currentLinearAnnuity = currentValue / remainingYears;
-              const currentDegressiveAnnuity = currentValue * degressiveRate;
-              if (currentDegressiveAnnuity < currentLinearAnnuity || i === lifespan - 1) {
-                  annuity = currentLinearAnnuity; 
-              } else {
-                  annuity = currentDegressiveAnnuity;
-              }
+          if (asset.amortization_method === 'linear') { annuity = asset.purchase_value / lifespan; } 
+          else { 
+            const remainingYears = lifespan - i; const currentLinearAnnuity = currentValue / remainingYears; const currentDegressiveAnnuity = currentValue * degressiveRate;
+            annuity = (currentDegressiveAnnuity < currentLinearAnnuity || i === lifespan - 1) ? currentLinearAnnuity : currentDegressiveAnnuity;
           }
           if (currentValue - annuity < 0.01) annuity = currentValue;
-          
-          schedule.push({
-              year: startYear + i,
-              startValue: currentValue,
-              annuity: annuity,
-              accumulated: asset.purchase_value - (currentValue - annuity),
-              endValue: currentValue - annuity
-          });
-          currentValue -= annuity;
-          if (currentValue < 0) currentValue = 0;
+          schedule.push({ year: startYear + i, startValue: currentValue, annuity: annuity, accumulated: asset.purchase_value - (currentValue - annuity), endValue: currentValue - annuity });
+          currentValue -= annuity; if (currentValue < 0) currentValue = 0;
       }
       return schedule;
   };
@@ -270,22 +224,13 @@ export default function Dashboard() {
       const schedule = calculateAmortizationSchedule(asset);
       const currentYear = new Date().getFullYear();
       const entry = schedule.find((s: any) => s.year === currentYear);
-      if (!entry) {
-          const last = schedule[schedule.length - 1];
-          if (last && currentYear > last.year) return 0;
-          return asset.purchase_value;
-      }
+      if (!entry) { const last = schedule[schedule.length - 1]; if (last && currentYear > last.year) return 0; return asset.purchase_value; }
       return entry.endValue;
   };
 
   const calculateInvoiceTotals = () => {
-      let subtotal = 0;
-      let taxTotal = 0;
-      invoiceData.items.forEach(item => {
-          const lineTotal = item.quantity * item.price;
-          subtotal += lineTotal;
-          taxTotal += lineTotal * (item.tax / 100);
-      });
+      let subtotal = 0; let taxTotal = 0;
+      invoiceData.items.forEach(item => { const lineTotal = item.quantity * item.price; subtotal += lineTotal; taxTotal += lineTotal * (item.tax / 100); });
       return { subtotal, taxTotal, total: subtotal + taxTotal };
   };
 
@@ -309,8 +254,7 @@ export default function Dashboard() {
                 address: profile.company_address || '', nif: profile.company_nif || '', 
                 logo_url: profile.logo_url || '', footer: profile.company_footer || '', 
                 invoice_color: profile.invoice_color || '#2563EB', 
-                header_text: profile.header_text || '',
-                template_url: profile.template_url || ''
+                header_text: profile.header_text || '', template_url: profile.template_url || ''
             });
             if (profile.custom_exchange_rates) { setExchangeRates({ ...defaultRates, ...profile.custom_exchange_rates }); }
         }
@@ -324,13 +268,9 @@ export default function Dashboard() {
              supabase.from('suppliers').select('*'),
              supabase.from('accounting_provisions').select('*')
         ]);
-
-        if (tr.data) setTransactions(tr.data);
-        if (inv.data) setRealInvoices(inv.data);
-        if (pur.data) setPurchases(pur.data);
-        if (ass.data) setAssets(ass.data);
-        if (cl.data) setClients(cl.data);
-        if (sup.data) setSuppliers(sup.data);
+        if (tr.data) setTransactions(tr.data); if (inv.data) setRealInvoices(inv.data);
+        if (pur.data) setPurchases(pur.data); if (ass.data) setAssets(ass.data);
+        if (cl.data) setClients(cl.data); if (sup.data) setSuppliers(sup.data);
         if (prov.data) setProvisions(prov.data);
       }
       setLoadingUser(false);
@@ -345,14 +285,8 @@ export default function Dashboard() {
       const defaultRate = getCurrentCountryVatRates()[0]; 
       let newTax = defaultRate;
       let exemption = '';
-      if (invoiceData.type.includes('Isenta') || invoiceData.type.includes('Intracomunitária')) { 
-          newTax = 0; 
-          exemption = invoiceData.type.includes('Intracomunitária') ? 'Isento Artigo 14.º RITI' : 'IVA - Autoliquidação'; 
-      }
-      const updatedItems = invoiceData.items.map(item => ({ 
-          ...item, 
-          tax: (item.tax === 0 && newTax !== 0) || (item.tax !== 0 && newTax === 0) ? newTax : item.tax 
-      }));
+      if (invoiceData.type.includes('Isenta') || invoiceData.type.includes('Intracomunitária')) { newTax = 0; exemption = invoiceData.type.includes('Intracomunitária') ? 'Isento Artigo 14.º RITI' : 'IVA - Autoliquidação'; }
+      const updatedItems = invoiceData.items.map(item => ({ ...item, tax: (item.tax === 0 && newTax !== 0) || (item.tax !== 0 && newTax === 0) ? newTax : item.tax }));
       setInvoiceData(prev => ({ ...prev, items: updatedItems, exemption_reason: exemption }));
   }, [invoiceData.type]); 
 
@@ -403,11 +337,7 @@ export default function Dashboard() {
   // --- FATURAÇÃO ---
   const handleAddInvoiceItem = () => { const currentTax = getCurrentCountryVatRates()[0]; setInvoiceData({ ...invoiceData, items: [...invoiceData.items, { description: '', quantity: 1, price: 0, tax: currentTax }] }); };
   const handleRemoveInvoiceItem = (index: number) => { const newItems = [...invoiceData.items]; newItems.splice(index, 1); setInvoiceData({ ...invoiceData, items: newItems }); };
-  const updateInvoiceItem = (index: number, field: string, value: string | number) => { 
-      const newItems: any = [...invoiceData.items]; 
-      newItems[index][field] = value;
-      setInvoiceData({ ...invoiceData, items: newItems }); 
-  };
+  const updateInvoiceItem = (index: number, field: string, value: string | number) => { const newItems: any = [...invoiceData.items]; newItems[index][field] = value; setInvoiceData({ ...invoiceData, items: newItems }); };
 
   const handleSaveInvoice = async () => {
       const totals = calculateInvoiceTotals();
@@ -416,39 +346,22 @@ export default function Dashboard() {
       
       let error, data;
       if (invoiceData.id) {
-          const res = await supabase.from('invoices').update({
-             client_id: invoiceData.client_id, type: invoiceData.type, date: invoiceData.date, 
-             due_date: invoiceData.due_date, exemption_reason: invoiceData.exemption_reason, 
-             subtotal: totals.subtotal, tax_total: totals.taxTotal, total: totals.total, status: invoiceData.status
-          }).eq('id', invoiceData.id).select().single();
+          const res = await supabase.from('invoices').update({ client_id: invoiceData.client_id, type: invoiceData.type, date: invoiceData.date, due_date: invoiceData.due_date, exemption_reason: invoiceData.exemption_reason, subtotal: totals.subtotal, tax_total: totals.taxTotal, total: totals.total, status: invoiceData.status }).eq('id', invoiceData.id).select().single();
           error = res.error; data = res.data;
           if (!error) await supabase.from('invoice_items').delete().eq('invoice_id', invoiceData.id);
       } else {
-          const res = await supabase.from('invoices').insert([{ 
-              user_id: userData.id, client_id: invoiceData.client_id, type: invoiceData.type, 
-              invoice_number: docNumber, date: invoiceData.date, due_date: invoiceData.due_date, 
-              exemption_reason: invoiceData.exemption_reason, subtotal: totals.subtotal, 
-              tax_total: totals.taxTotal, total: totals.total, currency: currentCurrency, status: 'issued' 
-          }]).select().single();
+          const res = await supabase.from('invoices').insert([{ user_id: userData.id, client_id: invoiceData.client_id, type: invoiceData.type, invoice_number: docNumber, date: invoiceData.date, due_date: invoiceData.due_date, exemption_reason: invoiceData.exemption_reason, subtotal: totals.subtotal, tax_total: totals.taxTotal, total: totals.total, currency: currentCurrency, status: 'issued' }]).select().single();
           error = res.error; data = res.data;
       }
-
       if (error) return alert("Erro ao guardar fatura: " + error.message);
-      
       const itemsToInsert = invoiceData.items.map(item => ({ invoice_id: data.id, description: item.description, quantity: item.quantity, unit_price: item.price, tax_rate: item.tax }));
       await supabase.from('invoice_items').insert(itemsToInsert);
-
       const { data: updatedInvoices } = await supabase.from('invoices').select('*, clients(name)').order('created_at', { ascending: false }); 
       if (updatedInvoices) setRealInvoices(updatedInvoices);
-      
-      setModals({...modals, invoice: false});
-      resetInvoiceForm();
-      alert("Documento emitido com sucesso!");
+      setModals({...modals, invoice: false}); resetInvoiceForm(); alert("Documento emitido com sucesso!");
   };
 
-  const resetInvoiceForm = () => {
-    setInvoiceData({ id: '', client_id: '', type: 'Fatura', invoice_number: '', date: new Date().toISOString().split('T')[0], due_date: new Date(new Date().setDate(new Date().getDate() + 30)).toISOString().split('T')[0], exemption_reason: '', items: [{ description: '', quantity: 1, price: 0, tax: 0 }], status: 'draft' });
-  };
+  const resetInvoiceForm = () => { setInvoiceData({ id: '', client_id: '', type: 'Fatura', invoice_number: '', date: new Date().toISOString().split('T')[0], due_date: new Date(new Date().setDate(new Date().getDate() + 30)).toISOString().split('T')[0], exemption_reason: '', items: [{ description: '', quantity: 1, price: 0, tax: 0 }], status: 'draft' }); };
 
   const handleEditInvoice = async (invoice: any) => {
       const { data: items } = await supabase.from('invoice_items').select('*').eq('invoice_id', invoice.id);
@@ -456,12 +369,7 @@ export default function Dashboard() {
       setModals({...modals, invoice: true});
   };
 
-  const handleDeleteInvoice = async (id: string) => { 
-      if (window.confirm("ATENÇÃO: Apagar uma fatura emitida pode ter implicações fiscais.\nTem a certeza absoluta?")) { 
-          const { error } = await supabase.from('invoices').delete().eq('id', id); 
-          if (!error) setRealInvoices(prev => prev.filter(i => i.id !== id)); 
-      } 
-  };
+  const handleDeleteInvoice = async (id: string) => { if (window.confirm("ATENÇÃO: Apagar uma fatura emitida pode ter implicações fiscais.\nTem a certeza absoluta?")) { const { error } = await supabase.from('invoices').delete().eq('id', id); if (!error) setRealInvoices(prev => prev.filter(i => i.id !== id)); } };
 
   // --- PDF ENGINE ---
   const generatePDFBlob = async (dataOverride?: any): Promise<Blob> => {
@@ -475,9 +383,9 @@ export default function Dashboard() {
       if(companyForm.template_url) { try { const img = new Image(); img.src = companyForm.template_url; img.crossOrigin = "Anonymous"; await new Promise((r) => { img.onload = r; img.onerror = r; }); doc.addImage(img, 'PNG', 0, 0, 210, 297); } catch {} }
       if(!companyForm.template_url) { doc.setFillColor(companyForm.invoice_color || '#2563EB'); doc.rect(0, 0, 210, 8, 'F'); }
       if (companyForm.logo_url) { try { const img = new Image(); img.src = companyForm.logo_url; img.crossOrigin = "Anonymous"; await new Promise((r) => { img.onload = r; img.onerror = r; }); doc.addImage(img, 'PNG', 15, 15, 30, 20); } catch {} }
-      if(companyForm.header_text) { doc.setFontSize(8); doc.setTextColor(100); doc.text(companyForm.header_text, 105, 15, { align: 'center' }); }
+      if(companyForm.header_text) { doc.setFontSize(8); doc.setTextColor(100); doc.text(companyForm.header_text, 105, 18, { align: 'center' }); }
 
-      doc.setFont("helvetica", "bold"); doc.setFontSize(11); doc.setTextColor(40); doc.text(companyForm.name || 'Empresa', 200, 20, { align: 'right' });
+      doc.setFont("helvetica", "bold"); doc.setFontSize(11); doc.setTextColor(40); doc.text(companyForm.name || 'Minha Empresa', 200, 20, { align: 'right' });
       doc.setFont("helvetica", "normal"); doc.setFontSize(9); doc.setTextColor(80); doc.text(companyForm.address || '', 200, 25, { align: 'right' }); doc.text(`${companyForm.country}, NIF: ${companyForm.nif || 'N/A'}`, 200, 30, { align: 'right' });
 
       doc.setDrawColor(200); doc.setFillColor(250, 250, 250); doc.rect(15, 45, 180, 20, 'FD');
@@ -490,7 +398,6 @@ export default function Dashboard() {
       const tableRows = dataToUse.items.map((item: any) => { const price = item.price ?? item.unit_price; const tax = item.tax ?? item.tax_rate; return [ item.description, item.quantity, `${displaySymbol} ${price.toFixed(2)}`, `${tax}%`, `${displaySymbol} ${(item.quantity * price).toFixed(2)}` ]; });
       autoTable(doc, { head: [["Descrição", "Qtd", "Preço Unit.", "IVA", "Total"]], body: tableRows, startY: 105, theme: 'grid', headStyles: { fillColor: companyForm.invoice_color || '#2563EB', textColor: 255 }, styles: { fontSize: 9 } });
       const finalY = (doc as any).lastAutoTable.finalY + 10;
-
       const summaryX = 130; doc.setFontSize(10); doc.text(`Ilíquido:`, summaryX, finalY + 5); doc.text(`${displaySymbol} ${totals.subtotal.toFixed(2)}`, 195, finalY + 5, { align: 'right' }); doc.text(`Total IVA:`, summaryX, finalY + 10); doc.text(`${displaySymbol} ${totals.taxTotal.toFixed(2)}`, 195, finalY + 10, { align: 'right' }); doc.setFontSize(12); doc.setFont("helvetica", "bold"); doc.setTextColor(companyForm.invoice_color || '#2563EB'); doc.text(`TOTAL:`, summaryX, finalY + 18); doc.text(`${displaySymbol} ${totals.total.toFixed(2)}`, 195, finalY + 18, { align: 'right' });
 
       if(!companyForm.template_url) { doc.setDrawColor(companyForm.invoice_color || '#2563EB'); doc.line(15, doc.internal.pageSize.height - 15, 195, doc.internal.pageSize.height - 15); }
@@ -507,89 +414,29 @@ export default function Dashboard() {
   const handleEditAsset = (a: any) => { setEditingAssetId(a.id); setNewAsset({ ...a }); setModals({...modals, asset: true}); };
   const handleShowAmortSchedule = (asset: any) => { setSelectedAssetForSchedule(asset); setModals({...modals, amortSchedule: true}); };
   
-  const handleCreateEntity = async () => { 
-      if (!newEntity.name) return; 
-      const table = entityType === 'client' ? 'clients' : 'suppliers'; 
-      let err, d; 
-      if (editingEntityId) { 
-          const res = await supabase.from(table).update(newEntity).eq('id', editingEntityId).select(); 
-          err = res.error; d = res.data; 
-          if(d) { 
-              if(entityType === 'client') setClients(prev => prev.map(c => c.id === editingEntityId ? d[0] : c)); 
-              else setSuppliers(prev => prev.map(s => s.id === editingEntityId ? d[0] : s)); 
-          } 
-      } else { 
-          const res = await supabase.from(table).insert([{ user_id: userData.id, ...newEntity }]).select(); 
-          err = res.error; d = res.data; 
-          if(d) { 
-              if(entityType === 'client') setClients([d[0], ...clients]); 
-              else setSuppliers([d[0], ...suppliers]); 
-          } 
-      } 
-      if(!err) { setModals({...modals, entity: false}); setEditingEntityId(null); }
-  };
+  const handleCreateEntity = async () => { if (!newEntity.name) return; const table = entityType === 'client' ? 'clients' : 'suppliers'; let err, d; if (editingEntityId) { const res = await supabase.from(table).update(newEntity).eq('id', editingEntityId).select(); err = res.error; d = res.data; if(d) { if(entityType === 'client') setClients(prev => prev.map(c => c.id === editingEntityId ? d[0] : c)); else setSuppliers(prev => prev.map(s => s.id === editingEntityId ? d[0] : s)); } } else { const res = await supabase.from(table).insert([{ user_id: userData.id, ...newEntity }]).select(); err = res.error; d = res.data; if(d) { if(entityType === 'client') setClients([d[0], ...clients]); else setSuppliers([d[0], ...suppliers]); } } if(!err) { setModals({...modals, entity: false}); setEditingEntityId(null); } };
+  const handleEditEntity = (e: any, type: any) => { setNewEntity({ ...e }); setEntityType(type); setEditingEntityId(e.id); setModals({...modals, entity: true}); };
+  const handleDeleteEntity = async (id: string, type: any) => { if (!confirm("Apagar?")) return; const table = type === 'client' ? 'clients' : 'suppliers'; const { error } = await supabase.from(table).delete().eq('id', id); if (!error) { if (type === 'client') setClients(prev => prev.filter(c => c.id !== id)); else setSuppliers(prev => prev.filter(s => s.id !== id)); } };
+  const handleDeleteTransaction = async (id: string) => { if (!confirm("Apagar?")) { const { error } = await supabase.from('transactions').delete().eq('id', id); if (!error) setTransactions(prev => prev.filter(t => t.id !== id)); } };
   
-  const handleEditEntity = (e: any, type: any) => { 
-      setNewEntity({ ...e }); 
-      setEntityType(type); 
-      setEditingEntityId(e.id); 
-      setModals({...modals, entity: true}); 
-  };
-  
-  const handleDeleteEntity = async (id: string, type: any) => { 
-      if (!confirm("Apagar?")) return; 
-      const table = type === 'client' ? 'clients' : 'suppliers'; 
-      const { error } = await supabase.from(table).delete().eq('id', id); 
-      if (!error) { 
-          if (type === 'client') setClients(prev => prev.filter(c => c.id !== id)); 
-          else setSuppliers(prev => prev.filter(s => s.id !== id)); 
-      } 
-  };
-  
-  const handleDeleteTransaction = async (id: string) => { 
-      if (!confirm("Apagar?")) { 
-          const { error } = await supabase.from('transactions').delete().eq('id', id); 
-          if (!error) setTransactions(prev => prev.filter(t => t.id !== id)); 
-      } 
-  };
-  
-  const handleCreatePurchase = async () => { 
-      if(!newPurchase.total) return; 
-      const { data, error } = await supabase.from('purchases').insert([{ 
-          user_id: userData.id, supplier_id: newPurchase.supplier_id, 
-          invoice_number: newPurchase.invoice_number, date: newPurchase.date, 
-          due_date: newPurchase.due_date, total: parseFloat(newPurchase.total), 
-          tax_total: parseFloat(newPurchase.tax_total || '0') 
-      }]).select('*, suppliers(name)').single(); 
-      if(!error && data) { setPurchases([data, ...purchases]); setModals({...modals, purchase: false}); } 
-  };
+  const handleCreatePurchase = async () => { if(!newPurchase.total) return; const { data, error } = await supabase.from('purchases').insert([{ user_id: userData.id, supplier_id: newPurchase.supplier_id, invoice_number: newPurchase.invoice_number, date: newPurchase.date, due_date: newPurchase.due_date, total: parseFloat(newPurchase.total), tax_total: parseFloat(newPurchase.tax_total || '0') }]).select('*, suppliers(name)').single(); if(!error && data) { setPurchases([data, ...purchases]); setModals({...modals, purchase: false}); } };
 
   const handleSaveProfile = async () => { setSavingProfile(true); try { await supabase.from('profiles').update({ full_name: editForm.fullName, job_title: editForm.jobTitle, updated_at: new Date() }).eq('id', userData.id); setProfileData({ ...profileData, ...{ full_name: editForm.fullName } }); alert("Perfil salvo!"); setIsProfileModalOpen(false); } catch { alert("Erro."); } finally { setSavingProfile(false); } };
   const handleSaveCompany = async () => { setSavingCompany(true); try { await supabase.from('profiles').update({ company_name: companyForm.name, company_nif: companyForm.nif, company_address: companyForm.address, country: companyForm.country, currency: companyForm.currency, custom_exchange_rates: exchangeRates, logo_url: companyForm.logo_url, company_footer: companyForm.footer, invoice_color: companyForm.invoice_color, header_text: companyForm.header_text, template_url: companyForm.template_url }).eq('id', userData.id); alert("Definições salvas!"); } catch { alert("Erro."); } finally { setSavingCompany(false); } };
   const handleDeleteAccount = async () => { if (deleteConfirmation !== 'ELIMINAR') return; setIsDeleting(true); try { await supabase.rpc('delete_user'); await supabase.auth.signOut(); navigate('/'); } catch { alert("Erro ao apagar."); } finally { setIsDeleting(false); } };
   const handleSendChatMessage = async (e: React.FormEvent) => { e.preventDefault(); if (!chatInput.trim() || isChatLoading) return; setMessages(prev => [...prev, { role: 'user', content: chatInput }]); setChatInput(''); setIsChatLoading(true); try { const res = await fetch(`${API_URL}/api/chat`, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ message: `[Ctx: ${companyForm.country}] ${chatInput}` }) }); const data = await res.json(); if (data.reply) setMessages(prev => [...prev, { role: 'assistant', content: data.reply }]); } catch { setMessages(prev => [...prev, { role: 'assistant', content: 'Erro.' }]); } finally { setIsChatLoading(false); } };
 
-  // --- REPORT ENGINE ---
   const generateReport = (type: string) => {
-      const doc = new jsPDF();
-      doc.setFontSize(16); doc.text(companyForm.name, 15, 20);
-      doc.setFontSize(12); doc.text(`Relatório: ${type}`, 15, 30);
-      doc.text(`Data: ${new Date().toLocaleDateString()}`, 15, 36);
-      doc.line(15, 40, 195, 40);
-
-      if(type === 'Balancete') {
-          autoTable(doc, { startY: 45, head: [['Data', 'Descrição', 'Valor']], body: transactions.map(t => [new Date(t.date).toLocaleDateString(), t.description, t.amount.toFixed(2)]) });
-      } else if (type === 'Fornecedores') {
-           autoTable(doc, { startY: 45, head: [['Fornecedor', 'NIF', 'Email']], body: suppliers.map(s => [s.name, s.nif, s.email]) });
-      } else {
-          doc.text("Resumo gerado.", 15, 50);
-      }
-      doc.save(`${type}.pdf`);
+    const doc = new jsPDF();
+    doc.text(`Relatório: ${type}`, 10, 10);
+    doc.text(`Empresa: ${companyForm.name}`, 10, 20);
+    if(type === 'Balancete') {
+        autoTable(doc, { startY: 30, head: [['Data', 'Descrição', 'Valor']], body: transactions.map(t => [t.date, t.description, t.amount]) });
+    } else {
+        doc.text("Resumo gerado.", 10, 30);
+    }
+    doc.save(`${type}.pdf`);
   };
-
-  // ==========================================
-  // 7. RENDER
-  // ==========================================
 
   if (loadingUser) return <div className="h-screen flex items-center justify-center bg-gray-50 dark:bg-gray-900 dark:text-white">A carregar escritório...</div>;
   const isOwner = profileData?.role === 'owner';
@@ -663,7 +510,6 @@ export default function Dashboard() {
         </header>
 
         <div className="flex-1 overflow-y-auto bg-gray-50 dark:bg-gray-900 p-8">
-            {/* OVERVIEW */}
             {accountingTab === 'overview' && (
                 <div className="space-y-6">
                     <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
@@ -683,7 +529,6 @@ export default function Dashboard() {
                 </div>
             )}
 
-            {/* INVOICES */}
             {accountingTab === 'invoices' && (
                 <div className="space-y-6">
                     <div className="flex justify-between items-center">
@@ -720,9 +565,9 @@ export default function Dashboard() {
                 </div>
             )}
 
-            {/* CONTABILIDADE */}
             {accountingTab === 'accounting' && (
                 <div className="h-full flex flex-col space-y-6">
+                    {/* Sub-Nav */}
                     <div className="flex gap-2 border-b dark:border-gray-700 pb-2 overflow-x-auto">
                         {[{id:'overview',l:'Diário'},{id:'purchases',l:'Compras'},{id:'banking',l:'Bancos'},{id:'clients',l:'Clientes'},{id:'suppliers',l:'Fornecedores'},{id:'assets',l:'Ativos'},{id:'reports',l:'Relatórios'}].map(t => (
                             <button key={t.id} onClick={() => setAccountingTab(t.id)} className={`px-4 py-2 rounded-lg text-sm font-bold border ${accountingTab === t.id ? 'bg-blue-50 text-blue-600 border-blue-200' : 'bg-white border-transparent'}`}>{t.l}</button>
