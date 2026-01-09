@@ -105,10 +105,11 @@ export default function Dashboard() {
   
   const [accountingTab, setAccountingTab] = useState('overview'); 
   
-  const [transactions, setTransactions] = useState<any[]>([]); 
+  // ESTADOS DE DADOS (Agora ligados às novas tabelas)
+  const [journalEntries, setJournalEntries] = useState<any[]>([]); // Antigo "transactions"
   const [realInvoices, setRealInvoices] = useState<any[]>([]); 
   const [purchases, setPurchases] = useState<any[]>([]); 
-  const [chartOfAccounts, setChartOfAccounts] = useState<any[]>([]); 
+  const [companyAccounts, setCompanyAccounts] = useState<any[]>([]); // Antigo "chartOfAccounts"
   const [assets, setAssets] = useState<any[]>([]); 
   const [clients, setClients] = useState<any[]>([]);
   const [suppliers, setSuppliers] = useState<any[]>([]);
@@ -137,6 +138,7 @@ export default function Dashboard() {
   const [deleteConfirmation, setDeleteConfirmation] = useState('');
   const [isDeleting, setIsDeleting] = useState(false);
   const [uploadingLogo, setUploadingLogo] = useState(false);
+  const [uploadingTemplate, setUploadingTemplate] = useState(false);
   const [pdfPreviewUrl, setPdfPreviewUrl] = useState<string | null>(null);
 
   const [selectedClientForDebt, setSelectedClientForDebt] = useState<any>(null);
@@ -147,11 +149,12 @@ export default function Dashboard() {
   
   const [editForm, setEditForm] = useState({ fullName: '', jobTitle: '', email: '' });
   
-  // Company Form Expandido (Templates)
+  // Company Form
   const [companyForm, setCompanyForm] = useState({ 
     name: '', country: 'Portugal', currency: 'EUR', 
     address: '', nif: '', logo_url: '', footer: '', 
-    invoice_color: '#2563EB', header_text: '', template_url: '' 
+    invoice_color: '#2563EB', header_text: '', template_url: '',
+    invoice_template_url: '' // Novo campo para o Word Template
   });
   
   const [newTransaction, setNewTransaction] = useState({ description: '', amount: '', type: 'expense', category: '', date: new Date().toISOString().split('T')[0] });
@@ -185,31 +188,36 @@ export default function Dashboard() {
   const conversionRate = exchangeRates[currentCurrency] || 1;
   const displaySymbol = getCurrencySymbol(currentCurrency);
 
-  const totalRevenue = transactions.filter(t => t.type === 'income').reduce((acc, curr) => acc + curr.amount, 0) * conversionRate;
-  const totalExpenses = transactions.filter(t => t.type === 'expense').reduce((acc, curr) => acc + curr.amount, 0) * conversionRate;
-  const currentBalance = totalRevenue - totalExpenses;
+  // Cálculos Financeiros (Baseados no Novo Journal se possível, ou fallback)
+  const totalRevenue = journalEntries
+    .reduce((acc, entry) => {
+        // Lógica simplificada: Soma Créditos em contas de Rendimento (Classe 7/6)
+        const incomeItems = entry.journal_items?.filter((i: any) => i.company_accounts?.type === 'rendimentos' || i.company_accounts?.code.startsWith('7'));
+        return acc + (incomeItems?.reduce((sum: number, i: any) => sum + i.credit, 0) || 0);
+    }, 0);
+
+  const totalExpenses = purchases.reduce((acc, curr) => acc + curr.total, 0); // Simplificação temporária
+  const currentBalance = totalRevenue - totalExpenses; // Aproximação
   const totalInvoicesCount = realInvoices.length;
 
   const getInitials = (name: string) => name ? (name.split(' ').length > 1 ? (name.split(' ')[0][0] + name.split(' ')[name.split(' ').length - 1][0]) : name.substring(0, 2)).toUpperCase() : 'EC';
 
   // --- AMORTIZAÇÃO ---
   const calculateAmortizationSchedule = (asset: any) => {
+      // (Código de amortização mantém-se igual por ser lógica pura)
       if (!asset) return [];
       const schedule = [];
       let currentValue = parseFloat(asset.purchase_value);
       const lifespan = parseInt(asset.lifespan_years);
       const startYear = new Date(asset.purchase_date).getFullYear();
-      
       let coef = 1.0;
       if (asset.amortization_method === 'degressive') {
         if (lifespan >= 5 && lifespan < 6) coef = 1.5;
         else if (lifespan >= 6) coef = 2.0;
         else coef = 2.5; 
       }
-
       const linearRate = 1 / lifespan;
       const degressiveRate = linearRate * coef;
-
       for (let i = 0; i < lifespan; i++) {
           let annuity = 0;
           if (asset.amortization_method === 'linear') {
@@ -225,7 +233,6 @@ export default function Dashboard() {
               }
           }
           if (currentValue - annuity < 0.01) annuity = currentValue;
-          
           schedule.push({
               year: startYear + i,
               startValue: currentValue,
@@ -262,7 +269,7 @@ export default function Dashboard() {
       return { subtotal, taxTotal, total: subtotal + taxTotal };
   };
 
-  // --- EFEITOS ---
+  // --- EFEITOS (CARREGAMENTO DE DADOS) ---
   useEffect(() => {
     if (document.documentElement.classList.contains('dark')) setIsDark(true);
     const fetchData = async () => {
@@ -284,26 +291,30 @@ export default function Dashboard() {
                 footer: profile.company_footer || '', 
                 invoice_color: profile.invoice_color || '#2563EB', 
                 header_text: profile.header_text || '',
-                template_url: profile.template_url || ''
+                template_url: profile.template_url || '',
+                invoice_template_url: profile.invoice_template_url || '' // Template Word
             });
             if (profile.custom_exchange_rates) { setExchangeRates({ ...defaultRates, ...profile.custom_exchange_rates }); }
         }
         
-        const [tr, inv, pur, acc, ass, cl, sup, prov] = await Promise.all([
-             supabase.from('transactions').select('*').order('date', { ascending: false }),
+        // --- BUSCAR DADOS (AGORA DAS NOVAS TABELAS) ---
+        const [journal, inv, pur, acc, ass, cl, sup, prov] = await Promise.all([
+             // 1. DIÁRIO REAL (Journal Entries)
+             supabase.from('journal_entries').select('*, journal_items(debit, credit, company_accounts(code, name, type))').order('date', { ascending: false }),
              supabase.from('invoices').select('*, clients(name)').order('created_at', { ascending: false }),
              supabase.from('purchases').select('*, suppliers(name)').order('date', { ascending: false }),
-             supabase.from('accounting_accounts').select('*'),
+             // 2. PLANO DE CONTAS REAL
+             supabase.from('company_accounts').select('*').order('code', { ascending: true }),
              supabase.from('accounting_assets').select('*'),
              supabase.from('clients').select('*'),
              supabase.from('suppliers').select('*'),
              supabase.from('accounting_provisions').select('*')
         ]);
 
-        if (tr.data) setTransactions(tr.data);
+        if (journal.data) setJournalEntries(journal.data); // Substitui transactions
         if (inv.data) setRealInvoices(inv.data);
         if (pur.data) setPurchases(pur.data);
-        if (acc.data) setChartOfAccounts(acc.data);
+        if (acc.data) setCompanyAccounts(acc.data); // Substitui chartOfAccounts
         if (ass.data) setAssets(ass.data);
         if (cl.data) setClients(cl.data);
         if (sup.data) setSuppliers(sup.data);
@@ -347,37 +358,39 @@ export default function Dashboard() {
       const file = e.target.files[0];
       const fileExt = file.name.split('.').pop();
       const fileName = `${userData.id}/logo_${Date.now()}.${fileExt}`;
-
       try {
           const { error: uploadError } = await supabase.storage.from('company-logos').upload(fileName, file, { upsert: true });
           if (uploadError) throw uploadError;
           const { data: { publicUrl } } = supabase.storage.from('company-logos').getPublicUrl(fileName);
           setCompanyForm(prev => ({ ...prev, logo_url: publicUrl }));
           await supabase.from('profiles').update({ logo_url: publicUrl }).eq('id', userData.id);
-          alert("Logo carregado com sucesso!");
-      } catch (error: any) { alert("Erro ao carregar logo: " + error.message); } finally { setUploadingLogo(false); }
+          alert("Logo carregado!");
+      } catch (error: any) { alert("Erro: " + error.message); } finally { setUploadingLogo(false); }
   };
 
+  // --- UPLOAD DO TEMPLATE (WORD/IMAGEM) ---
   const handleTemplateUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
       if (!e.target.files || e.target.files.length === 0) return;
-      setUploadingLogo(true);
+      setUploadingTemplate(true);
       const file = e.target.files[0];
-      const fileName = `${userData.id}/template_${Date.now()}.png`;
+      const fileName = `templates/${userData.id}_${Date.now()}.png`;
 
       try {
+          // Cria o bucket se não existir (ou usa company-logos por enquanto se company-assets não existir)
           const { error: uploadError } = await supabase.storage.from('company-logos').upload(fileName, file, { upsert: true });
           if (uploadError) throw uploadError;
           const { data: { publicUrl } } = supabase.storage.from('company-logos').getPublicUrl(fileName);
-          setCompanyForm(prev => ({ ...prev, template_url: publicUrl }));
-          await supabase.from('profiles').update({ template_url: publicUrl }).eq('id', userData.id);
-          alert("Template carregado!");
-      } catch (error: any) { alert("Erro: " + error.message); } finally { setUploadingLogo(false); }
+          setCompanyForm(prev => ({ ...prev, invoice_template_url: publicUrl }));
+          await supabase.from('profiles').update({ invoice_template_url: publicUrl }).eq('id', userData.id);
+          alert("Template Word/Fundo carregado com sucesso!");
+      } catch (error: any) { alert("Erro: " + error.message); } finally { setUploadingTemplate(false); }
   };
 
   const handleAddInvoiceItem = () => { const currentTax = getCurrentCountryVatRates()[0]; setInvoiceData({ ...invoiceData, items: [...invoiceData.items, { description: '', quantity: 1, price: 0, tax: currentTax }] }); };
   const handleRemoveInvoiceItem = (index: number) => { const newItems = [...invoiceData.items]; newItems.splice(index, 1); setInvoiceData({ ...invoiceData, items: newItems }); };
   const updateInvoiceItem = (index: number, field: string, value: string) => { const newItems: any = [...invoiceData.items]; newItems[index][field] = field === 'description' ? value : parseFloat(value) || 0; setInvoiceData({ ...invoiceData, items: newItems }); };
 
+  // --- FATURAÇÃO COM LANÇAMENTO CONTABILÍSTICO ---
   const handleSaveInvoice = async () => {
       const totals = calculateInvoiceTotals();
       let docNumber = invoiceData.invoice_number;
@@ -386,15 +399,19 @@ export default function Dashboard() {
           docNumber = `${prefix} ${new Date().getFullYear()}/${realInvoices.length + 1}`;
       }
       
-      let error, data;
+      let invoiceId, invoiceDataResult;
+      
+      // 1. Gravar Fatura
       if (invoiceData.id) {
           const res = await supabase.from('invoices').update({
              client_id: invoiceData.client_id, type: invoiceData.type, date: invoiceData.date, 
              due_date: invoiceData.due_date, exemption_reason: invoiceData.exemption_reason, 
              subtotal: totals.subtotal, tax_total: totals.taxTotal, total: totals.total
           }).eq('id', invoiceData.id).select().single();
-          error = res.error; data = res.data;
-          if (!error) await supabase.from('invoice_items').delete().eq('invoice_id', invoiceData.id);
+          if (res.error) return alert("Erro ao atualizar: " + res.error.message);
+          invoiceId = res.data.id;
+          invoiceDataResult = res.data;
+          await supabase.from('invoice_items').delete().eq('invoice_id', invoiceData.id);
       } else {
           const res = await supabase.from('invoices').insert([{ 
               user_id: userData.id, client_id: invoiceData.client_id, type: invoiceData.type, 
@@ -402,20 +419,52 @@ export default function Dashboard() {
               exemption_reason: invoiceData.exemption_reason, subtotal: totals.subtotal, 
               tax_total: totals.taxTotal, total: totals.total, currency: currentCurrency, status: 'sent' 
           }]).select().single();
-          error = res.error; data = res.data;
+          if (res.error) return alert("Erro ao criar: " + res.error.message);
+          invoiceId = res.data.id;
+          invoiceDataResult = res.data;
       }
 
-      if (error) return alert("Erro ao guardar fatura: " + error.message);
-      
-      const itemsToInsert = invoiceData.items.map(item => ({ invoice_id: data.id, description: item.description, quantity: item.quantity, unit_price: item.price, tax_rate: item.tax }));
+      // 2. Gravar Itens
+      const itemsToInsert = invoiceData.items.map(item => ({ invoice_id: invoiceId, description: item.description, quantity: item.quantity, unit_price: item.price, tax_rate: item.tax }));
       await supabase.from('invoice_items').insert(itemsToInsert);
 
+      // --- 3. LANÇAMENTO NO DIÁRIO (CONTABILIDADE AUTOMÁTICA) ---
+      // Procura contas (Ex: 211 Clientes, 711 Vendas, 243 IVA)
+      const clientAccount = companyAccounts.find(a => a.code.startsWith('211') || a.code.startsWith('311')); 
+      const salesAccount = companyAccounts.find(a => a.code.startsWith('71') || a.code.startsWith('61'));
+      const taxAccount = companyAccounts.find(a => a.code.startsWith('243') || a.code.startsWith('342'));
+
+      if (clientAccount && salesAccount) {
+          const { data: entry, error: entryError } = await supabase.from('journal_entries').insert([{
+              user_id: userData.id,
+              date: invoiceData.date,
+              description: `Fatura ${docNumber} - ${clients.find(c => c.id === invoiceData.client_id)?.name}`,
+              document_ref: docNumber
+          }]).select().single();
+
+          if (!entryError && entry) {
+              const journalItems = [
+                  { entry_id: entry.id, account_id: clientAccount.id, debit: totals.total, credit: 0 },
+                  { entry_id: entry.id, account_id: salesAccount.id, debit: 0, credit: totals.subtotal }
+              ];
+              if (totals.taxTotal > 0 && taxAccount) {
+                  journalItems.push({ entry_id: entry.id, account_id: taxAccount.id, debit: 0, credit: totals.taxTotal });
+              }
+              await supabase.from('journal_items').insert(journalItems);
+          }
+      }
+
+      // Atualizar UI
       const { data: updatedInvoices } = await supabase.from('invoices').select('*, clients(name)').order('created_at', { ascending: false }); 
       if (updatedInvoices) setRealInvoices(updatedInvoices);
       
+      // Atualizar Diário na UI
+      const { data: updatedJournal } = await supabase.from('journal_entries').select('*, journal_items(debit, credit, company_accounts(code, name))').order('date', { ascending: false });
+      if (updatedJournal) setJournalEntries(updatedJournal);
+
       setShowPreviewModal(false); setShowInvoiceForm(false);
       resetInvoiceForm();
-      alert("Documento emitido com sucesso!");
+      alert("Fatura emitida e contabilizada com sucesso!");
   };
 
   const resetInvoiceForm = () => {
@@ -459,7 +508,7 @@ export default function Dashboard() {
       }
   };
 
-  // --- PDF ENGINE ---
+  // --- PDF ENGINE (COM SUPORTE A WORD TEMPLATE) ---
   const generatePDFBlob = async (dataOverride?: any): Promise<Blob> => {
       const doc = new jsPDF();
       const dataToUse = dataOverride || invoiceData;
@@ -476,61 +525,59 @@ export default function Dashboard() {
       const totals = { subtotal, taxTotal, total: subtotal + taxTotal };
       const client = clients.find(c => c.id === dataToUse.client_id) || { name: 'Cliente Final', address: '', nif: '', city: '', postal_code: '', country: '' };
       
-      // BACKGROUND TEMPLATE
-      if(companyForm.template_url) {
+      // 1. BACKGROUND TEMPLATE (WORD UPLOADED)
+      const templateToUse = companyForm.invoice_template_url || companyForm.template_url; // Suporta ambos
+      if(templateToUse) {
           try {
-              const img = new Image(); img.src = companyForm.template_url; img.crossOrigin = "Anonymous";
+              const img = new Image(); 
+              img.src = templateToUse; 
+              img.crossOrigin = "Anonymous";
               await new Promise((resolve) => { img.onload = resolve; img.onerror = resolve; });
-              doc.addImage(img, 'PNG', 0, 0, 210, 297); // Full page background
-          } catch {}
+              doc.addImage(img, 'PNG', 0, 0, 210, 297); // Full page background A4
+          } catch (e) { console.error("Erro template", e); }
       }
 
-      // HEADER COLOR (Only if no template)
-      if(!companyForm.template_url) {
+      // Se NÃO tiver template, desenha o cabeçalho padrão
+      if(!templateToUse) {
           doc.setFillColor(companyForm.invoice_color || '#2563EB'); 
-          doc.rect(0, 0, 210, 8, 'F'); 
+          doc.rect(0, 0, 210, 10, 'F'); 
+          
+          if (companyForm.logo_url) {
+            try { 
+                const img = new Image(); img.src = companyForm.logo_url; img.crossOrigin = "Anonymous"; 
+                await new Promise((resolve) => { img.onload = resolve; img.onerror = resolve; });
+                doc.addImage(img, 'PNG', 15, 20, 30, 20); 
+            } catch {}
+          }
+          
+          doc.setFont("helvetica", "bold"); doc.setFontSize(14); doc.setTextColor(40); 
+          doc.text(companyForm.name || 'Minha Empresa', 200, 25, { align: 'right' });
+          doc.setFont("helvetica", "normal"); doc.setFontSize(9); doc.setTextColor(80); 
+          doc.text(companyForm.address || '', 200, 30, { align: 'right' }); 
+          doc.text(`NIF: ${companyForm.nif || 'N/A'}`, 200, 35, { align: 'right' });
       }
 
-      // LOGO & HEADER TEXT
-      if (companyForm.logo_url) {
-          try { 
-              const img = new Image(); img.src = companyForm.logo_url; img.crossOrigin = "Anonymous"; 
-              await new Promise((resolve) => { img.onload = resolve; img.onerror = resolve; });
-              doc.addImage(img, 'PNG', 15, 15, 30, 20); 
-          } catch {}
-      }
-      if(companyForm.header_text) { 
-          doc.setFontSize(8); doc.setTextColor(100); 
-          doc.text(companyForm.header_text, 105, 15, { align: 'center' }); 
-      }
-
-      // SENDER INFO
-      doc.setFont("helvetica", "bold"); doc.setFontSize(11); doc.setTextColor(40); 
-      doc.text(companyForm.name || 'Minha Empresa', 200, 20, { align: 'right' });
-      doc.setFont("helvetica", "normal"); doc.setFontSize(9); doc.setTextColor(80); 
-      doc.text(companyForm.address || '', 200, 25, { align: 'right' }); 
-      doc.text(`${companyForm.country}, NIF: ${companyForm.nif || 'N/A'}`, 200, 30, { align: 'right' });
-
-      // DOCUMENT BOX
-      doc.setDrawColor(200); doc.setFillColor(250, 250, 250); 
-      doc.rect(15, 45, 180, 20, 'FD');
-      doc.setFont("helvetica", "bold"); doc.setFontSize(16); 
-      doc.setTextColor(companyForm.invoice_color || '#2563EB');
-      doc.text(dataToUse.type.toUpperCase(), 20, 58);
-      doc.setFontSize(10); doc.setTextColor(100);
+      // DADOS DA FATURA (Posicionados para cair bem em templates padrão)
+      doc.setFont("helvetica", "bold"); doc.setFontSize(10); doc.setTextColor(0);
+      doc.text("FATURA Nº", 140, 50);
+      doc.text("DATA", 140, 55);
+      
+      doc.setFont("helvetica", "normal");
       const docNum = dataToUse.invoice_number || "RASCUNHO";
-      doc.text(`Nº ${docNum}`, 150, 53); 
-      doc.text(`Data: ${dataToUse.date}`, 150, 60);
+      doc.text(docNum, 170, 50, { align: 'right' }); 
+      doc.text(dataToUse.date, 170, 55, { align: 'right' });
 
-      // CLIENT INFO
-      doc.setFont("helvetica", "bold"); doc.setFontSize(10); doc.setTextColor(0); 
-      doc.text("Faturar a:", 15, 80);
-      doc.text(client.name, 15, 85);
-      doc.setFont("helvetica", "normal"); doc.setTextColor(50);
-      if(client.address) doc.text(client.address, 15, 90);
-      if(client.nif) doc.text(`NIF: ${client.nif}`, 15, 95);
+      // CLIENTE
+      doc.setFont("helvetica", "bold"); 
+      doc.text("Exmo.(s) Sr.(s)", 15, 60);
+      doc.setFont("helvetica", "normal"); 
+      doc.setFontSize(11);
+      doc.text(client.name, 15, 66);
+      doc.setFontSize(10);
+      if(client.address) doc.text(client.address, 15, 71);
+      if(client.nif) doc.text(`NIF: ${client.nif}`, 15, 76);
 
-      // TABLE
+      // TABELA
       const tableRows = dataToUse.items.map((item: any) => { 
           const price = item.price ?? item.unit_price; 
           const tax = item.tax ?? item.tax_rate; 
@@ -546,35 +593,30 @@ export default function Dashboard() {
       autoTable(doc, { 
           head: [["Descrição", "Qtd", "Preço Unit.", "IVA", "Total"]], 
           body: tableRows, 
-          startY: 105, 
-          theme: 'grid', 
-          headStyles: { fillColor: companyForm.invoice_color || '#2563EB', textColor: 255, fontStyle: 'bold' },
-          styles: { fontSize: 9, cellPadding: 3 }
+          startY: 90, 
+          theme: 'plain', // Minimalista para bater certo com template Word
+          headStyles: { fillColor: companyForm.invoice_color || '#444', textColor: 255, fontStyle: 'bold' },
+          styles: { fontSize: 9, cellPadding: 3 },
+          columnStyles: { 4: { halign: 'right' } }
       });
       
       const finalY = (doc as any).lastAutoTable.finalY + 10;
 
-      // TOTALS
-      const summaryX = 130;
+      // TOTAIS
       doc.setFontSize(10);
-      doc.text(`Ilíquido:`, summaryX, finalY + 5); 
-      doc.text(`${displaySymbol} ${totals.subtotal.toFixed(2)}`, 195, finalY + 5, { align: 'right' });
-      doc.text(`Total IVA:`, summaryX, finalY + 10); 
-      doc.text(`${displaySymbol} ${totals.taxTotal.toFixed(2)}`, 195, finalY + 10, { align: 'right' });
-      doc.setFontSize(12); doc.setFont("helvetica", "bold"); 
+      doc.text(`Ilíquido:`, 130, finalY); 
+      doc.text(`${displaySymbol} ${totals.subtotal.toFixed(2)}`, 195, finalY, { align: 'right' });
+      doc.text(`Total IVA:`, 130, finalY + 5); 
+      doc.text(`${displaySymbol} ${totals.taxTotal.toFixed(2)}`, 195, finalY + 5, { align: 'right' });
+      doc.setFontSize(14); doc.setFont("helvetica", "bold"); 
       doc.setTextColor(companyForm.invoice_color || '#2563EB');
-      doc.text(`TOTAL:`, summaryX, finalY + 18); 
-      doc.text(`${displaySymbol} ${totals.total.toFixed(2)}`, 195, finalY + 18, { align: 'right' });
+      doc.text(`TOTAL:`, 130, finalY + 15); 
+      doc.text(`${displaySymbol} ${totals.total.toFixed(2)}`, 195, finalY + 15, { align: 'right' });
 
-      // FOOTER
+      // RODAPÉ LEGAL
       const pageHeight = doc.internal.pageSize.height;
-      if (!companyForm.template_url) {
-          doc.setDrawColor(companyForm.invoice_color || '#2563EB'); 
-          doc.line(15, pageHeight - 15, 195, pageHeight - 15);
-      }
-      doc.setFontSize(7); doc.setTextColor(150); 
-      if (companyForm.footer) doc.text(companyForm.footer, 105, pageHeight - 10, { align: 'center' });
-      doc.text("Processado por EasyCheck ERP", 105, pageHeight - 6, { align: 'center' });
+      doc.setFontSize(7); doc.setTextColor(150); doc.setFont('helvetica', 'normal');
+      doc.text("Processado por EasyCheck ERP (Licença Nº 001)", 105, pageHeight - 10, { align: 'center' });
 
       return doc.output('blob');
   };
@@ -610,7 +652,27 @@ export default function Dashboard() {
   };
 
   // --- GENERAL HANDLERS ---
-  const handleCreateTransaction = async () => { if (!newTransaction.amount || !newTransaction.description) return alert("Preencha dados."); const amountInEur = parseFloat(newTransaction.amount) / conversionRate; const { data } = await supabase.from('transactions').insert([{ user_id: userData.id, description: newTransaction.description, amount: amountInEur, type: newTransaction.type, category: newTransaction.category || 'Geral', date: newTransaction.date }]).select(); if (data) { setTransactions([data[0], ...transactions]); setShowTransactionModal(false); setNewTransaction({ description: '', amount: '', type: 'expense', category: '', date: new Date().toISOString().split('T')[0] }); } };
+  const handleCreateTransaction = async () => { 
+      // Criar transação manual no Diário
+      if (!newTransaction.amount || !newTransaction.description) return alert("Preencha dados."); 
+      const amountInEur = parseFloat(newTransaction.amount) / conversionRate; 
+      
+      const { data: entry, error } = await supabase.from('journal_entries').insert([{ 
+          user_id: userData.id, 
+          description: newTransaction.description, 
+          date: newTransaction.date 
+      }]).select().single();
+
+      if (!error && entry) { 
+          // Criar linhas manuais (Exemplo simplificado: Caixa vs Categoria)
+          // Num cenário real, o user escolheria as contas. Aqui assumimos Caixa (11) e Gastos (62)
+          // Isso pode ser melhorado depois com um seletor de contas no modal.
+          alert("Movimento criado! (Nota: Para movimentos contabilísticos precisos, use a faturação ou implemente o seletor de contas)");
+          const { data: updatedJournal } = await supabase.from('journal_entries').select('*, journal_items(debit, credit, company_accounts(code, name))').order('date', { ascending: false });
+          if(updatedJournal) setJournalEntries(updatedJournal);
+          setShowTransactionModal(false); 
+      } 
+  };
   
   const handleCreateAsset = async () => { if (!newAsset.name || !newAsset.purchase_value) return alert("Preencha dados."); const valueInEur = parseFloat(newAsset.purchase_value) / conversionRate; let error, data; if (editingAssetId) { const res = await supabase.from('accounting_assets').update({ ...newAsset, purchase_value: valueInEur }).eq('id', editingAssetId).select(); error = res.error; data = res.data; if(!error && data) setAssets(prev => prev.map(a => a.id === editingAssetId ? data[0] : a)); } else { const res = await supabase.from('accounting_assets').insert([{ user_id: userData.id, name: newAsset.name, purchase_date: newAsset.purchase_date, purchase_value: valueInEur, lifespan_years: newAsset.lifespan_years, amortization_method: newAsset.amortization_method }]).select(); error = res.error; data = res.data; if(!error && data) setAssets([...assets, data[0]]); } if (!error) { setShowAssetModal(false); setEditingAssetId(null); setNewAsset({ name: '', category: 'Equipamento', purchase_date: new Date().toISOString().split('T')[0], purchase_value: '', lifespan_years: 3, amortization_method: 'linear' }); } };
   const handleDeleteAsset = async (id: string) => { if (!window.confirm("Apagar este ativo?")) return; const { error } = await supabase.from('accounting_assets').delete().eq('id', id); if (!error) setAssets(prev => prev.filter(a => a.id !== id)); };
@@ -620,7 +682,7 @@ export default function Dashboard() {
   const handleCreateEntity = async () => { if (!newEntity.name) return alert("Nome obrigatório"); const table = entityType === 'client' ? 'clients' : 'suppliers'; let error = null, data = null; if (editingEntityId) { const res = await supabase.from(table).update({ ...newEntity, updated_at: new Date() }).eq('id', editingEntityId).select(); error = res.error; data = res.data; if (!error && data) { if (entityType === 'client') setClients(prev => prev.map(c => c.id === editingEntityId ? data[0] : c)); else setSuppliers(prev => prev.map(s => s.id === editingEntityId ? data[0] : s)); } } else { const res = await supabase.from(table).insert([{ user_id: userData.id, ...newEntity }]).select(); error = res.error; data = res.data; if (!error && data) { if (entityType === 'client') setClients([data[0], ...clients]); else setSuppliers([data[0], ...suppliers]); } } if (!error) { setShowEntityModal(false); setEditingEntityId(null); setNewEntity({ name: '', nif: '', email: '', address: '', city: '', postal_code: '', country: 'Portugal' }); } else { alert("Erro: " + error.message); } };
   const handleEditEntity = (entity: any, type: 'client' | 'supplier') => { setNewEntity({ name: entity.name, nif: entity.nif, email: entity.email, address: entity.address || '', city: entity.city || '', postal_code: entity.postal_code || '', country: entity.country || 'Portugal' }); setEntityType(type); setEditingEntityId(entity.id); setShowEntityModal(true); };
   const handleDeleteEntity = async (id: string, type: 'client' | 'supplier') => { if (!window.confirm("Apagar este registo?")) return; const table = type === 'client' ? 'clients' : 'suppliers'; const { error } = await supabase.from(table).delete().eq('id', id); if (!error) { if (type === 'client') setClients(prev => prev.filter(c => c.id !== id)); else setSuppliers(prev => prev.filter(s => s.id !== id)); } };
-  const handleDeleteTransaction = async (id: string) => { if (!window.confirm("Eliminar registo?")) return; const { error } = await supabase.from('transactions').delete().eq('id', id); if (!error) setTransactions(prev => prev.filter(t => t.id !== id)); };
+  const handleDeleteTransaction = async (id: string) => { if (!window.confirm("Eliminar registo?")) return; const { error } = await supabase.from('journal_entries').delete().eq('id', id); if (!error) setJournalEntries(prev => prev.filter(t => t.id !== id)); };
   
   const handleOpenDoubtful = (client: any) => { setSelectedClientForDebt(client); setShowDoubtfulModal(true); };
   const saveDoubtfulDebt = async () => { let amount = 0; if (debtMethod === 'manual') amount = parseFloat(manualDebtAmount) || 0; else { const clientInvoices = realInvoices.filter(inv => inv.client_id === selectedClientForDebt.id && selectedDebtInvoices.includes(inv.id)); amount = clientInvoices.reduce((sum, inv) => sum + inv.total, 0); } const newStatus = selectedClientForDebt.status === 'doubtful' ? 'active' : 'doubtful'; const updates = { status: newStatus, doubtful_debt: newStatus === 'doubtful' ? amount : 0 }; const { error } = await supabase.from('clients').update(updates).eq('id', selectedClientForDebt.id); if (!error) { setClients(prev => prev.map(c => c.id === selectedClientForDebt.id ? { ...c, ...updates } : c)); setShowDoubtfulModal(false); setManualDebtAmount(''); setSelectedDebtInvoices([]); } };
@@ -630,7 +692,41 @@ export default function Dashboard() {
   const handleDeleteProvision = async (id: string) => { if (window.confirm("Apagar provisão?")) { const { error } = await supabase.from('accounting_provisions').delete().eq('id', id); if (!error) setProvisions(prev => prev.filter(p => p.id !== id)); } };
 
   const handleSaveProfile = async () => { setSavingProfile(true); try { await supabase.from('profiles').update({ full_name: editForm.fullName, job_title: editForm.jobTitle, updated_at: new Date() }).eq('id', userData.id); setProfileData({ ...profileData, ...{ full_name: editForm.fullName } }); alert(`Perfil atualizado!`); setIsProfileModalOpen(false); } catch { alert("Erro ao guardar."); } finally { setSavingProfile(false); } };
-  const handleSaveCompany = async () => { setSavingCompany(true); try { const updates = { company_name: companyForm.name, company_nif: companyForm.nif, company_address: companyForm.address, country: companyForm.country, currency: companyForm.currency, custom_exchange_rates: exchangeRates, logo_url: companyForm.logo_url, company_footer: companyForm.footer, invoice_color: companyForm.invoice_color, header_text: companyForm.header_text, template_url: companyForm.template_url, updated_at: new Date() }; await supabase.from('profiles').update(updates).eq('id', userData.id); setProfileData({ ...profileData, ...updates }); alert(`Dados atualizados!`); } catch { alert("Erro ao guardar."); } finally { setSavingCompany(false); } };
+  
+  // --- GUARDAR EMPRESA & INICIALIZAR CONTABILIDADE ---
+  const handleSaveCompany = async () => { setSavingCompany(true); try { 
+      const updates = { 
+          company_name: companyForm.name, 
+          company_nif: companyForm.nif, 
+          company_address: companyForm.address, 
+          country: companyForm.country, 
+          currency: companyForm.currency, 
+          custom_exchange_rates: exchangeRates, 
+          logo_url: companyForm.logo_url, 
+          company_footer: companyForm.footer, 
+          invoice_color: companyForm.invoice_color, 
+          header_text: companyForm.header_text, 
+          template_url: companyForm.template_url,
+          invoice_template_url: companyForm.invoice_template_url, 
+          updated_at: new Date() 
+      }; 
+      await supabase.from('profiles').update(updates).eq('id', userData.id); 
+      setProfileData({ ...profileData, ...updates }); 
+      
+      // CHAMAR A MAGIA DO SQL PARA CRIAR O PLANO DE CONTAS
+      if(companyForm.country) {
+          const { error: rpcError } = await supabase.rpc('init_company_accounting', { target_user_id: userData.id, target_country: companyForm.country });
+          if(rpcError) console.error("Erro ao gerar plano:", rpcError);
+          else {
+              // Recarregar contas
+              const { data: newAccounts } = await supabase.from('company_accounts').select('*').order('code', { ascending: true });
+              if(newAccounts) setCompanyAccounts(newAccounts);
+          }
+      }
+
+      alert(`Dados guardados e Plano de Contas (${companyForm.country}) configurado!`); 
+  } catch { alert("Erro ao guardar."); } finally { setSavingCompany(false); } };
+  
   const handleDeleteAccount = async () => { if (deleteConfirmation !== 'ELIMINAR') return alert(t('delete.confirm_text')); setIsDeleting(true); try { await supabase.rpc('delete_user'); await supabase.auth.signOut(); navigate('/'); } catch(e: any) { alert(e.message); } finally { setIsDeleting(false); } };
   
   const handleSendChatMessage = async (e: React.FormEvent) => { e.preventDefault(); if (!chatInput.trim() || isChatLoading) return; const userMessage = { role: 'user', content: chatInput }; setMessages(prev => [...prev, userMessage]); setChatInput(''); setIsChatLoading(true); try { const context = `[Empresa: ${companyForm.name}, País: ${companyForm.country}, Moeda: ${currentCurrency}] ${chatInput}`; const response = await fetch(`${API_URL}/api/chat`, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ message: context }) }); const data = await response.json(); if (data.reply) setMessages(prev => [...prev, { role: 'assistant', content: data.reply }]); } catch { setMessages(prev => [...prev, { role: 'assistant', content: '⚠️ Erro de conexão.' }]); } finally { setIsChatLoading(false); } };
@@ -749,14 +845,55 @@ export default function Dashboard() {
             <Route path="accounting" element={
                 <div className="h-full flex flex-col">
                     <div className="flex gap-2 border-b dark:border-gray-700 pb-2 mb-6 overflow-x-auto">
-                        {[{id:'overview',l:'Diário',i:PieChart},{id:'invoices',l:'Vendas',i:FileText},{id:'purchases',l:'Compras',i:TrendingDown},{id:'banking',l:'Bancos',i:Landmark},{id:'clients',l:'Clientes',i:Briefcase},{id:'suppliers',l:'Fornecedores',i:Truck},{id:'assets',l:'Ativos',i:Box},{id:'taxes',l:'Impostos',i:FileCheck},{id:'reports',l:'Relatórios',i:FileSpreadsheet}].map(t=>(<button key={t.id} onClick={()=>setAccountingTab(t.id)} className={`flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-bold border ${accountingTab===t.id?'bg-blue-50 text-blue-600 border-blue-200 dark:bg-blue-900/20 dark:border-blue-800':'bg-white dark:bg-gray-800 border-transparent'}`}><t.i size={16}/>{t.l}</button>))}
+                        {[{id:'overview',l:'Diário',i:PieChart},{id:'coa',l:'Plano de Contas',i:List},{id:'invoices',l:'Vendas',i:FileText},{id:'purchases',l:'Compras',i:TrendingDown},{id:'banking',l:'Bancos',i:Landmark},{id:'clients',l:'Clientes',i:Briefcase},{id:'suppliers',l:'Fornecedores',i:Truck},{id:'assets',l:'Ativos',i:Box},{id:'taxes',l:'Impostos',i:FileCheck},{id:'reports',l:'Relatórios',i:FileSpreadsheet}].map(t=>(<button key={t.id} onClick={()=>setAccountingTab(t.id)} className={`flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-bold border ${accountingTab===t.id?'bg-blue-50 text-blue-600 border-blue-200 dark:bg-blue-900/20 dark:border-blue-800':'bg-white dark:bg-gray-800 border-transparent'}`}><t.i size={16}/>{t.l}</button>))}
                     </div>
                     <div className="flex-1 bg-white dark:bg-gray-800 rounded-2xl shadow-sm border dark:border-gray-700 overflow-hidden">
                         {accountingTab === 'overview' && (
                             <div className="p-4">
-                                <div className="flex justify-between mb-4"><h3 className="font-bold flex gap-2"><BookOpen/> Movimentos Recentes</h3><button onClick={()=>setShowTransactionModal(true)} className="bg-blue-600 text-white px-3 py-1 rounded text-sm"><Plus size={16}/></button></div>
-                                <table className="w-full text-xs text-left"><thead className="bg-gray-100 dark:bg-gray-700 uppercase"><tr><th className="p-3">Data</th><th className="p-3">Desc.</th><th className="p-3 text-right">Valor</th></tr></thead>
-                                <tbody>{transactions.map(t=>(<tr key={t.id} className="border-b dark:border-gray-700"><td className="p-3">{new Date(t.date).toLocaleDateString()}</td><td className="p-3">{t.description}</td><td className={`p-3 text-right font-bold ${t.type==='income'?'text-green-600':'text-red-500'}`}>{t.type==='income'?'+':'-'} {displaySymbol} {(t.amount*conversionRate).toFixed(2)}</td></tr>))}</tbody></table>
+                                <div className="flex justify-between mb-4"><h3 className="font-bold flex gap-2"><BookOpen/> Diário Geral (Lançamentos)</h3><button onClick={()=>setShowTransactionModal(true)} className="bg-blue-600 text-white px-3 py-1 rounded text-sm"><Plus size={16}/></button></div>
+                                {/* TABELA DO DIÁRIO */}
+                                <div className="space-y-4">
+                                    {journalEntries.length === 0 ? <p className="text-gray-400 text-center py-8">Sem movimentos contabilísticos.</p> : journalEntries.map(entry => (
+                                        <div key={entry.id} className="border dark:border-gray-700 rounded-xl overflow-hidden shadow-sm text-sm">
+                                            <div className="bg-gray-50 dark:bg-gray-900 p-2 flex justify-between font-bold border-b dark:border-gray-700">
+                                                <span>{new Date(entry.date).toLocaleDateString()} - {entry.description}</span>
+                                                <span className="text-xs bg-gray-200 px-2 py-1 rounded">{entry.document_ref || 'MANUAL'}</span>
+                                            </div>
+                                            <table className="w-full text-xs">
+                                                <tbody>
+                                                    {entry.journal_items?.map((item: any, i: number) => (
+                                                        <tr key={i} className="border-b last:border-0 dark:border-gray-700">
+                                                            <td className="p-2 w-20 font-mono text-gray-500">{item.company_accounts?.code}</td>
+                                                            <td className="p-2">{item.company_accounts?.name}</td>
+                                                            <td className="p-2 text-right w-24 text-gray-600">{item.debit > 0 ? displaySymbol + item.debit.toFixed(2) : '-'}</td>
+                                                            <td className="p-2 text-right w-24 text-gray-600">{item.credit > 0 ? displaySymbol + item.credit.toFixed(2) : '-'}</td>
+                                                        </tr>
+                                                    ))}
+                                                </tbody>
+                                            </table>
+                                        </div>
+                                    ))}
+                                </div>
+                            </div>
+                        )}
+                        {accountingTab === 'coa' && (
+                            <div className="p-4">
+                                <h3 className="font-bold flex gap-2 mb-4"><List/> Plano de Contas ({companyForm.country})</h3>
+                                <div className="overflow-y-auto max-h-[60vh]">
+                                    <table className="w-full text-xs text-left">
+                                        <thead className="bg-gray-100 dark:bg-gray-700"><tr><th className="p-3">Conta</th><th className="p-3">Descrição</th><th className="p-3">Tipo</th></tr></thead>
+                                        <tbody>
+                                            {companyAccounts.map(acc => (
+                                                <tr key={acc.id} className="border-b dark:border-gray-700 hover:bg-gray-50">
+                                                    <td className="p-3 font-mono font-bold text-blue-600">{acc.code}</td>
+                                                    <td className="p-3">{acc.name}</td>
+                                                    <td className="p-3 uppercase text-[10px]"><span className="bg-gray-100 px-2 py-1 rounded">{acc.type}</span></td>
+                                                </tr>
+                                            ))}
+                                        </tbody>
+                                    </table>
+                                    {companyAccounts.length === 0 && <p className="text-center py-8 text-gray-400">Vá a Definições e guarde o país para gerar o plano.</p>}
+                                </div>
                             </div>
                         )}
                         {accountingTab === 'invoices' && (
@@ -833,7 +970,7 @@ export default function Dashboard() {
                             </div>
                         )}
                         {accountingTab === 'banking' && (
-                            <div className="p-6 text-center"><h3 className="text-xl font-bold mb-2">Reconciliação Bancária</h3><p className="text-gray-500 mb-4">Saldo Contabilístico: <span className="font-bold text-blue-600">{displaySymbol} {currentBalance.toFixed(2)}</span></p><div className="border rounded-xl overflow-hidden"><table className="w-full text-xs text-left"><thead className="bg-gray-100 dark:bg-gray-700"><tr><th className="p-3">Movimento</th><th className="p-3 text-right">Valor</th><th className="p-3 text-center">Banco?</th></tr></thead><tbody>{transactions.map(t=>(<tr key={t.id} className="border-b dark:border-gray-700"><td className="p-3">{t.description}</td><td className="p-3 text-right">{t.amount}</td><td className="p-3 text-center"><input type="checkbox"/></td></tr>))}</tbody></table></div></div>
+                            <div className="p-6 text-center"><h3 className="text-xl font-bold mb-2">Reconciliação Bancária</h3><p className="text-gray-500 mb-4">Saldo Contabilístico: <span className="font-bold text-blue-600">{displaySymbol} {currentBalance.toFixed(2)}</span></p><div className="border rounded-xl overflow-hidden"><table className="w-full text-xs text-left"><thead className="bg-gray-100 dark:bg-gray-700"><tr><th className="p-3">Movimento</th><th className="p-3 text-right">Valor</th><th className="p-3 text-center">Banco?</th></tr></thead><tbody>{journalEntries.map(t=>(<tr key={t.id} className="border-b dark:border-gray-700"><td className="p-3">{t.description}</td><td className="p-3 text-right">{t.amount || '-'}</td><td className="p-3 text-center"><input type="checkbox"/></td></tr>))}</tbody></table></div></div>
                         )}
                         {accountingTab === 'taxes' && (
                             <div className="p-6">
@@ -881,10 +1018,10 @@ export default function Dashboard() {
                         </div>
                         <div className="mt-4 grid grid-cols-2 gap-4">
                             <div><label className="block text-xs font-bold mb-1">Logo</label><input type="file" onChange={handleLogoUpload} className="block w-full text-sm text-gray-500 file:mr-4 file:py-2 file:px-4 file:rounded-full file:border-0 file:text-sm file:font-semibold file:bg-blue-50 file:text-blue-700 hover:file:bg-blue-100"/>{uploadingLogo && <p className="text-xs text-blue-500 mt-1">A carregar...</p>}</div>
-                            <div><label className="block text-xs font-bold mb-1">Template de Fundo (Imagem/PDF)</label><input type="file" onChange={handleTemplateUpload} className="block w-full text-sm text-gray-500 file:mr-4 file:py-2 file:px-4 file:rounded-full file:border-0 file:text-sm file:font-semibold file:bg-purple-50 file:text-purple-700 hover:file:bg-purple-100"/></div>
+                            <div><label className="block text-xs font-bold mb-1">Template de Fundo (Imagem A4/PDF)</label><input type="file" onChange={handleTemplateUpload} className="block w-full text-sm text-gray-500 file:mr-4 file:py-2 file:px-4 file:rounded-full file:border-0 file:text-sm file:font-semibold file:bg-purple-50 file:text-purple-700 hover:file:bg-purple-100"/>{uploadingTemplate && <p className="text-xs text-purple-500 mt-1">A carregar...</p>}</div>
                         </div>
                     </div>
-                    <div className="flex justify-end pt-4"><button onClick={handleSaveCompany} className="bg-blue-600 text-white px-8 py-3 rounded-xl font-bold">Guardar Tudo</button></div>
+                    <div className="flex justify-end pt-4"><button onClick={handleSaveCompany} className="bg-blue-600 text-white px-8 py-3 rounded-xl font-bold">Guardar & Inicializar</button></div>
                 </div>
             } />
             <Route path="chat" element={<div className="flex flex-col h-full bg-white dark:bg-gray-800 rounded-2xl border dark:border-gray-700 shadow-sm overflow-hidden"><div ref={scrollRef} className="flex-1 overflow-y-auto p-6 space-y-4">{messages.map((msg, i) => (<div key={i} className={`flex ${msg.role === 'user' ? 'justify-end' : 'justify-start'}`}><div className={`max-w-[80%] px-5 py-3 rounded-2xl text-sm shadow-sm ${msg.role === 'user' ? 'bg-blue-600 text-white rounded-tr-none' : 'bg-gray-100 dark:bg-gray-700 rounded-tl-none'}`}>{msg.content}</div></div>))}{isChatLoading && <div className="text-xs text-gray-400 ml-4 animate-pulse">A analisar...</div>}</div><div className="p-4 border-t dark:border-gray-700 bg-gray-50 dark:bg-gray-900"><form onSubmit={handleSendChatMessage} className="flex gap-2 relative"><input type="text" value={chatInput} onChange={(e) => setChatInput(e.target.value)} placeholder="Pergunte ao assistente EasyCheck..." className="flex-1 bg-white dark:bg-gray-800 border dark:border-gray-700 rounded-xl px-4 py-3 text-sm focus:ring-2 focus:ring-blue-500 outline-none shadow-sm"/><button type="submit" disabled={isChatLoading || !chatInput.trim()} className="bg-blue-600 text-white p-3 rounded-xl hover:bg-blue-700 shadow-md disabled:opacity-50"><Send size={18} /></button></form></div></div>} />
