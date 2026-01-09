@@ -11,7 +11,7 @@ import {
   TrendingDown, Landmark, PieChart, FileSpreadsheet, Bell, Calendar, Printer, List, 
   BookOpen, CreditCard, Box, Save, Briefcase, Truck, RefreshCw, CheckCircle, 
   AlertCircle, Edit2, Download, Image as ImageIcon, UploadCloud, AlertOctagon, 
-  TrendingUp as TrendingUpIcon, MoreVertical, Palette, FileInput, Paperclip
+  TrendingUp as TrendingUpIcon, MoreVertical, Palette, FileInput, Paperclip, Activity
 } from 'lucide-react';
 
 // --- DADOS ESTÁTICOS ---
@@ -105,7 +105,7 @@ export default function Dashboard() {
   
   const [accountingTab, setAccountingTab] = useState('overview'); 
   
-  // ESTADOS DE DADOS (Ligados à BD nova)
+  // ESTADOS DE DADOS
   const [journalEntries, setJournalEntries] = useState<any[]>([]); 
   const [realInvoices, setRealInvoices] = useState<any[]>([]); 
   const [purchases, setPurchases] = useState<any[]>([]); 
@@ -114,6 +114,7 @@ export default function Dashboard() {
   const [clients, setClients] = useState<any[]>([]);
   const [suppliers, setSuppliers] = useState<any[]>([]);
   const [provisions, setProvisions] = useState<any[]>([]);
+  const [actionLogs, setActionLogs] = useState<any[]>([]); // ✅ NOVO: Logs
   const [exchangeRates, setExchangeRates] = useState<any>(defaultRates);
 
   // Modais
@@ -199,6 +200,20 @@ export default function Dashboard() {
   const totalInvoicesCount = realInvoices.length;
 
   const getInitials = (name: string) => name ? (name.split(' ').length > 1 ? (name.split(' ')[0][0] + name.split(' ')[name.split(' ').length - 1][0]) : name.substring(0, 2)).toUpperCase() : 'EC';
+
+  // --- FUNÇÃO DE LOG (Auditoria) ---
+  const logAction = async (action: string, description: string) => {
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) return;
+      
+      const { data: newLog } = await supabase.from('action_logs').insert([{
+          user_id: user.id,
+          action_type: action,
+          description: description
+      }]).select().single();
+
+      if(newLog) setActionLogs(prev => [newLog, ...prev]);
+  };
 
   // --- AMORTIZAÇÃO ---
   const calculateAmortizationSchedule = (asset: any) => {
@@ -294,8 +309,7 @@ export default function Dashboard() {
             if (profile.custom_exchange_rates) { setExchangeRates({ ...defaultRates, ...profile.custom_exchange_rates }); }
         }
         
-        // BUSCAR DADOS
-        const [journal, inv, pur, acc, ass, cl, sup, prov] = await Promise.all([
+        const [journal, inv, pur, acc, ass, cl, sup, prov, logs] = await Promise.all([
              supabase.from('journal_entries').select('*, journal_items(debit, credit, company_accounts(code, name, type))').order('date', { ascending: false }),
              supabase.from('invoices').select('*, clients(name)').order('created_at', { ascending: false }),
              supabase.from('purchases').select('*, suppliers(name)').order('date', { ascending: false }),
@@ -303,7 +317,8 @@ export default function Dashboard() {
              supabase.from('accounting_assets').select('*'),
              supabase.from('clients').select('*'),
              supabase.from('suppliers').select('*'),
-             supabase.from('accounting_provisions').select('*')
+             supabase.from('accounting_provisions').select('*'),
+             supabase.from('action_logs').select('*').order('created_at', { ascending: false }).limit(20)
         ]);
 
         if (journal.data) setJournalEntries(journal.data);
@@ -314,6 +329,7 @@ export default function Dashboard() {
         if (cl.data) setClients(cl.data);
         if (sup.data) setSuppliers(sup.data);
         if (prov.data) setProvisions(prov.data);
+        if (logs.data) setActionLogs(logs.data);
       }
       setLoadingUser(false);
     };
@@ -382,7 +398,6 @@ export default function Dashboard() {
   const handleRemoveInvoiceItem = (index: number) => { const newItems = [...invoiceData.items]; newItems.splice(index, 1); setInvoiceData({ ...invoiceData, items: newItems }); };
   const updateInvoiceItem = (index: number, field: string, value: string) => { const newItems: any = [...invoiceData.items]; newItems[index][field] = field === 'description' ? value : parseFloat(value) || 0; setInvoiceData({ ...invoiceData, items: newItems }); };
 
-  // --- FATURAÇÃO COM LANÇAMENTO CONTABILÍSTICO ---
   const handleSaveInvoice = async () => {
       const totals = calculateInvoiceTotals();
       let docNumber = invoiceData.invoice_number;
@@ -418,7 +433,6 @@ export default function Dashboard() {
       const itemsToInsert = invoiceData.items.map(item => ({ invoice_id: invoiceId, description: item.description, quantity: item.quantity, unit_price: item.price, tax_rate: item.tax }));
       await supabase.from('invoice_items').insert(itemsToInsert);
 
-      // --- 3. LANÇAMENTO NO DIÁRIO ---
       const clientAccount = companyAccounts.find(a => a.code.startsWith('211') || a.code.startsWith('311')); 
       const salesAccount = companyAccounts.find(a => a.code.startsWith('71') || a.code.startsWith('61'));
       const taxAccount = companyAccounts.find(a => a.code.startsWith('243') || a.code.startsWith('342'));
@@ -443,9 +457,10 @@ export default function Dashboard() {
           }
       }
 
+      await logAction('FATURA', `Emitida Fatura ${docNumber} (${totals.total} ${displaySymbol})`);
+
       const { data: updatedInvoices } = await supabase.from('invoices').select('*, clients(name)').order('created_at', { ascending: false }); 
       if (updatedInvoices) setRealInvoices(updatedInvoices);
-      
       const { data: updatedJournal } = await supabase.from('journal_entries').select('*, journal_items(debit, credit, company_accounts(code, name))').order('date', { ascending: false });
       if (updatedJournal) setJournalEntries(updatedJournal);
 
@@ -468,7 +483,10 @@ export default function Dashboard() {
       if (window.confirm("ATENÇÃO: Apagar uma fatura emitida pode ter implicações fiscais.\nTem a certeza absoluta?")) { 
           if (window.prompt("Escreva 'APAGAR' para confirmar:") === 'APAGAR') { 
               const { error } = await supabase.from('invoices').delete().eq('id', id); 
-              if (!error) setRealInvoices(prev => prev.filter(i => i.id !== id)); 
+              if (!error) {
+                  setRealInvoices(prev => prev.filter(i => i.id !== id)); 
+                  logAction('ANULAR', `Fatura ${id} anulada`);
+              }
           } 
       } 
   };
@@ -489,12 +507,12 @@ export default function Dashboard() {
           setPurchases([data, ...purchases]); 
           setShowPurchaseForm(false); 
           setNewPurchase({ supplier_id: '', invoice_number: '', date: new Date().toISOString().split('T')[0], due_date: '', total: '', tax_total: '' }); 
+          logAction('DESPESA', `Registada compra ${data.invoice_number} de ${data.total}€`);
       } else {
           alert("Erro ao criar compra.");
       }
   };
 
-  // --- PDF ENGINE ---
   const generatePDFBlob = async (dataOverride?: any): Promise<Blob> => {
       const doc = new jsPDF();
       const dataToUse = dataOverride || invoiceData;
@@ -593,22 +611,16 @@ export default function Dashboard() {
     const link = document.createElement('a'); link.href = url; link.download = `EasyCheck_${invoiceData.invoice_number || 'Doc'}.pdf`; link.click();
   };
 
-  // ✅ --- GERADOR DE RELATÓRIOS FINANCEIROS (COM HIERARQUIA) ---
   const generateFinancialReport = (type: 'balancete' | 'dre') => {
     if (journalEntries.length === 0) return alert("Não há movimentos contabilísticos para gerar relatório.");
-
     const doc = new jsPDF();
     const title = type === 'balancete' ? 'Balancete de Verificação' : 'Demonstração de Resultados';
-    
-    // Cabeçalho
     doc.setFontSize(16); doc.text(companyForm.name, 15, 15);
     doc.setFontSize(10); doc.text(`NIF: ${companyForm.nif}`, 15, 20);
     doc.setFontSize(14); doc.setTextColor(0, 0, 255); doc.text(title, 15, 30);
     doc.setTextColor(0);
 
-    // 1. Agrupar saldos por conta
     const accountBalances: Record<string, {name: string, debit: number, credit: number}> = {};
-    
     journalEntries.forEach(entry => {
         entry.journal_items.forEach((item: any) => {
             const code = item.company_accounts?.code;
@@ -624,22 +636,16 @@ export default function Dashboard() {
     let totalDebit = 0; let totalCredit = 0;
     let currentClass = "";
 
-    // 2. Criar linhas com Cabeçalhos de Classe
     Object.keys(accountBalances).sort().forEach(code => {
         const acc = accountBalances[code];
         if (type === 'dre' && !code.startsWith('6') && !code.startsWith('7')) return;
-
-        // Inserir Cabeçalho de Classe (Ex: Classe 1, Classe 2...)
         const accountClass = code.charAt(0);
         if (accountClass !== currentClass) {
             currentClass = accountClass;
-            // Linha visual para a classe (simulada)
             rows.push([{ content: `CLASSE ${currentClass}`, colSpan: 5, styles: { fillColor: [240, 240, 240], fontStyle: 'bold' } }]);
         }
-
         const balance = acc.debit - acc.credit;
         rows.push([ code, acc.name, displaySymbol + acc.debit.toFixed(2), displaySymbol + acc.credit.toFixed(2), displaySymbol + balance.toFixed(2) ]);
-        
         totalDebit += acc.debit;
         totalCredit += acc.credit;
     });
@@ -668,9 +674,9 @@ export default function Dashboard() {
         doc.setFontSize(12); doc.text(`Resultado Líquido: ${displaySymbol} ${result.toFixed(2)}`, 15, finalY);
     }
     window.open(URL.createObjectURL(doc.output('blob')), '_blank');
+    logAction('RELATÓRIO', `Gerado ${title}`);
   };
 
-  // --- GENERAL HANDLERS ---
   const handleCreateTransaction = async () => { 
       if (!newTransaction.amount || !newTransaction.description) return alert("Preencha dados."); 
       const { data: entry, error } = await supabase.from('journal_entries').insert([{ 
@@ -680,24 +686,49 @@ export default function Dashboard() {
           alert("Movimento criado!");
           const { data: updatedJournal } = await supabase.from('journal_entries').select('*, journal_items(debit, credit, company_accounts(code, name))').order('date', { ascending: false });
           if(updatedJournal) setJournalEntries(updatedJournal);
+          logAction('DIARIO', `Lançamento manual: ${newTransaction.description}`);
           setShowTransactionModal(false); 
       } 
   };
   
-  // ⚠️ NOVO BOTÃO DE RESET (CUIDADO!)
   const handleResetFinancials = async () => {
       if(window.confirm("⚠️ ZONA DE PERIGO ⚠️\n\nIsto vai APAGAR:\n- Todas as Faturas\n- Todas as Compras\n- Todo o Diário\n\nTem a certeza absoluta?")) {
           if(window.prompt("Escreva 'RESET' para confirmar:") === 'RESET') {
-              // Apagar tudo (Atenção: A ordem importa por causa das chaves estrangeiras)
-              await supabase.from('journal_items').delete().neq('id', '00000000-0000-0000-0000-000000000000'); // Hack para apagar tudo
+              await supabase.from('journal_items').delete().neq('id', '00000000-0000-0000-0000-000000000000'); 
               await supabase.from('journal_entries').delete().neq('id', '00000000-0000-0000-0000-000000000000');
               await supabase.from('invoice_items').delete().neq('id', '00000000-0000-0000-0000-000000000000');
               await supabase.from('invoices').delete().neq('id', '00000000-0000-0000-0000-000000000000');
               await supabase.from('purchases').delete().neq('id', '00000000-0000-0000-0000-000000000000');
-              
+              await logAction('RESET', 'Reset Financeiro Executado');
               setJournalEntries([]); setRealInvoices([]); setPurchases([]);
-              alert("Sistema limpo com sucesso! Pode começar a trabalhar.");
+              alert("Sistema limpo com sucesso!");
           }
+      }
+  };
+
+  // ✅ CORREÇÃO: CLIENT DOUTEUX (CLIENTE DUVIDOSO)
+  const handleOpenDoubtful = (client: any) => { setSelectedClientForDebt(client); setShowDoubtfulModal(true); };
+  
+  const saveDoubtfulDebt = async () => { 
+      if (!selectedClientForDebt) return;
+      let amount = 0; 
+      if (debtMethod === 'manual') amount = parseFloat(manualDebtAmount) || 0; 
+      else { 
+          const clientInvoices = realInvoices.filter(inv => inv.client_id === selectedClientForDebt.id && selectedDebtInvoices.includes(inv.id)); 
+          amount = clientInvoices.reduce((sum, inv) => sum + inv.total, 0); 
+      } 
+      
+      const newStatus = selectedClientForDebt.status === 'doubtful' ? 'active' : 'doubtful'; 
+      const updates = { status: newStatus, doubtful_debt: newStatus === 'doubtful' ? amount : 0 }; 
+      
+      const { error } = await supabase.from('clients').update(updates).eq('id', selectedClientForDebt.id); 
+      
+      if (!error) { 
+          setClients(prev => prev.map(c => c.id === selectedClientForDebt.id ? { ...c, ...updates } : c)); 
+          logAction('RISCO', `Cliente ${selectedClientForDebt.name} marcado como ${newStatus} (${amount}€)`);
+          setShowDoubtfulModal(false); setManualDebtAmount(''); setSelectedDebtInvoices([]); 
+      } else {
+          alert("Erro ao atualizar cliente: " + error.message);
       }
   };
 
@@ -711,9 +742,6 @@ export default function Dashboard() {
   const handleDeleteEntity = async (id: string, type: 'client' | 'supplier') => { if (!window.confirm("Apagar este registo?")) return; const table = type === 'client' ? 'clients' : 'suppliers'; const { error } = await supabase.from(table).delete().eq('id', id); if (!error) { if (type === 'client') setClients(prev => prev.filter(c => c.id !== id)); else setSuppliers(prev => prev.filter(s => s.id !== id)); } };
   const handleDeleteTransaction = async (id: string) => { if (!window.confirm("Eliminar registo?")) return; const { error } = await supabase.from('journal_entries').delete().eq('id', id); if (!error) setJournalEntries(prev => prev.filter(t => t.id !== id)); };
   
-  const handleOpenDoubtful = (client: any) => { setSelectedClientForDebt(client); setShowDoubtfulModal(true); };
-  const saveDoubtfulDebt = async () => { let amount = 0; if (debtMethod === 'manual') amount = parseFloat(manualDebtAmount) || 0; else { const clientInvoices = realInvoices.filter(inv => inv.client_id === selectedClientForDebt.id && selectedDebtInvoices.includes(inv.id)); amount = clientInvoices.reduce((sum, inv) => sum + inv.total, 0); } const newStatus = selectedClientForDebt.status === 'doubtful' ? 'active' : 'doubtful'; const updates = { status: newStatus, doubtful_debt: newStatus === 'doubtful' ? amount : 0 }; const { error } = await supabase.from('clients').update(updates).eq('id', selectedClientForDebt.id); if (!error) { setClients(prev => prev.map(c => c.id === selectedClientForDebt.id ? { ...c, ...updates } : c)); setShowDoubtfulModal(false); setManualDebtAmount(''); setSelectedDebtInvoices([]); } };
-
   const handleCreateProvision = async () => { if (!newProvision.description || !newProvision.amount) return alert("Dados insuficientes"); const amountInEur = parseFloat(newProvision.amount) / conversionRate; let error = null, data = null; if (editingProvisionId) { const res = await supabase.from('accounting_provisions').update({ ...newProvision, amount: amountInEur }).eq('id', editingProvisionId).select(); error = res.error; data = res.data; if (!error && data) setProvisions(prev => prev.map(p => p.id === editingProvisionId ? data[0] : p)); } else { const res = await supabase.from('accounting_provisions').insert([{ user_id: userData.id, ...newProvision, amount: amountInEur }]).select(); error = res.error; data = res.data; if (!error && data) setProvisions([data[0], ...provisions]); } if (!error) { setShowProvisionModal(false); setEditingProvisionId(null); setNewProvision({ description: '', amount: '', type: 'Riscos e Encargos', date: new Date().toISOString().split('T')[0] }); } };
   const handleEditProvision = (prov: any) => { setEditingProvisionId(prov.id); setNewProvision({ description: prov.description, amount: prov.amount, type: prov.type, date: prov.date }); setShowProvisionModal(true); };
   const handleDeleteProvision = async (id: string) => { if (window.confirm("Apagar provisão?")) { const { error } = await supabase.from('accounting_provisions').delete().eq('id', id); if (!error) setProvisions(prev => prev.filter(p => p.id !== id)); } };
@@ -856,9 +884,30 @@ export default function Dashboard() {
                             <p className={`text-3xl font-bold ${currentBalance >= 0 ? 'text-blue-600 dark:text-blue-400' : 'text-red-600 dark:text-red-400'}`}>{showFinancials ? `${displaySymbol} ${currentBalance.toFixed(2)}` : '••••••'}</p>
                         </div>
                     </div>
+                    {/* SECÇÃO DE ATIVIDADE & LOGS */}
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                        <div className="bg-white dark:bg-gray-800 p-6 rounded-2xl shadow-sm border dark:border-gray-700 flex items-center justify-between"><div><h3 className="text-gray-500 text-sm font-medium uppercase tracking-wider">Faturas Emitidas</h3><p className="text-3xl font-bold text-orange-500 mt-1">{showFinancials ? totalInvoicesCount : '•••'}</p></div><div className="bg-orange-100 dark:bg-orange-900/30 p-3 rounded-xl"><FileText className="w-8 h-8 text-orange-500"/></div></div>
-                        <div className="bg-white dark:bg-gray-800 p-6 rounded-2xl shadow-sm border dark:border-gray-700 flex items-center justify-between"><div><h3 className="text-gray-500 text-sm font-medium uppercase tracking-wider">Ações Pendentes</h3><p className="text-3xl font-bold text-blue-600 mt-1">0</p></div><div className="bg-blue-100 dark:bg-blue-900/30 p-3 rounded-xl"><Bell className="w-8 h-8 text-blue-600"/></div></div>
+                        <div className="bg-white dark:bg-gray-800 p-6 rounded-2xl shadow-sm border dark:border-gray-700 flex flex-col h-full">
+                            <h3 className="text-gray-500 text-sm font-medium uppercase tracking-wider mb-4">Acesso Rápido</h3>
+                            <div className="grid grid-cols-2 gap-4">
+                                <button onClick={()=>{resetInvoiceForm();setShowInvoiceForm(true)}} className="p-4 bg-blue-50 dark:bg-blue-900/20 text-blue-600 dark:text-blue-300 rounded-xl font-bold flex flex-col items-center gap-2 hover:scale-105 transition-transform"><FileText/> Nova Fatura</button>
+                                <button onClick={()=>setAccountingTab('overview')} className="p-4 bg-purple-50 dark:bg-purple-900/20 text-purple-600 dark:text-purple-300 rounded-xl font-bold flex flex-col items-center gap-2 hover:scale-105 transition-transform"><BookOpen/> Diário</button>
+                            </div>
+                        </div>
+                        {/* ✅ LOG DE ATIVIDADES RECENTES */}
+                        <div className="bg-white dark:bg-gray-800 p-6 rounded-2xl shadow-sm border dark:border-gray-700 h-96 overflow-hidden flex flex-col">
+                            <h3 className="text-gray-500 text-sm font-medium uppercase tracking-wider mb-4 flex items-center gap-2"><Activity size={16}/> Últimas Atividades</h3>
+                            <div className="flex-1 overflow-y-auto pr-2 space-y-3">
+                                {actionLogs.length === 0 ? <p className="text-xs text-gray-400 text-center py-10">Sem histórico recente.</p> : actionLogs.map(log => (
+                                    <div key={log.id} className="flex gap-3 text-sm p-3 bg-gray-50 dark:bg-gray-700/30 rounded-xl">
+                                        <div className="w-1 min-h-full bg-blue-500 rounded-full"></div>
+                                        <div>
+                                            <p className="font-bold text-gray-700 dark:text-gray-200">{log.description}</p>
+                                            <p className="text-xs text-gray-400">{new Date(log.created_at).toLocaleString()}</p>
+                                        </div>
+                                    </div>
+                                ))}
+                            </div>
+                        </div>
                     </div>
                 </div>
             } />
@@ -871,7 +920,6 @@ export default function Dashboard() {
                         {accountingTab === 'overview' && (
                             <div className="p-4">
                                 <div className="flex justify-between mb-4"><h3 className="font-bold flex gap-2"><BookOpen/> Diário Geral (Lançamentos)</h3><button onClick={()=>setShowTransactionModal(true)} className="bg-blue-600 text-white px-3 py-1 rounded text-sm"><Plus size={16}/></button></div>
-                                
                                 {/* ✅ NOVA TABELA DENSA PROFISSIONAL */}
                                 <div className="overflow-x-auto border rounded-xl shadow-sm">
                                     <table className="w-full text-xs text-left border-collapse">
