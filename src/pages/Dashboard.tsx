@@ -105,11 +105,11 @@ export default function Dashboard() {
   
   const [accountingTab, setAccountingTab] = useState('overview'); 
   
-  // ESTADOS DE DADOS (Agora ligados às novas tabelas)
-  const [journalEntries, setJournalEntries] = useState<any[]>([]); // Antigo "transactions"
+  // ESTADOS DE DADOS (Ligados à BD nova)
+  const [journalEntries, setJournalEntries] = useState<any[]>([]); 
   const [realInvoices, setRealInvoices] = useState<any[]>([]); 
   const [purchases, setPurchases] = useState<any[]>([]); 
-  const [companyAccounts, setCompanyAccounts] = useState<any[]>([]); // Antigo "chartOfAccounts"
+  const [companyAccounts, setCompanyAccounts] = useState<any[]>([]); 
   const [assets, setAssets] = useState<any[]>([]); 
   const [clients, setClients] = useState<any[]>([]);
   const [suppliers, setSuppliers] = useState<any[]>([]);
@@ -154,7 +154,7 @@ export default function Dashboard() {
     name: '', country: 'Portugal', currency: 'EUR', 
     address: '', nif: '', logo_url: '', footer: '', 
     invoice_color: '#2563EB', header_text: '', template_url: '',
-    invoice_template_url: '' // Novo campo para o Word Template
+    invoice_template_url: '' 
   });
   
   const [newTransaction, setNewTransaction] = useState({ description: '', amount: '', type: 'expense', category: '', date: new Date().toISOString().split('T')[0] });
@@ -188,23 +188,20 @@ export default function Dashboard() {
   const conversionRate = exchangeRates[currentCurrency] || 1;
   const displaySymbol = getCurrencySymbol(currentCurrency);
 
-  // Cálculos Financeiros (Baseados no Novo Journal se possível, ou fallback)
   const totalRevenue = journalEntries
     .reduce((acc, entry) => {
-        // Lógica simplificada: Soma Créditos em contas de Rendimento (Classe 7/6)
         const incomeItems = entry.journal_items?.filter((i: any) => i.company_accounts?.type === 'rendimentos' || i.company_accounts?.code.startsWith('7'));
         return acc + (incomeItems?.reduce((sum: number, i: any) => sum + i.credit, 0) || 0);
     }, 0);
 
-  const totalExpenses = purchases.reduce((acc, curr) => acc + curr.total, 0); // Simplificação temporária
-  const currentBalance = totalRevenue - totalExpenses; // Aproximação
+  const totalExpenses = purchases.reduce((acc, curr) => acc + curr.total, 0); 
+  const currentBalance = totalRevenue - totalExpenses; 
   const totalInvoicesCount = realInvoices.length;
 
   const getInitials = (name: string) => name ? (name.split(' ').length > 1 ? (name.split(' ')[0][0] + name.split(' ')[name.split(' ').length - 1][0]) : name.substring(0, 2)).toUpperCase() : 'EC';
 
   // --- AMORTIZAÇÃO ---
   const calculateAmortizationSchedule = (asset: any) => {
-      // (Código de amortização mantém-se igual por ser lógica pura)
       if (!asset) return [];
       const schedule = [];
       let currentValue = parseFloat(asset.purchase_value);
@@ -292,18 +289,16 @@ export default function Dashboard() {
                 invoice_color: profile.invoice_color || '#2563EB', 
                 header_text: profile.header_text || '',
                 template_url: profile.template_url || '',
-                invoice_template_url: profile.invoice_template_url || '' // Template Word
+                invoice_template_url: profile.invoice_template_url || '' 
             });
             if (profile.custom_exchange_rates) { setExchangeRates({ ...defaultRates, ...profile.custom_exchange_rates }); }
         }
         
-        // --- BUSCAR DADOS (AGORA DAS NOVAS TABELAS) ---
+        // BUSCAR DADOS
         const [journal, inv, pur, acc, ass, cl, sup, prov] = await Promise.all([
-             // 1. DIÁRIO REAL (Journal Entries)
              supabase.from('journal_entries').select('*, journal_items(debit, credit, company_accounts(code, name, type))').order('date', { ascending: false }),
              supabase.from('invoices').select('*, clients(name)').order('created_at', { ascending: false }),
              supabase.from('purchases').select('*, suppliers(name)').order('date', { ascending: false }),
-             // 2. PLANO DE CONTAS REAL
              supabase.from('company_accounts').select('*').order('code', { ascending: true }),
              supabase.from('accounting_assets').select('*'),
              supabase.from('clients').select('*'),
@@ -311,10 +306,10 @@ export default function Dashboard() {
              supabase.from('accounting_provisions').select('*')
         ]);
 
-        if (journal.data) setJournalEntries(journal.data); // Substitui transactions
+        if (journal.data) setJournalEntries(journal.data);
         if (inv.data) setRealInvoices(inv.data);
         if (pur.data) setPurchases(pur.data);
-        if (acc.data) setCompanyAccounts(acc.data); // Substitui chartOfAccounts
+        if (acc.data) setCompanyAccounts(acc.data);
         if (ass.data) setAssets(ass.data);
         if (cl.data) setClients(cl.data);
         if (sup.data) setSuppliers(sup.data);
@@ -368,21 +363,18 @@ export default function Dashboard() {
       } catch (error: any) { alert("Erro: " + error.message); } finally { setUploadingLogo(false); }
   };
 
-  // --- UPLOAD DO TEMPLATE (WORD/IMAGEM) ---
   const handleTemplateUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
       if (!e.target.files || e.target.files.length === 0) return;
       setUploadingTemplate(true);
       const file = e.target.files[0];
       const fileName = `templates/${userData.id}_${Date.now()}.png`;
-
       try {
-          // Cria o bucket se não existir (ou usa company-logos por enquanto se company-assets não existir)
           const { error: uploadError } = await supabase.storage.from('company-logos').upload(fileName, file, { upsert: true });
           if (uploadError) throw uploadError;
           const { data: { publicUrl } } = supabase.storage.from('company-logos').getPublicUrl(fileName);
           setCompanyForm(prev => ({ ...prev, invoice_template_url: publicUrl }));
           await supabase.from('profiles').update({ invoice_template_url: publicUrl }).eq('id', userData.id);
-          alert("Template Word/Fundo carregado com sucesso!");
+          alert("Template carregado com sucesso!");
       } catch (error: any) { alert("Erro: " + error.message); } finally { setUploadingTemplate(false); }
   };
 
@@ -401,7 +393,6 @@ export default function Dashboard() {
       
       let invoiceId, invoiceDataResult;
       
-      // 1. Gravar Fatura
       if (invoiceData.id) {
           const res = await supabase.from('invoices').update({
              client_id: invoiceData.client_id, type: invoiceData.type, date: invoiceData.date, 
@@ -424,12 +415,10 @@ export default function Dashboard() {
           invoiceDataResult = res.data;
       }
 
-      // 2. Gravar Itens
       const itemsToInsert = invoiceData.items.map(item => ({ invoice_id: invoiceId, description: item.description, quantity: item.quantity, unit_price: item.price, tax_rate: item.tax }));
       await supabase.from('invoice_items').insert(itemsToInsert);
 
-      // --- 3. LANÇAMENTO NO DIÁRIO (CONTABILIDADE AUTOMÁTICA) ---
-      // Procura contas (Ex: 211 Clientes, 711 Vendas, 243 IVA)
+      // --- 3. LANÇAMENTO NO DIÁRIO ---
       const clientAccount = companyAccounts.find(a => a.code.startsWith('211') || a.code.startsWith('311')); 
       const salesAccount = companyAccounts.find(a => a.code.startsWith('71') || a.code.startsWith('61'));
       const taxAccount = companyAccounts.find(a => a.code.startsWith('243') || a.code.startsWith('342'));
@@ -454,17 +443,15 @@ export default function Dashboard() {
           }
       }
 
-      // Atualizar UI
       const { data: updatedInvoices } = await supabase.from('invoices').select('*, clients(name)').order('created_at', { ascending: false }); 
       if (updatedInvoices) setRealInvoices(updatedInvoices);
       
-      // Atualizar Diário na UI
       const { data: updatedJournal } = await supabase.from('journal_entries').select('*, journal_items(debit, credit, company_accounts(code, name))').order('date', { ascending: false });
       if (updatedJournal) setJournalEntries(updatedJournal);
 
       setShowPreviewModal(false); setShowInvoiceForm(false);
       resetInvoiceForm();
-      alert("Fatura emitida e contabilizada com sucesso!");
+      alert("Fatura emitida e contabilizada!");
   };
 
   const resetInvoiceForm = () => {
@@ -486,7 +473,6 @@ export default function Dashboard() {
       } 
   };
 
-  // --- COMPRAS (PURCHASES) ---
   const handleCreatePurchase = async () => {
       if(!newPurchase.supplier_id || !newPurchase.total) return alert("Preencha fornecedor e total.");
       const { data, error } = await supabase.from('purchases').insert([{
@@ -508,12 +494,11 @@ export default function Dashboard() {
       }
   };
 
-  // --- PDF ENGINE (COM SUPORTE A WORD TEMPLATE) ---
+  // --- PDF ENGINE ---
   const generatePDFBlob = async (dataOverride?: any): Promise<Blob> => {
       const doc = new jsPDF();
       const dataToUse = dataOverride || invoiceData;
       let subtotal = 0; let taxTotal = 0;
-      
       dataToUse.items.forEach((item: any) => {
           const price = item.price !== undefined ? item.price : item.unit_price;
           const tax = item.tax !== undefined ? item.tax : item.tax_rate;
@@ -525,23 +510,20 @@ export default function Dashboard() {
       const totals = { subtotal, taxTotal, total: subtotal + taxTotal };
       const client = clients.find(c => c.id === dataToUse.client_id) || { name: 'Cliente Final', address: '', nif: '', city: '', postal_code: '', country: '' };
       
-      // 1. BACKGROUND TEMPLATE (WORD UPLOADED)
-      const templateToUse = companyForm.invoice_template_url || companyForm.template_url; // Suporta ambos
+      const templateToUse = companyForm.invoice_template_url || companyForm.template_url; 
       if(templateToUse) {
           try {
               const img = new Image(); 
               img.src = templateToUse; 
               img.crossOrigin = "Anonymous";
               await new Promise((resolve) => { img.onload = resolve; img.onerror = resolve; });
-              doc.addImage(img, 'PNG', 0, 0, 210, 297); // Full page background A4
+              doc.addImage(img, 'PNG', 0, 0, 210, 297); 
           } catch (e) { console.error("Erro template", e); }
       }
 
-      // Se NÃO tiver template, desenha o cabeçalho padrão
       if(!templateToUse) {
           doc.setFillColor(companyForm.invoice_color || '#2563EB'); 
           doc.rect(0, 0, 210, 10, 'F'); 
-          
           if (companyForm.logo_url) {
             try { 
                 const img = new Image(); img.src = companyForm.logo_url; img.crossOrigin = "Anonymous"; 
@@ -549,7 +531,6 @@ export default function Dashboard() {
                 doc.addImage(img, 'PNG', 15, 20, 30, 20); 
             } catch {}
           }
-          
           doc.setFont("helvetica", "bold"); doc.setFontSize(14); doc.setTextColor(40); 
           doc.text(companyForm.name || 'Minha Empresa', 200, 25, { align: 'right' });
           doc.setFont("helvetica", "normal"); doc.setFontSize(9); doc.setTextColor(80); 
@@ -557,117 +538,146 @@ export default function Dashboard() {
           doc.text(`NIF: ${companyForm.nif || 'N/A'}`, 200, 35, { align: 'right' });
       }
 
-      // DADOS DA FATURA (Posicionados para cair bem em templates padrão)
       doc.setFont("helvetica", "bold"); doc.setFontSize(10); doc.setTextColor(0);
       doc.text("FATURA Nº", 140, 50);
       doc.text("DATA", 140, 55);
-      
       doc.setFont("helvetica", "normal");
       const docNum = dataToUse.invoice_number || "RASCUNHO";
       doc.text(docNum, 170, 50, { align: 'right' }); 
       doc.text(dataToUse.date, 170, 55, { align: 'right' });
 
-      // CLIENTE
-      doc.setFont("helvetica", "bold"); 
-      doc.text("Exmo.(s) Sr.(s)", 15, 60);
-      doc.setFont("helvetica", "normal"); 
-      doc.setFontSize(11);
+      doc.setFont("helvetica", "bold"); doc.text("Exmo.(s) Sr.(s)", 15, 60);
+      doc.setFont("helvetica", "normal"); doc.setFontSize(11);
       doc.text(client.name, 15, 66);
       doc.setFontSize(10);
       if(client.address) doc.text(client.address, 15, 71);
       if(client.nif) doc.text(`NIF: ${client.nif}`, 15, 76);
 
-      // TABELA
       const tableRows = dataToUse.items.map((item: any) => { 
           const price = item.price ?? item.unit_price; 
           const tax = item.tax ?? item.tax_rate; 
-          return [ 
-              item.description, 
-              item.quantity, 
-              `${displaySymbol} ${price.toFixed(2)}`, 
-              `${tax}%`, 
-              `${displaySymbol} ${(item.quantity * price).toFixed(2)}` 
-          ]; 
+          return [ item.description, item.quantity, `${displaySymbol} ${price.toFixed(2)}`, `${tax}%`, `${displaySymbol} ${(item.quantity * price).toFixed(2)}` ]; 
       });
-      
       autoTable(doc, { 
           head: [["Descrição", "Qtd", "Preço Unit.", "IVA", "Total"]], 
           body: tableRows, 
           startY: 90, 
-          theme: 'plain', // Minimalista para bater certo com template Word
+          theme: 'plain', 
           headStyles: { fillColor: companyForm.invoice_color || '#444', textColor: 255, fontStyle: 'bold' },
           styles: { fontSize: 9, cellPadding: 3 },
           columnStyles: { 4: { halign: 'right' } }
       });
       
       const finalY = (doc as any).lastAutoTable.finalY + 10;
-
-      // TOTAIS
       doc.setFontSize(10);
-      doc.text(`Ilíquido:`, 130, finalY); 
-      doc.text(`${displaySymbol} ${totals.subtotal.toFixed(2)}`, 195, finalY, { align: 'right' });
-      doc.text(`Total IVA:`, 130, finalY + 5); 
-      doc.text(`${displaySymbol} ${totals.taxTotal.toFixed(2)}`, 195, finalY + 5, { align: 'right' });
-      doc.setFontSize(14); doc.setFont("helvetica", "bold"); 
-      doc.setTextColor(companyForm.invoice_color || '#2563EB');
-      doc.text(`TOTAL:`, 130, finalY + 15); 
-      doc.text(`${displaySymbol} ${totals.total.toFixed(2)}`, 195, finalY + 15, { align: 'right' });
+      doc.text(`Ilíquido:`, 130, finalY); doc.text(`${displaySymbol} ${totals.subtotal.toFixed(2)}`, 195, finalY, { align: 'right' });
+      doc.text(`Total IVA:`, 130, finalY + 5); doc.text(`${displaySymbol} ${totals.taxTotal.toFixed(2)}`, 195, finalY + 5, { align: 'right' });
+      doc.setFontSize(14); doc.setFont("helvetica", "bold"); doc.setTextColor(companyForm.invoice_color || '#2563EB');
+      doc.text(`TOTAL:`, 130, finalY + 15); doc.text(`${displaySymbol} ${totals.total.toFixed(2)}`, 195, finalY + 15, { align: 'right' });
 
-      // RODAPÉ LEGAL
       const pageHeight = doc.internal.pageSize.height;
       doc.setFontSize(7); doc.setTextColor(150); doc.setFont('helvetica', 'normal');
       doc.text("Processado por EasyCheck ERP (Licença Nº 001)", 105, pageHeight - 10, { align: 'center' });
-
       return doc.output('blob');
   };
 
   const handleQuickPreview = async (invoice: any) => {
     const { data: items } = await supabase.from('invoice_items').select('*').eq('invoice_id', invoice.id);
     if (!items) return alert("Erro ao carregar itens.");
-    const fullInvoiceData = { 
-        ...invoice, 
-        items: items.map((i: any) => ({ 
-            description: i.description, 
-            quantity: i.quantity, 
-            price: i.unit_price, 
-            tax: i.tax_rate 
-        })) 
-    };
-    try { 
-        const blob = await generatePDFBlob(fullInvoiceData); 
-        setPdfPreviewUrl(URL.createObjectURL(blob)); 
-        setShowPreviewModal(true); 
-    } catch { 
-        alert("Erro ao gerar PDF."); 
-    }
+    const fullInvoiceData = { ...invoice, items: items.map((i: any) => ({ description: i.description, quantity: i.quantity, price: i.unit_price, tax: i.tax_rate })) };
+    try { const blob = await generatePDFBlob(fullInvoiceData); setPdfPreviewUrl(URL.createObjectURL(blob)); setShowPreviewModal(true); } catch { alert("Erro ao gerar PDF."); }
   };
 
   const handleDownloadPDF = async () => {
-    const blob = await generatePDFBlob(); 
-    const url = URL.createObjectURL(blob);
-    const link = document.createElement('a'); 
-    link.href = url; 
-    link.download = `EasyCheck_${invoiceData.invoice_number || 'Doc'}.pdf`; 
-    link.click();
+    const blob = await generatePDFBlob(); const url = URL.createObjectURL(blob);
+    const link = document.createElement('a'); link.href = url; link.download = `EasyCheck_${invoiceData.invoice_number || 'Doc'}.pdf`; link.click();
+  };
+
+  // ✅ --- GERADOR DE RELATÓRIOS FINANCEIROS ---
+  const generateFinancialReport = (type: 'balancete' | 'dre') => {
+    if (journalEntries.length === 0) return alert("Não há movimentos contabilísticos para gerar relatório.");
+
+    const doc = new jsPDF();
+    const title = type === 'balancete' ? 'Balancete de Verificação' : 'Demonstração de Resultados';
+    
+    // Cabeçalho
+    doc.setFontSize(16); doc.text(companyForm.name, 15, 15);
+    doc.setFontSize(10); doc.text(`NIF: ${companyForm.nif}`, 15, 20);
+    doc.setFontSize(14); doc.setTextColor(0, 0, 255); doc.text(title, 15, 30);
+    doc.setTextColor(0);
+
+    // Cálculos
+    const accountBalances: Record<string, {name: string, debit: number, credit: number}> = {};
+    
+    journalEntries.forEach(entry => {
+        entry.journal_items.forEach((item: any) => {
+            const code = item.company_accounts?.code;
+            const name = item.company_accounts?.name;
+            if (!code) return;
+
+            if (!accountBalances[code]) accountBalances[code] = { name, debit: 0, credit: 0 };
+            accountBalances[code].debit += item.debit;
+            accountBalances[code].credit += item.credit;
+        });
+    });
+
+    const rows: any[] = [];
+    let totalDebit = 0;
+    let totalCredit = 0;
+
+    Object.keys(accountBalances).sort().forEach(code => {
+        const acc = accountBalances[code];
+        // Para DRE, filtramos apenas classes de Gastos (6) e Rendimentos (7)
+        if (type === 'dre' && !code.startsWith('6') && !code.startsWith('7')) return;
+
+        const balance = acc.debit - acc.credit;
+        rows.push([ code, acc.name, displaySymbol + acc.debit.toFixed(2), displaySymbol + acc.credit.toFixed(2), displaySymbol + balance.toFixed(2) ]);
+        totalDebit += acc.debit;
+        totalCredit += acc.credit;
+    });
+
+    autoTable(doc, {
+        startY: 40,
+        head: [['Conta', 'Descrição', 'Débito', 'Crédito', 'Saldo']],
+        body: rows,
+        theme: 'grid',
+        styles: { fontSize: 8 },
+        columnStyles: { 2: { halign: 'right' }, 3: { halign: 'right' }, 4: { halign: 'right' } }
+    });
+
+    // Rodapé com Totais
+    const finalY = (doc as any).lastAutoTable.finalY + 10;
+    doc.setFont("helvetica", "bold");
+    if (type === 'balancete') {
+        doc.text(`Total Débito: ${displaySymbol} ${totalDebit.toFixed(2)}`, 15, finalY);
+        doc.text(`Total Crédito: ${displaySymbol} ${totalCredit.toFixed(2)}`, 100, finalY);
+        if (Math.abs(totalDebit - totalCredit) < 0.01) {
+            doc.setTextColor(0, 150, 0);
+            doc.text("✅ Contas Batem Certo (Partidas Dobradas)", 15, finalY + 10);
+        } else {
+            doc.setTextColor(200, 0, 0);
+            doc.text("❌ Desequilíbrio detetado!", 15, finalY + 10);
+        }
+    } else {
+        const result = totalCredit - totalDebit; 
+        doc.setFontSize(12);
+        doc.text(`Resultado Líquido do Período: ${displaySymbol} ${result.toFixed(2)}`, 15, finalY);
+    }
+
+    window.open(URL.createObjectURL(doc.output('blob')), '_blank');
   };
 
   // --- GENERAL HANDLERS ---
   const handleCreateTransaction = async () => { 
-      // Criar transação manual no Diário
       if (!newTransaction.amount || !newTransaction.description) return alert("Preencha dados."); 
       const amountInEur = parseFloat(newTransaction.amount) / conversionRate; 
       
       const { data: entry, error } = await supabase.from('journal_entries').insert([{ 
-          user_id: userData.id, 
-          description: newTransaction.description, 
-          date: newTransaction.date 
+          user_id: userData.id, description: newTransaction.description, date: newTransaction.date 
       }]).select().single();
 
       if (!error && entry) { 
-          // Criar linhas manuais (Exemplo simplificado: Caixa vs Categoria)
-          // Num cenário real, o user escolheria as contas. Aqui assumimos Caixa (11) e Gastos (62)
-          // Isso pode ser melhorado depois com um seletor de contas no modal.
-          alert("Movimento criado! (Nota: Para movimentos contabilísticos precisos, use a faturação ou implemente o seletor de contas)");
+          alert("Movimento criado! (Nota: Para movimentos contabilísticos precisos, use a faturação)");
           const { data: updatedJournal } = await supabase.from('journal_entries').select('*, journal_items(debit, credit, company_accounts(code, name))').order('date', { ascending: false });
           if(updatedJournal) setJournalEntries(updatedJournal);
           setShowTransactionModal(false); 
@@ -692,8 +702,6 @@ export default function Dashboard() {
   const handleDeleteProvision = async (id: string) => { if (window.confirm("Apagar provisão?")) { const { error } = await supabase.from('accounting_provisions').delete().eq('id', id); if (!error) setProvisions(prev => prev.filter(p => p.id !== id)); } };
 
   const handleSaveProfile = async () => { setSavingProfile(true); try { await supabase.from('profiles').update({ full_name: editForm.fullName, job_title: editForm.jobTitle, updated_at: new Date() }).eq('id', userData.id); setProfileData({ ...profileData, ...{ full_name: editForm.fullName } }); alert(`Perfil atualizado!`); setIsProfileModalOpen(false); } catch { alert("Erro ao guardar."); } finally { setSavingProfile(false); } };
-  
-  // --- GUARDAR EMPRESA & INICIALIZAR CONTABILIDADE ---
   const handleSaveCompany = async () => { setSavingCompany(true); try { 
       const updates = { 
           company_name: companyForm.name, 
@@ -718,7 +726,6 @@ export default function Dashboard() {
           const { error: rpcError } = await supabase.rpc('init_company_accounting', { target_user_id: userData.id, target_country: companyForm.country });
           if(rpcError) console.error("Erro ao gerar plano:", rpcError);
           else {
-              // Recarregar contas
               const { data: newAccounts } = await supabase.from('company_accounts').select('*').order('code', { ascending: true });
               if(newAccounts) setCompanyAccounts(newAccounts);
           }
@@ -983,7 +990,20 @@ export default function Dashboard() {
                             </div>
                         )}
                         {accountingTab === 'reports' && (
-                            <div className="p-6 text-center"><h3 className="font-bold text-lg mb-4">Relatórios Financeiros</h3><div className="grid grid-cols-2 gap-4">{['Balancete', 'Demonstração Resultados', 'Fluxo de Caixa', 'Mapa de Fornecedores'].map(r=>(<button key={r} className="p-6 border rounded-xl hover:bg-gray-50 dark:hover:bg-gray-700 font-bold flex flex-col items-center gap-2 transition-all hover:scale-105 shadow-sm"><FileText size={24} className="text-blue-500"/> {r}</button>))}</div></div>
+                            <div className="p-6 text-center">
+                                <h3 className="font-bold text-lg mb-6 text-gray-700 dark:text-white">Relatórios Financeiros Oficiais</h3>
+                                <div className="grid grid-cols-1 md:grid-cols-2 gap-6 max-w-2xl mx-auto">
+                                    <button onClick={() => generateFinancialReport('balancete')} className="p-8 border rounded-2xl hover:bg-blue-50 dark:hover:bg-blue-900/20 border-gray-200 dark:border-gray-700 flex flex-col items-center gap-4 transition-all hover:scale-105 shadow-sm group">
+                                        <div className="bg-blue-100 p-4 rounded-full group-hover:bg-blue-200"><List size={32} className="text-blue-600"/></div>
+                                        <div><h4 className="font-bold text-xl text-gray-800 dark:text-white">Balancete</h4><p className="text-sm text-gray-500">Resumo de todas as contas e verificação de equilíbrio.</p></div>
+                                    </button>
+                                    <button onClick={() => generateFinancialReport('dre')} className="p-8 border rounded-2xl hover:bg-green-50 dark:hover:bg-green-900/20 border-gray-200 dark:border-gray-700 flex flex-col items-center gap-4 transition-all hover:scale-105 shadow-sm group">
+                                        <div className="bg-green-100 p-4 rounded-full group-hover:bg-green-200"><TrendingUpIcon size={32} className="text-green-600"/></div>
+                                        <div><h4 className="font-bold text-xl text-gray-800 dark:text-white">Demonstração de Resultados</h4><p className="text-sm text-gray-500">Análise de Proveitos (Vendas) vs Custos.</p></div>
+                                    </button>
+                                </div>
+                                {journalEntries.length === 0 && <p className="mt-8 text-sm text-red-400 bg-red-50 p-2 rounded inline-block">⚠️ Gere movimentos (Faturas/Despesas) para desbloquear os relatórios.</p>}
+                            </div>
                         )}
                         {accountingTab === 'suppliers' && (
                             <div>
