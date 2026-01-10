@@ -129,9 +129,10 @@ export default function Dashboard() {
   const [actionLogs, setActionLogs] = useState<any[]>([]);
   const [exchangeRates, setExchangeRates] = useState<any>(defaultRates);
 
-  // ✅ NOVOS ESTADOS: Reconciliação
+  // ✅ NOVOS ESTADOS: Reconciliação e UI
   const [bankStatement, setBankStatement] = useState<BankStatementLine[]>([]);
   const [isUploadingCSV, setIsUploadingCSV] = useState(false);
+  const [manualTaxMode, setManualTaxMode] = useState(false); // ✅ Estado para controlar o modo de edição de IVA
 
   // Modais
   const [isDeleteModalOpen, setIsDeleteModalOpen] = useState(false);
@@ -580,6 +581,7 @@ export default function Dashboard() {
 
   const resetInvoiceForm = () => {
     setInvoiceData({ id: '', client_id: '', type: 'Fatura', invoice_number: '', date: new Date().toISOString().split('T')[0], due_date: new Date(new Date().setDate(new Date().getDate() + 30)).toISOString().split('T')[0], exemption_reason: '', items: [{ description: '', quantity: 1, price: 0, tax: 0 }] });
+    setManualTaxMode(false); // Reset manual tax mode
   };
 
   const handleEditInvoice = async (invoice: any) => {
@@ -1198,7 +1200,7 @@ export default function Dashboard() {
             <Route path="accounting" element={
                 <div className="h-full flex flex-col">
                     <div className="flex gap-2 border-b dark:border-gray-700 pb-2 mb-6 overflow-x-auto">
-                        {[{id:'overview',l:'Diário',i:PieChart},{id:'coa',l:'Plano de Contas',i:List},{id:'invoices',l:'Vendas',i:FileText},{id:'purchases',l:'Compras',i:TrendingDown},{id:'banking',l:'Bancos',i:Landmark},{id:'clients',l:'Clientes',i:Briefcase},{id:'suppliers',l:'Fornecedores',i:Truck},{id:'assets',l:'Ativos',i:Box},{id:'taxes',l:'Impostos',i:FileCheck},{id:'reports',l:'Relatórios',i:FileSpreadsheet}].map(t=>(<button key={t.id} onClick={()=>setAccountingTab(t.id)} className={`flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-bold border ${accountingTab===t.id?'bg-blue-50 text-blue-600 border-blue-200 dark:bg-blue-900/20 dark:border-blue-800':'bg-white dark:bg-gray-800 border-transparent'}`}><t.i size={16}/>{t.l}</button>))}
+                        {[{id:'overview',l:'Diário',i:PieChart},{id:'coa',l:'Plano de Contas',i:List},{id:'invoices',l:'Faturas',i:FileText},{id:'purchases',l:'Compras',i:TrendingDown},{id:'banking',l:'Bancos',i:Landmark},{id:'clients',l:'Clientes',i:Briefcase},{id:'suppliers',l:'Fornecedores',i:Truck},{id:'assets',l:'Ativos',i:Box},{id:'taxes',l:'Impostos',i:FileCheck},{id:'reports',l:'Relatórios',i:FileSpreadsheet}].map(t=>(<button key={t.id} onClick={()=>setAccountingTab(t.id)} className={`flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-bold border ${accountingTab===t.id?'bg-blue-50 text-blue-600 border-blue-200 dark:bg-blue-900/20 dark:border-blue-800':'bg-white dark:bg-gray-800 border-transparent'}`}><t.i size={16}/>{t.l}</button>))}
                     </div>
                     <div className="flex-1 bg-white dark:bg-gray-800 rounded-2xl shadow-sm border dark:border-gray-700 overflow-hidden">
                         {accountingTab === 'overview' && (
@@ -1280,14 +1282,32 @@ export default function Dashboard() {
                                                     <div><label className="text-xs font-bold block mb-2 uppercase text-gray-500">Data</label><input type="date" className="w-full p-3 border rounded-xl dark:bg-gray-900 outline-none" value={invoiceData.date} onChange={e=>setInvoiceData({...invoiceData,date:e.target.value})}/></div>
                                                 </div>
                                                 <table className="w-full text-sm mb-6 border-collapse">
-                                                    <thead><tr className="bg-gray-100 dark:bg-gray-700 text-left"><th className="p-3 rounded-l-lg">Descrição</th><th className="p-3 w-20 text-center">Qtd</th><th className="p-3 w-32 text-right">Preço</th><th className="p-3 w-24 text-right">IVA</th><th className="p-3 w-32 text-right rounded-r-lg">Total</th><th className="p-3 w-10"></th></tr></thead>
+                                                    <thead><tr className="bg-gray-100 dark:bg-gray-700 text-left">
+                                                        <th className="p-3 rounded-l-lg">Descrição</th>
+                                                        <th className="p-3 w-20 text-center">Qtd</th>
+                                                        <th className="p-3 w-32 text-right">Preço</th>
+                                                        <th className="p-3 w-24 text-right">
+                                                            IVA 
+                                                            <button onClick={() => setManualTaxMode(!manualTaxMode)} className="ml-1 text-blue-500 hover:text-blue-700" title="Editar Manualmente">
+                                                                <Edit2 size={12}/>
+                                                            </button>
+                                                        </th>
+                                                        <th className="p-3 w-32 text-right rounded-r-lg">Total</th>
+                                                        <th className="p-3 w-10"></th>
+                                                    </tr></thead>
                                                     <tbody>
                                                         {invoiceData.items.map((it,ix)=>(
                                                             <tr key={ix} className="border-b dark:border-gray-700 group">
                                                                 <td className="p-3"><input className="w-full bg-transparent outline-none font-medium" placeholder="Item" value={it.description} onChange={e=>updateInvoiceItem(ix,'description',e.target.value)}/></td>
                                                                 <td className="p-3"><input type="number" className="w-full bg-transparent text-center outline-none" value={it.quantity} onChange={e=>updateInvoiceItem(ix,'quantity',e.target.value)}/></td>
                                                                 <td className="p-3"><input type="number" className="w-full bg-transparent text-right outline-none" value={it.price} onChange={e=>updateInvoiceItem(ix,'price',e.target.value)}/></td>
-                                                                <td className="p-3"><select className="w-full bg-transparent outline-none text-right appearance-none cursor-pointer" value={it.tax} onChange={e=>updateInvoiceItem(ix,'tax',e.target.value)}>{getCurrentCountryVatRates().map(r=><option key={r} value={r}>{r}%</option>)}</select></td>
+                                                                <td className="p-3">
+                                                                    {manualTaxMode ? (
+                                                                        <input type="number" className="w-full bg-transparent text-right outline-none border-b border-blue-300" value={it.tax} onChange={e=>updateInvoiceItem(ix,'tax',e.target.value)} autoFocus/>
+                                                                    ) : (
+                                                                        <select className="w-full bg-transparent outline-none text-right appearance-none cursor-pointer" value={it.tax} onChange={e=>updateInvoiceItem(ix,'tax',e.target.value)}>{getCurrentCountryVatRates().map(r=><option key={r} value={r}>{r}%</option>)}</select>
+                                                                    )}
+                                                                </td>
                                                                 <td className="p-3 text-right font-bold">{displaySymbol} {(it.quantity*it.price).toFixed(2)}</td>
                                                                 <td className="p-3 text-center"><button onClick={()=>handleRemoveInvoiceItem(ix)} className="text-gray-300 hover:text-red-500 opacity-0 group-hover:opacity-100"><Trash2 size={16}/></button></td>
                                                             </tr>
@@ -1495,14 +1515,32 @@ export default function Dashboard() {
                         <div><label className="text-xs font-bold block mb-2 uppercase text-gray-500">Data</label><input type="date" className="w-full p-3 border rounded-xl dark:bg-gray-900 outline-none" value={invoiceData.date} onChange={e=>setInvoiceData({...invoiceData,date:e.target.value})}/></div>
                     </div>
                     <table className="w-full text-sm mb-6 border-collapse">
-                        <thead><tr className="bg-gray-100 dark:bg-gray-700 text-left"><th className="p-3 rounded-l-lg">Descrição</th><th className="p-3 w-20 text-center">Qtd</th><th className="p-3 w-32 text-right">Preço</th><th className="p-3 w-24 text-right">IVA</th><th className="p-3 w-32 text-right rounded-r-lg">Total</th><th className="p-3 w-10"></th></tr></thead>
+                        <thead><tr className="bg-gray-100 dark:bg-gray-700 text-left">
+                            <th className="p-3 rounded-l-lg">Descrição</th>
+                            <th className="p-3 w-20 text-center">Qtd</th>
+                            <th className="p-3 w-32 text-right">Preço</th>
+                            <th className="p-3 w-24 text-right">
+                                IVA 
+                                <button onClick={() => setManualTaxMode(!manualTaxMode)} className="ml-1 text-blue-500 hover:text-blue-700" title="Editar Manualmente">
+                                    <Edit2 size={12}/>
+                                </button>
+                            </th>
+                            <th className="p-3 w-32 text-right rounded-r-lg">Total</th>
+                            <th className="p-3 w-10"></th>
+                        </tr></thead>
                         <tbody>
                             {invoiceData.items.map((it,ix)=>(
                                 <tr key={ix} className="border-b dark:border-gray-700 group">
                                     <td className="p-3"><input className="w-full bg-transparent outline-none font-medium" placeholder="Item" value={it.description} onChange={e=>updateInvoiceItem(ix,'description',e.target.value)}/></td>
                                     <td className="p-3"><input type="number" className="w-full bg-transparent text-center outline-none" value={it.quantity} onChange={e=>updateInvoiceItem(ix,'quantity',e.target.value)}/></td>
                                     <td className="p-3"><input type="number" className="w-full bg-transparent text-right outline-none" value={it.price} onChange={e=>updateInvoiceItem(ix,'price',e.target.value)}/></td>
-                                    <td className="p-3"><select className="w-full bg-transparent outline-none text-right appearance-none cursor-pointer" value={it.tax} onChange={e=>updateInvoiceItem(ix,'tax',e.target.value)}>{getCurrentCountryVatRates().map(r=><option key={r} value={r}>{r}%</option>)}</select></td>
+                                    <td className="p-3">
+                                        {manualTaxMode ? (
+                                            <input type="number" className="w-full bg-transparent text-right outline-none border-b border-blue-300" value={it.tax} onChange={e=>updateInvoiceItem(ix,'tax',e.target.value)} autoFocus/>
+                                        ) : (
+                                            <select className="w-full bg-transparent outline-none text-right appearance-none cursor-pointer" value={it.tax} onChange={e=>updateInvoiceItem(ix,'tax',e.target.value)}>{getCurrentCountryVatRates().map(r=><option key={r} value={r}>{r}%</option>)}</select>
+                                        )}
+                                    </td>
                                     <td className="p-3 text-right font-bold">{displaySymbol} {(it.quantity*it.price).toFixed(2)}</td>
                                     <td className="p-3 text-center"><button onClick={()=>handleRemoveInvoiceItem(ix)} className="text-gray-300 hover:text-red-500 opacity-0 group-hover:opacity-100"><Trash2 size={16}/></button></td>
                                 </tr>
