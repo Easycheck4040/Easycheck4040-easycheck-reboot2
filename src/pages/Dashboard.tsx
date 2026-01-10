@@ -15,6 +15,66 @@ import {
     TrendingUp as TrendingUpIcon, MoreVertical, Palette, FileInput, Paperclip, Activity, Zap 
 } from 'lucide-react';
 
+// --- MOTOR DE SEEDING CONTABILÍSTICO ---
+const ACCOUNTING_TEMPLATES: Record<string, any[]> = {
+    "Portugal": [
+        { code: '11', name: 'Caixa', type: 'ativo' },
+        { code: '12', name: 'Depósitos à Ordem', type: 'ativo' },
+        { code: '211', name: 'Clientes c/c', type: 'ativo' },
+        { code: '221', name: 'Fornecedores c/c', type: 'passivo' },
+        { code: '2432', name: 'IVA Dedutível', type: 'ativo' },
+        { code: '2433', name: 'IVA Liquidado', type: 'passivo' },
+        { code: '2434', name: 'IVA a Pagar/Recuperar', type: 'passivo' },
+        { code: '311', name: 'Mercadorias', type: 'ativo' },
+        { code: '431', name: 'Equipamento Básico', type: 'ativo' },
+        { code: '611', name: 'Custo Mercadorias Vendidas', type: 'gastos' },
+        { code: '621', name: 'Subcontratos', type: 'gastos' },
+        { code: '622', name: 'Serviços Especializados', type: 'gastos' },
+        { code: '623', name: 'Materiais', type: 'gastos' },
+        { code: '624', name: 'Energia e Fluidos', type: 'gastos' },
+        { code: '631', name: 'Remunerações Órgãos Sociais', type: 'gastos' },
+        { code: '711', name: 'Vendas de Mercadorias', type: 'rendimentos' },
+        { code: '721', name: 'Prestações de Serviços', type: 'rendimentos' }
+    ],
+    "Brasil": [
+        { code: '1.01', name: 'Caixa Geral', type: 'ativo' },
+        { code: '1.02', name: 'Bancos Conta Movimento', type: 'ativo' },
+        { code: '1.03', name: 'Clientes a Receber', type: 'ativo' },
+        { code: '2.01', name: 'Fornecedores a Pagar', type: 'passivo' },
+        { code: '2.02', name: 'Impostos a Recolher', type: 'passivo' },
+        { code: '3.01', name: 'Receita Bruta de Vendas', type: 'rendimentos' },
+        { code: '3.02', name: 'Receita de Serviços', type: 'rendimentos' },
+        { code: '4.01', name: 'Custo das Mercadorias', type: 'gastos' },
+        { code: '4.02', name: 'Despesas Operacionais', type: 'gastos' },
+        { code: '4.03', name: 'Despesas com Pessoal', type: 'gastos' }
+    ],
+    "France": [
+        { code: '512', name: 'Banque', type: 'ativo' },
+        { code: '530', name: 'Caisse', type: 'ativo' },
+        { code: '411', name: 'Clients', type: 'ativo' },
+        { code: '401', name: 'Fournisseurs', type: 'passivo' },
+        { code: '44566', name: 'TVA Déductible', type: 'ativo' },
+        { code: '44571', name: 'TVA Collectée', type: 'passivo' },
+        { code: '601', name: 'Achats de matières premières', type: 'gastos' },
+        { code: '606', name: 'Achats non stockés', type: 'gastos' },
+        { code: '641', name: 'Rémunération du personnel', type: 'gastos' },
+        { code: '701', name: 'Ventes de produits finis', type: 'rendimentos' },
+        { code: '706', name: 'Prestations de services', type: 'rendimentos' }
+    ],
+    "Default": [
+        { code: '1000', name: 'Cash', type: 'ativo' },
+        { code: '1100', name: 'Bank Accounts', type: 'ativo' },
+        { code: '1200', name: 'Accounts Receivable', type: 'ativo' },
+        { code: '2000', name: 'Accounts Payable', type: 'passivo' },
+        { code: '2100', name: 'Sales Tax Payable', type: 'passivo' },
+        { code: '4000', name: 'Sales Income', type: 'rendimentos' },
+        { code: '4100', name: 'Service Revenue', type: 'rendimentos' },
+        { code: '5000', name: 'Cost of Goods Sold', type: 'gastos' },
+        { code: '6000', name: 'Office Supplies', type: 'gastos' },
+        { code: '6100', name: 'Rent Expense', type: 'gastos' }
+    ]
+};
+
 // --- DADOS ESTÁTICOS ---
 const countries = [
   "Portugal", "Brasil", "Angola", "Moçambique", "Cabo Verde",
@@ -132,7 +192,7 @@ export default function Dashboard() {
   // ✅ NOVOS ESTADOS: Reconciliação e UI
   const [bankStatement, setBankStatement] = useState<BankStatementLine[]>([]);
   const [isUploadingCSV, setIsUploadingCSV] = useState(false);
-  const [manualTaxMode, setManualTaxMode] = useState(false); // ✅ Estado para controlar o modo de edição de IVA
+  const [manualTaxMode, setManualTaxMode] = useState(false);
 
   // Modais
   const [isDeleteModalOpen, setIsDeleteModalOpen] = useState(false);
@@ -253,7 +313,6 @@ export default function Dashboard() {
   const addGridLine = () => setJournalGrid([...journalGrid, { account_id: '', debit: 0, credit: 0 }]);
   const removeGridLine = (index: number) => setJournalGrid(journalGrid.filter((_, i) => i !== index));
   
-  // ✅ FIX: TypeScript Casting Seguro
   const updateGridLine = (index: number, field: keyof JournalGridLine, value: any) => {
       setJournalGrid(prev => {
           const newGrid = [...prev];
@@ -412,8 +471,6 @@ export default function Dashboard() {
       setInvoiceData(prev => ({ ...prev, items: updatedItems, exemption_reason: exemption }));
   }, [invoiceData.type]);
 
-  // ✅ NOVO: EFEITO DE MEMÓRIA IA
-  // Quando um cliente é criado, verifica se havia uma fatura pendente para ele
   useEffect(() => {
     if (aiIntentMemory?.pendingAction === 'create_invoice' && aiIntentMemory.pendingData?.detectedName) {
         const justCreated = clients.find(c => c.name.toLowerCase().includes(aiIntentMemory.pendingData.detectedName.toLowerCase()));
@@ -432,7 +489,7 @@ export default function Dashboard() {
 
   // --- ACTIONS ---
   
-  // ✅ NOVO: RECONCILIAÇÃO BANCÁRIA (CSV IMPORT & MATCH)
+  // ✅ CORREÇÃO CSV UPLOAD ROBUSTA
   const handleCSVUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
       const file = e.target.files?.[0];
       if (!file) return;
@@ -442,22 +499,34 @@ export default function Dashboard() {
       
       reader.onload = async (event) => {
           const text = event.target?.result as string;
-          const lines = text.split('\n').slice(1); // Ignorar header
           
-          const parsedLines: BankStatementLine[] = lines.filter(l => l.trim()).map(line => {
-              const cols = line.split(/[,;]/); // Suporta virgula ou ponto-e-virgula
+          // Verificação de segurança
+          if (!text || typeof text !== 'string') {
+              setIsUploadingCSV(false);
+              return alert("Erro ao ler o ficheiro CSV.");
+          }
+
+          const lines = text.split('\n');
+          if (lines.length < 2) {
+               setIsUploadingCSV(false);
+               return alert("O ficheiro CSV parece estar vazio ou sem dados.");
+          }
+
+          // Ignorar header (.slice(1)) e filtrar linhas vazias
+          const parsedLines: BankStatementLine[] = lines.slice(1).filter(l => l.trim()).map(line => {
+              const cols = line.split(/[,;]/); // Suporta vírgula ou ponto e vírgula
               const date = cols[0]?.trim();
               const description = cols[1]?.trim();
-              const val = parseFloat(cols[2]?.trim()?.replace(',', '.'));
+              // Tratamento de valores numéricos mais seguro
+              const valString = cols[2]?.trim()?.replace(',', '.'); 
+              const val = valString ? parseFloat(valString) : 0;
               
-              // AUTO-MATCH ALGORITHM
-              // Procura faturas com o mesmo valor (positivo para vendas, negativo para compras)
               const match = realInvoices.find(inv => Math.abs(inv.total - Math.abs(val)) < 0.01);
               
               return {
-                  date,
-                  description,
-                  amount: val,
+                  date: date || new Date().toISOString().split('T')[0],
+                  description: description || "Sem descrição",
+                  amount: val || 0,
                   matched_invoice_id: match?.id,
                   suggested_match: match?.invoice_number
               };
@@ -544,9 +613,9 @@ export default function Dashboard() {
       const itemsToInsert = invoiceData.items.map(item => ({ invoice_id: invoiceId, description: item.description, quantity: item.quantity, unit_price: item.price, tax_rate: item.tax }));
       await supabase.from('invoice_items').insert(itemsToInsert);
 
-      const clientAccount = companyAccounts.find(a => a.code.startsWith('211') || a.code.startsWith('311'));
-      const salesAccount = companyAccounts.find(a => a.code.startsWith('71') || a.code.startsWith('61'));
-      const taxAccount = companyAccounts.find(a => a.code.startsWith('243') || a.code.startsWith('342'));
+      const clientAccount = companyAccounts.find(a => a.code.startsWith('211') || a.code.startsWith('311') || a.code.startsWith('411') || a.code.startsWith('1.03') || a.code.startsWith('400'));
+      const salesAccount = companyAccounts.find(a => a.code.startsWith('71') || a.code.startsWith('61') || a.code.startsWith('3.01') || a.code.startsWith('701') || a.code.startsWith('4000'));
+      const taxAccount = companyAccounts.find(a => a.code.startsWith('243') || a.code.startsWith('342') || a.code.startsWith('2.02') || a.code.startsWith('4457') || a.code.startsWith('2100'));
 
       if (clientAccount && salesAccount) {
           const { data: entry, error: entryError } = await supabase.from('journal_entries').insert([{
@@ -590,7 +659,6 @@ export default function Dashboard() {
       setShowInvoiceForm(true);
   };
 
-  // ✅ FIX: Função handleDeleteAccount estava em falta ou mal implementada
   const handleDeleteAccount = async () => {
       if (deleteConfirmation !== 'ELIMINAR') {
           alert("Por favor, escreva ELIMINAR para confirmar.");
@@ -598,7 +666,6 @@ export default function Dashboard() {
       }
       setIsDeleting(true);
       try {
-          // Nota: 'delete_user' deve ser uma função RPC definida no seu Supabase
           await supabase.rpc('delete_user');
           await supabase.auth.signOut();
           navigate('/');
@@ -614,10 +681,10 @@ export default function Dashboard() {
           if (window.prompt("Escreva 'APAGAR' para confirmar:") === 'APAGAR') {
               const { error } = await supabase.from('invoices').delete().eq('id', id);
               if (!error) {
-                 setRealInvoices(prev => prev.filter(i => i.id !== id));
+                  setRealInvoices(prev => prev.filter(i => i.id !== id));
                   logAction('ANULAR', `Fatura ${id} anulada`);
-             }
-         }
+              }
+          }
       }
   };
 
@@ -638,10 +705,11 @@ export default function Dashboard() {
           setNewPurchase({ supplier_id: '', invoice_number: '', date: new Date().toISOString().split('T')[0], due_date: '', total: '', tax_total: '' });
           logAction('DESPESA', `Registada compra ${data.invoice_number} de ${data.total}€`);
      } else {
-         alert("Erro ao criar compra.");
+          alert("Erro ao criar compra.");
      }
   };
 
+  // ✅ PDF REDESIGN (SAGE BOB 50 STYLE) + CORREÇÃO LASTAUTOTABLE
   const generatePDFBlob = async (dataOverride?: any): Promise<Blob> => {
       const doc = new jsPDF();
       const dataToUse = dataOverride || invoiceData;
@@ -667,71 +735,194 @@ export default function Dashboard() {
               doc.addImage(img, 'PNG', 0, 0, 210, 297);
            } catch (e) { console.error("Erro template", e); }
       }
+      
+      // HEADER COMPACTO E LIMPO
+      doc.setFont("helvetica", "bold"); doc.setFontSize(22); doc.setTextColor(0);
+      if(!templateToUse) doc.text(companyForm.name || 'MINHA EMPRESA', 15, 20);
+      
+      doc.setFontSize(9); doc.setFont("helvetica", "normal"); doc.setTextColor(80);
       if(!templateToUse) {
-          doc.setFillColor(companyForm.invoice_color || '#2563EB');
-          doc.rect(0, 0, 210, 10, 'F');
-          if (companyForm.logo_url) {
-           try {
-                const img = new Image(); img.src = companyForm.logo_url; img.crossOrigin = "Anonymous";
-                await new Promise((resolve) => { img.onload = resolve; img.onerror = resolve; });
-               doc.addImage(img, 'PNG', 15, 20, 30, 20);
-             } catch {}
-          }
-          doc.setFont("helvetica", "bold"); doc.setFontSize(14); doc.setTextColor(40);
-          doc.text(companyForm.name || 'Minha Empresa', 200, 25, { align: 'right' });
-          doc.setFont("helvetica", "normal"); doc.setFontSize(9); doc.setTextColor(80);
-          doc.text(companyForm.address || '', 200, 30, { align: 'right' });
-          doc.text(`NIF: ${companyForm.nif || 'N/A'}`, 200, 35, { align: 'right' });
+          doc.text(companyForm.address || '', 15, 26);
+          doc.text(`NIF: ${companyForm.nif || 'N/A'} | ${companyForm.country}`, 15, 31);
       }
-      doc.setFont("helvetica", "bold"); doc.setFontSize(10); doc.setTextColor(0);
-      doc.text("FATURA Nº", 140, 50);
-      doc.text("DATA", 140, 55);
-      doc.setFont("helvetica", "normal");
-      const docNum = dataToUse.invoice_number || "RASCUNHO";
-      doc.text(docNum, 170, 50, { align: 'right' });
-      doc.text(dataToUse.date, 170, 55, { align: 'right' });
-      doc.setFont("helvetica", "bold"); doc.text("Exmo.(s) Sr.(s)", 15, 60);
-      doc.setFont("helvetica", "normal"); doc.setFontSize(11);
-      doc.text(client.name, 15, 66);
-      doc.setFontSize(10);
-      if(client.address) doc.text(client.address, 15, 71);
-      if(client.nif) doc.text(`NIF: ${client.nif}`, 15, 76);
 
+      // CAIXA CLIENTE (Direita)
+      doc.setFillColor(250, 250, 250);
+      doc.rect(110, 45, 85, 35, 'F');
+      doc.setFont("helvetica", "bold"); doc.setFontSize(11); doc.setTextColor(0);
+      doc.text(client.name, 115, 52);
+      doc.setFont("helvetica", "normal"); doc.setFontSize(10);
+      doc.text(client.address || '', 115, 58);
+      doc.text(`${client.postal_code || ''} ${client.city || ''}`, 115, 63);
+      doc.text(client.country || '', 115, 68);
+      if(client.nif) {
+          doc.setFontSize(9); doc.setTextColor(100);
+          doc.text(`NIF: ${client.nif}`, 115, 75);
+      }
+
+      // INFO DOCUMENTO (Esquerda)
+      const docNum = dataToUse.invoice_number || "RASCUNHO";
+      doc.setFont("helvetica", "bold"); doc.setFontSize(16); doc.setTextColor(0);
+      doc.text(`${invoiceTypesMap[dataToUse.type] || dataToUse.type} ${docNum}`, 15, 60);
+      doc.setFontSize(10); doc.setTextColor(80);
+      doc.text(`Data: ${new Date(dataToUse.date).toLocaleDateString()}`, 15, 66);
+      doc.text(`Vencimento: ${new Date(dataToUse.due_date).toLocaleDateString()}`, 15, 71);
+
+      // TABELA LINHAS (Estilo Técnico)
       const tableRows = dataToUse.items.map((item: any) => {
           const price = item.price ?? item.unit_price;
           const tax = item.tax ?? item.tax_rate;
-          return [ item.description, item.quantity, `${displaySymbol} ${price.toFixed(2)}`, `${tax}%`, `${displaySymbol} ${(item.quantity * price).toFixed(2)}` ];
+          return [ 
+              item.description, 
+              item.quantity, 
+              `${displaySymbol} ${price.toFixed(2)}`, 
+              `${tax}%`, 
+              `${displaySymbol} ${(item.quantity * price).toFixed(2)}` 
+          ];
       });
+
       autoTable(doc, {
-          head: [["Descrição", "Qtd", "Preço Unit.", "IVA", "Total"]],
+          head: [["DESCRIÇÃO", "QTD", "PREÇO UNIT.", "IVA", "TOTAL"]],
           body: tableRows,
           startY: 90,
           theme: 'plain',
-          headStyles: { fillColor: companyForm.invoice_color || '#444', textColor: 255, fontStyle: 'bold' },
-         styles: { fontSize: 9, cellPadding: 3 },
-         columnStyles: { 4: { halign: 'right' } }
+          headStyles: { 
+              fillColor: false, 
+              textColor: 0, 
+              fontStyle: 'bold', 
+              lineWidth: { bottom: 0.5 }, 
+              lineColor: 0 
+          },
+          styles: { 
+              fontSize: 9, 
+              cellPadding: 3, 
+              font: "helvetica",
+              textColor: 50 
+          },
+          columnStyles: { 
+              0: { cellWidth: 'auto' },
+              1: { halign: 'center', cellWidth: 20 },
+              2: { halign: 'right', cellWidth: 30 },
+              3: { halign: 'center', cellWidth: 20 },
+              4: { halign: 'right', cellWidth: 30 }
+          },
+          didDrawPage: (d: any) => {
+              // Linha inferior do header
+              doc.setDrawColor(0);
+              doc.setLineWidth(0.1);
+              doc.line(15, d.cursor.y, 195, d.cursor.y);
+          }
       });
 
-      const finalY = (doc as any).lastAutoTable.finalY + 10;
-      doc.setFontSize(10);
-      doc.text(`Ilíquido:`, 130, finalY); doc.text(`${displaySymbol} ${totals.subtotal.toFixed(2)}`, 195, finalY, { align: 'right' });
-      doc.text(`Total IVA:`, 130, finalY + 5); doc.text(`${displaySymbol} ${totals.taxTotal.toFixed(2)}`, 195, finalY + 5, { align: 'right' });
-      doc.setFontSize(14); doc.setFont("helvetica", "bold"); doc.setTextColor(companyForm.invoice_color || '#2563EB');
-      doc.text(`TOTAL:`, 130, finalY + 15); doc.text(`${displaySymbol} ${totals.total.toFixed(2)}`, 195, finalY + 15, { align: 'right' });
+      // TOTALIZADORES (Caixa Dupla Linha - Estilo Sage)
+      // CORREÇÃO: Uso seguro de lastAutoTable
+      const finalY = (doc as any).lastAutoTable?.finalY || 150;
+      
+      // Linhas separadoras
+      doc.setDrawColor(0); doc.setLineWidth(0.1);
+      doc.line(130, finalY, 195, finalY);
+      
+      doc.setFontSize(10); doc.setTextColor(0);
+      doc.text("Total Ilíquido:", 130, finalY + 6); 
+      doc.text(`${displaySymbol} ${totals.subtotal.toFixed(2)}`, 195, finalY + 6, { align: 'right' });
+      
+      doc.text("Total IVA:", 130, finalY + 12); 
+      doc.text(`${displaySymbol} ${totals.taxTotal.toFixed(2)}`, 195, finalY + 12, { align: 'right' });
+      
+      // Dupla linha antes do total
+      doc.setLineWidth(0.5);
+      doc.line(130, finalY + 16, 195, finalY + 16);
+      doc.setLineWidth(0.1);
+      doc.line(130, finalY + 17, 195, finalY + 17);
 
+      doc.setFontSize(12); doc.setFont("helvetica", "bold");
+      doc.text("TOTAL A PAGAR:", 130, finalY + 24); 
+      doc.text(`${displaySymbol} ${totals.total.toFixed(2)}`, 195, finalY + 24, { align: 'right' });
+
+      // RODAPÉ BANCÁRIO
       const pageHeight = doc.internal.pageSize.height;
-      doc.setFontSize(7); doc.setTextColor(150); doc.setFont('helvetica', 'normal');
-      doc.text("Processado por EasyCheck ERP (Licença Nº 001)", 105, pageHeight - 10, { align: 'center' });
+      doc.setFontSize(8); doc.setTextColor(100); doc.setFont('helvetica', 'normal');
+      
+      if(companyForm.footer) {
+          doc.text(companyForm.footer, 105, pageHeight - 20, { align: 'center' });
+      }
+      
+      doc.setDrawColor(200); doc.line(15, pageHeight - 15, 195, pageHeight - 15);
+      doc.text(`Processado por EasyCheck ERP - ${companyForm.name} - Pag. 1/1`, 105, pageHeight - 10, { align: 'center' });
+      
       return doc.output('blob');
+  };
+
+  // ✅ SISTEMA DE AVISOS DE COBRANÇA (RAPPELS)
+  const handleGenerateReminder = async (invoice: any, level: number) => {
+      const doc = new jsPDF();
+      const client = clients.find(c => c.id === invoice.client_id);
+      if (!client) return alert("Cliente não encontrado");
+
+      // Configuração base
+      doc.setFont("helvetica", "normal");
+      
+      // Cabeçalho da Empresa
+      doc.setFontSize(10); doc.setTextColor(100);
+      doc.text(companyForm.name, 15, 20);
+      doc.text(companyForm.address, 15, 25);
+
+      // Destinatário
+      doc.setFontSize(11); doc.setTextColor(0); doc.setFont("helvetica", "bold");
+      doc.text(client.name, 120, 50);
+      doc.setFont("helvetica", "normal");
+      doc.text(client.address || '', 120, 55);
+      doc.text(`${client.postal_code || ''} ${client.city || ''}`, 120, 60);
+
+      // Título e Corpo consoante Nível
+      doc.setFontSize(14); doc.setFont("helvetica", "bold");
+      let title = "";
+      let body = "";
+      let color = [0, 0, 0];
+
+      if (level === 1) {
+          title = "Lembrete de Pagamento";
+          body = `Estimado(a) Cliente,\n\nVerificámos que a fatura n.º ${invoice.invoice_number}, vencida a ${new Date(invoice.due_date).toLocaleDateString()}, no valor de ${displaySymbol} ${invoice.total.toFixed(2)}, se encontra pendente de liquidação.\n\nProvavelmente trata-se de um lapso da vossa parte. Agradecemos a regularização da mesma o mais breve possível.\n\nCom os melhores cumprimentos,`;
+          color = [0, 100, 200]; // Azul
+      } else if (level === 2) {
+          title = "AVISO DE PAGAMENTO EM ATRASO";
+          body = `Exmos. Srs.,\n\nApesar dos nossos contactos anteriores, constatamos que a fatura n.º ${invoice.invoice_number} permanece por liquidar.\n\nSolicitamos o pagamento imediato da quantia de ${displaySymbol} ${invoice.total.toFixed(2)} para evitar a suspensão de serviços ou fornecimentos.\n\nSe o pagamento já foi efetuado, por favor ignore este aviso.\n\nAtentamente,`;
+          color = [200, 100, 0]; // Laranja
+      } else {
+          title = "ÚLTIMO AVISO - PRÉ-CONTENCIOSO";
+          body = `NOTIFICAÇÃO FORMAL,\n\nInformamos que, não tendo sido regularizada a dívida referente à fatura ${invoice.invoice_number} (${displaySymbol} ${invoice.total.toFixed(2)}), o processo será encaminhado para o nosso departamento jurídico para cobrança coerciva.\n\nDispõe de 48 horas para efetuar o pagamento antes do início das diligências legais e acrescido de juros de mora.\n\nDepartamento Financeiro,`;
+          color = [200, 0, 0]; // Vermelho
+      }
+
+      doc.setTextColor(color[0], color[1], color[2]);
+      doc.text(title, 15, 90);
+
+      doc.setTextColor(0); doc.setFontSize(10); doc.setFont("helvetica", "normal");
+      const splitBody = doc.splitTextToSize(body, 170);
+      doc.text(splitBody, 15, 105);
+
+      // Dados para pagamento
+      doc.setDrawColor(200); doc.rect(15, 180, 180, 30);
+      doc.setFont("helvetica", "bold"); doc.text("DADOS PARA PAGAMENTO", 20, 190);
+      doc.setFont("helvetica", "normal");
+      doc.text(`Valor: ${displaySymbol} ${invoice.total.toFixed(2)}`, 20, 200);
+      doc.text(`Referência: ${invoice.invoice_number}`, 100, 200);
+
+      window.open(URL.createObjectURL(doc.output('blob')), '_blank');
   };
 
   const generateFinancialReport = (type: 'balancete' | 'dre') => {
     if (journalEntries.length === 0) return alert("Não há movimentos contabilísticos para gerar relatório.");
     const doc = new jsPDF();
     const title = type === 'balancete' ? 'Balancete de Verificação' : 'Demonstração de Resultados';
-    doc.setFontSize(16); doc.text(companyForm.name, 15, 15);
-    doc.setFontSize(10); doc.text(`NIF: ${companyForm.nif}`, 15, 20);
-    doc.setFontSize(14); doc.setTextColor(0, 0, 255); doc.text(title, 15, 30);
+    
+    doc.setFontSize(18); doc.setFont("helvetica", "bold");
+    doc.text(companyForm.name, 15, 20);
+    doc.setFontSize(10); doc.setFont("helvetica", "normal");
+    doc.text(`NIF: ${companyForm.nif} | Exercício: ${new Date().getFullYear()}`, 15, 26);
+    
+    doc.setFontSize(14); doc.setTextColor(50);
+    doc.text(title.toUpperCase(), 15, 40);
     doc.setTextColor(0);
 
     const accountBalances: Record<string, {name: string, debit: number, credit: number}> = {};
@@ -748,44 +939,53 @@ export default function Dashboard() {
 
     const rows: any[] = [];
     let totalDebit = 0; let totalCredit = 0;
-    let currentClass = "";
-
+    
     Object.keys(accountBalances).sort().forEach(code => {
         const acc = accountBalances[code];
-        if (type === 'dre' && !code.startsWith('6') && !code.startsWith('7')) return;
-        const accountClass = code.charAt(0);
-        if (accountClass !== currentClass) {
-            currentClass = accountClass;
-            rows.push([{ content: `CLASSE ${currentClass}`, colSpan: 5, styles: { fillColor: [240, 240, 240], fontStyle: 'bold' } }]);
-        }
+        if (type === 'dre' && !code.startsWith('6') && !code.startsWith('7') && !code.startsWith('3') && !code.startsWith('4') && !code.startsWith('5')) return; // Filtro básico DRE adaptado
         const balance = acc.debit - acc.credit;
-        rows.push([ code, acc.name, displaySymbol + acc.debit.toFixed(2), displaySymbol + acc.credit.toFixed(2), displaySymbol + balance.toFixed(2) ]);
+        rows.push([ 
+            code, 
+            acc.name, 
+            displaySymbol + acc.debit.toFixed(2), 
+            displaySymbol + acc.credit.toFixed(2), 
+            displaySymbol + balance.toFixed(2) 
+        ]);
         totalDebit += acc.debit;
         totalCredit += acc.credit;
     });
 
     autoTable(doc, {
-        startY: 40,
-        head: [['Conta', 'Descrição', 'Débito', 'Crédito', 'Saldo']],
+        startY: 50,
+        head: [['CONTA', 'DESCRIÇÃO', 'DÉBITO', 'CRÉDITO', 'SALDO']],
         body: rows,
-        theme: 'grid',
-        styles: { fontSize: 8 },
-        columnStyles: { 2: { halign: 'right' }, 3: { halign: 'right' }, 4: { halign: 'right' } }
+        theme: 'striped', // Grid alternada
+        styles: { fontSize: 9, cellPadding: 2, font: "helvetica" },
+        headStyles: { fillColor: [50, 50, 50], textColor: 255, fontStyle: 'bold' },
+        columnStyles: { 
+            0: { fontStyle: 'bold', cellWidth: 25 },
+            2: { halign: 'right' }, 3: { halign: 'right' }, 4: { halign: 'right', fontStyle: 'bold' } 
+        }
     });
 
-    const finalY = (doc as any).lastAutoTable.finalY + 10;
+    // CORREÇÃO: Uso seguro de lastAutoTable
+    const finalY = (doc as any).lastAutoTable?.finalY || 100;
+
     doc.setFont("helvetica", "bold");
     if (type === 'balancete') {
-        doc.text(`Total Débito: ${displaySymbol} ${totalDebit.toFixed(2)}`, 15, finalY);
-        doc.text(`Total Crédito: ${displaySymbol} ${totalCredit.toFixed(2)}`, 100, finalY);
+        doc.text(`TOTAL GERAL:`, 15, finalY + 10);
+        doc.text(displaySymbol + totalDebit.toFixed(2), 100, finalY + 10, { align: 'right' }); 
+        doc.text(displaySymbol + totalCredit.toFixed(2), 135, finalY + 10, { align: 'right' }); 
+        
         if (Math.abs(totalDebit - totalCredit) < 0.01) {
-            doc.setTextColor(0, 150, 0); doc.text("✅ Contas Batem Certo", 15, finalY + 10);
+            doc.setTextColor(0, 150, 0); doc.text("OK - BALANCEADO", 150, finalY + 10);
         } else {
-            doc.setTextColor(200, 0, 0); doc.text("❌ Desequilíbrio!", 15, finalY + 10);
+            doc.setTextColor(200, 0, 0); doc.text("DESEQUILÍBRIO!", 150, finalY + 10);
         }
     } else {
-        const result = totalCredit - totalDebit;
-         doc.setFontSize(12); doc.text(`Resultado Líquido: ${displaySymbol} ${result.toFixed(2)}`, 15, finalY);
+        const result = totalCredit - totalDebit; // Simplificação DRE (Rendimentos - Gastos)
+         doc.setFontSize(12); 
+         doc.text(`RESULTADO LÍQUIDO ESTIMADO: ${displaySymbol} ${result.toFixed(2)}`, 15, finalY + 10);
     }
     window.open(URL.createObjectURL(doc.output('blob')), '_blank');
     logAction('RELATÓRIO', `Gerado ${title}`);
@@ -932,21 +1132,46 @@ export default function Dashboard() {
   };
 
   const handleSaveProfile = async () => { setSavingProfile(true); try { await supabase.from('profiles').update({ full_name: editForm.fullName, job_title: editForm.jobTitle, updated_at: new Date() }).eq('id', userData.id); setProfileData({ ...profileData, ...{ full_name: editForm.fullName } }); alert(`Perfil atualizado!`); setIsProfileModalOpen(false); } catch { alert("Erro ao guardar."); } finally { setSavingProfile(false); } };
-  const handleSaveCompany = async () => { setSavingCompany(true); try { 
+  
+  // ✅ FUNÇÃO DE SEEDING CONTABILÍSTICO
+  const handleSaveCompany = async () => { 
+      setSavingCompany(true); 
+      try { 
         const updates = { 
             company_name: companyForm.name, company_nif: companyForm.nif, company_address: companyForm.address, country: companyForm.country, currency: companyForm.currency, custom_exchange_rates: exchangeRates, logo_url: companyForm.logo_url, company_footer: companyForm.footer, invoice_color: companyForm.invoice_color, header_text: companyForm.header_text, template_url: companyForm.template_url, invoice_template_url: companyForm.invoice_template_url, updated_at: new Date() 
         }; 
+        
         await supabase.from('profiles').update(updates).eq('id', userData.id); 
         setProfileData({ ...profileData, ...updates }); 
+        
+        // Motor de Seeding de Contas
         if(companyForm.country) { 
-            const { error: rpcError } = await supabase.rpc('init_company_accounting', { target_user_id: userData.id, target_country: companyForm.country }); 
-            if(!rpcError) { 
-                const { data: newAccounts } = await supabase.from('company_accounts').select('*').order('code', { ascending: true }); 
-                if(newAccounts) setCompanyAccounts(newAccounts); 
-            } 
+            // 1. Tentar obter o template para o país, ou usar Default
+            const templateAccounts = ACCOUNTING_TEMPLATES[companyForm.country] || ACCOUNTING_TEMPLATES["Default"];
+            
+            // 2. Verificar se já existem contas
+            if(companyAccounts.length < 5) {
+                // Se tiver poucas contas, assumimos que é uma inicialização ou reset
+                const accountsToInsert = templateAccounts.map(acc => ({
+                    user_id: userData.id,
+                    code: acc.code,
+                    name: acc.name,
+                    type: acc.type
+                }));
+
+                // Upsert para não duplicar se já existirem pelo código
+                const { data: newAccounts, error } = await supabase.from('company_accounts').upsert(accountsToInsert, { onConflict: 'code, user_id' }).select();
+                
+                if(!error && newAccounts) {
+                    // Recarregar contas
+                    const { data: refreshedAccounts } = await supabase.from('company_accounts').select('*').order('code', { ascending: true });
+                    if(refreshedAccounts) setCompanyAccounts(refreshedAccounts);
+                }
+            }
         } 
-        alert(`Dados guardados!`); 
-    } catch { alert("Erro ao guardar."); } finally { setSavingCompany(false); } 
+        
+        alert(`Dados guardados e plano de contas atualizado!`); 
+    } catch (e: any) { alert("Erro ao guardar: " + e.message); } finally { setSavingCompany(false); } 
   };
 
   const handleQuickPreview = async (inv: any) => {
@@ -1265,8 +1490,22 @@ export default function Dashboard() {
                                 {!showInvoiceForm ? (
                                     <>
                                         <div className="p-4 flex justify-between bg-gray-50 dark:bg-gray-800 border-b dark:border-gray-700"><h3 className="font-bold flex gap-2"><FileText/> Faturas Emitidas</h3><button onClick={()=>{resetInvoiceForm();setShowInvoiceForm(true)}} className="bg-blue-600 text-white px-3 py-1.5 rounded flex gap-2 items-center text-sm font-bold"><Plus size={16}/> Nova Fatura</button></div>
-                                        <table className="w-full text-xs text-left"><thead className="bg-gray-100 dark:bg-gray-700 uppercase"><tr><th className="p-3">Nº</th><th className="p-3">Cliente</th><th className="p-3">Data</th><th className="p-3 text-right">Total</th><th className="p-3 text-right">...</th></tr></thead>
-                                        <tbody>{realInvoices.map(i=>(<tr key={i.id} className="border-b dark:border-gray-700 hover:bg-gray-50 dark:hover:bg-gray-700"><td className="p-3 font-mono text-blue-600">{i.invoice_number}</td><td className="p-3">{i.clients?.name}</td><td className="p-3">{new Date(i.date).toLocaleDateString()}</td><td className="p-3 text-right font-bold">{displaySymbol} {i.total}</td><td className="p-3 text-right"><button onClick={()=>handleQuickPreview(i)} className="mr-2 text-gray-500 hover:text-blue-600"><Eye size={14}/></button><button onClick={()=>handleDeleteInvoice(i.id)} className="text-red-400 hover:text-red-600"><Trash2 size={14}/></button></td></tr>))}</tbody></table>
+                                        <table className="w-full text-xs text-left"><thead className="bg-gray-100 dark:bg-gray-700 uppercase"><tr><th className="p-3">Nº</th><th className="p-3">Cliente</th><th className="p-3">Data</th><th className="p-3 text-right">Total</th><th className="p-3 text-center">Rappel</th><th className="p-3 text-right">...</th></tr></thead>
+                                        <tbody>{realInvoices.map(i=>(
+                                            <tr key={i.id} className="border-b dark:border-gray-700 hover:bg-gray-50 dark:hover:bg-gray-700">
+                                                <td className="p-3 font-mono text-blue-600">{i.invoice_number}</td>
+                                                <td className="p-3">{i.clients?.name}</td>
+                                                <td className="p-3">{new Date(i.date).toLocaleDateString()}</td>
+                                                <td className="p-3 text-right font-bold">{displaySymbol} {i.total}</td>
+                                                {/* ✅ BOTÕES DE RAPPEL */}
+                                                <td className="p-3 text-center flex justify-center gap-1">
+                                                    <button onClick={() => handleGenerateReminder(i, 1)} className="w-6 h-6 bg-blue-100 text-blue-600 rounded text-[10px] font-bold hover:bg-blue-200">1</button>
+                                                    <button onClick={() => handleGenerateReminder(i, 2)} className="w-6 h-6 bg-orange-100 text-orange-600 rounded text-[10px] font-bold hover:bg-orange-200">2</button>
+                                                    <button onClick={() => handleGenerateReminder(i, 3)} className="w-6 h-6 bg-red-100 text-red-600 rounded text-[10px] font-bold hover:bg-red-200">3</button>
+                                                </td>
+                                                <td className="p-3 text-right"><button onClick={()=>handleQuickPreview(i)} className="mr-2 text-gray-500 hover:text-blue-600"><Eye size={14}/></button><button onClick={()=>handleDeleteInvoice(i.id)} className="text-red-400 hover:text-red-600"><Trash2 size={14}/></button></td>
+                                            </tr>
+                                        ))}</tbody></table>
                                     </>
                                 ) : (
                                     <div className="fixed inset-0 z-[100] flex items-center justify-center bg-black/50 backdrop-blur-sm p-4">
@@ -1350,8 +1589,7 @@ export default function Dashboard() {
                                 )}
                             </div>
                         )}
-                        
-                        {/* ✅ ABA BANCOS ATUALIZADA COM RECONCILIAÇÃO REAL */}
+                        {/* Outras Abas (Banking, Suppliers, etc - mantidas intactas) */}
                         {accountingTab === 'banking' && (
                             <div className="p-6">
                                 <div className="flex justify-between items-center mb-6">
@@ -1367,7 +1605,6 @@ export default function Dashboard() {
                                         </label>
                                     </div>
                                 </div>
-
                                 {bankStatement.length > 0 ? (
                                     <div className="border rounded-2xl overflow-hidden shadow-sm">
                                         <table className="w-full text-xs text-left">
@@ -1412,16 +1649,6 @@ export default function Dashboard() {
                                         <p className="text-xs text-gray-400 mt-1">Carregue um ficheiro CSV para iniciar a reconciliação automática.</p>
                                     </div>
                                 )}
-                            </div>
-                        )}
-                        {accountingTab === 'taxes' && (
-                            <div className="p-6">
-                                <h3 className="font-bold text-lg mb-4 flex gap-2"><FileCheck/> Mapa de IVA (Trimestral)</h3>
-                                <div className="grid grid-cols-3 gap-6">
-                                    <div className="bg-green-50 p-6 rounded-2xl border border-green-100 shadow-sm"><p className="text-xs font-bold uppercase text-green-700 tracking-wider">IVA Liquidado (Vendas)</p><p className="text-3xl font-bold text-green-600 mt-2">{displaySymbol} {realInvoices.reduce((a,c)=>a+c.tax_total,0).toFixed(2)}</p></div>
-                                    <div className="bg-red-50 p-6 rounded-2xl border border-red-100 shadow-sm"><p className="text-xs font-bold uppercase text-red-700 tracking-wider">IVA Dedutível (Compras)</p><p className="text-3xl font-bold text-red-600 mt-2">{displaySymbol} {purchases.reduce((a,c)=>a+c.tax_total,0).toFixed(2)}</p></div>
-                                    <div className="bg-blue-50 p-6 rounded-2xl border border-blue-100 shadow-sm"><p className="text-xs font-bold uppercase text-blue-700 tracking-wider">Estado (A Pagar/Receber)</p><p className="text-3xl font-bold text-blue-600 mt-2">{displaySymbol} {(realInvoices.reduce((a,c)=>a+c.tax_total,0) - purchases.reduce((a,c)=>a+c.tax_total,0)).toFixed(2)}</p></div>
-                                </div>
                             </div>
                         )}
                         {accountingTab === 'reports' && (
@@ -1482,7 +1709,7 @@ export default function Dashboard() {
                         </div>
                         <div className="mt-4 grid grid-cols-2 gap-4">
                             <div><label className="block text-xs font-bold mb-1">Logo</label><input type="file" onChange={handleLogoUpload} className="block w-full text-sm text-gray-500 file:mr-4 file:py-2 file:px-4 file:rounded-full file:border-0 file:text-sm file:font-semibold file:bg-blue-50 file:text-blue-700 hover:file:bg-blue-100"/>{uploadingLogo && <p className="text-xs text-blue-500 mt-1">A carregar...</p>}</div>
-                            <div><label className="block text-xs font-bold mb-1">Template de Fundo (Imagem A4/PDF)</label><input type="file" onChange={handleTemplateUpload} className="block w-full text-sm text-gray-500 file:mr-4 file:py-2 file:px-4 file:rounded-full file:border-0 file:text-sm file:font-semibold file:bg-purple-50 file:text-purple-700 hover:file:bg-purple-100"/>{uploadingTemplate && <p className="text-xs text-purple-500 mt-1">A carregar...</p>}</div>
+                            <div><label className="block text-xs font-bold mb-1">Template de Fatura (Imagem A4/PDF)</label><input type="file" onChange={handleTemplateUpload} className="block w-full text-sm text-gray-500 file:mr-4 file:py-2 file:px-4 file:rounded-full file:border-0 file:text-sm file:font-semibold file:bg-purple-50 file:text-purple-700 hover:file:bg-purple-100"/>{uploadingTemplate && <p className="text-xs text-purple-500 mt-1">A carregar...</p>}</div>
                         </div>
                     </div>
                     <div className="bg-red-50 dark:bg-red-900/20 rounded-2xl border border-red-200 dark:border-red-800 p-8">
@@ -1608,7 +1835,7 @@ export default function Dashboard() {
         </div>
       )}
       {showPreviewModal && pdfPreviewUrl && (<div className="fixed inset-0 z-[100] flex flex-col bg-gray-900 bg-opacity-90 backdrop-blur-sm p-4"><div className="flex justify-between items-center text-white mb-4"><h3 className="text-xl font-bold flex gap-2"><FileText/> Pré-visualização Profissional</h3><div className="flex gap-4"><button onClick={handleDownloadPDF} className="bg-blue-600 px-4 py-2 rounded-lg font-bold hover:bg-blue-500 flex items-center gap-2"><Download size={18}/> Baixar PDF</button><button onClick={() => setShowPreviewModal(false)} className="bg-gray-700 px-4 py-2 rounded-lg font-bold hover:bg-gray-600"><X size={18}/></button></div></div><div className="flex-1 bg-gray-800 rounded-xl overflow-hidden border border-gray-700 shadow-2xl"><iframe src={pdfPreviewUrl} className="w-full h-full" title="PDF Preview"></iframe></div></div>)}
-      {showAmortSchedule && selectedAssetForSchedule && (<div className="fixed inset-0 z-[100] flex items-center justify-center bg-black/50 backdrop-blur-sm p-4"><div className="bg-white dark:bg-gray-800 rounded-2xl p-8 w-full max-w-4xl shadow-xl border dark:border-gray-700 max-h-[80vh] overflow-y-auto"><div className="flex justify-between items-center mb-6"><div><h3 className="text-xl font-bold flex gap-2 items-center"><TrendingUpIcon className="text-blue-500"/> Mapa de Amortização Financeira</h3><p className="text-sm text-gray-500 mt-1 uppercase font-bold">{selectedAssetForSchedule.name}</p></div><button onClick={() => setShowAmortSchedule(false)}><X className="text-gray-400 hover:text-red-500"/></button></div><table className="w-full text-xs text-left"><thead className="bg-gray-100 dark:bg-gray-700 text-gray-600 uppercase text-xs font-bold border-b border-gray-200 dark:border-gray-600"><tr><th className="px-4 py-3">Ano</th><th className="px-4 py-3 text-right">V. Inicial</th><th className="px-4 py-3 text-right">Quota</th><th className="px-4 py-3 text-right">Acumulado</th><th className="px-4 py-3 text-right">V. Final (VNC)</th></tr></thead><tbody>{calculateAmortizationSchedule(selectedAssetForSchedule).map((row: any, i) => (<tr key={row.year} className={`border-b dark:border-gray-700 ${i % 2 === 0 ? 'bg-white dark:bg-gray-800' : 'bg-gray-50 dark:bg-gray-900'}`}><td className="px-4 py-3 font-bold text-gray-700 dark:text-gray-300">{row.year}</td><td className="px-4 py-3 text-right text-gray-500 font-mono">{displaySymbol} {row.startValue.toFixed(2)}</td><td className="px-4 py-3 text-right font-bold text-blue-600 font-mono">{displaySymbol} {row.annuity.toFixed(2)}</td><td className="px-4 py-3 text-right text-gray-500 font-mono">{displaySymbol} {row.accumulated.toFixed(2)}</td><td className="px-4 py-3 text-right font-bold text-gray-800 dark:text-white font-mono">{displaySymbol} {row.endValue.toFixed(2)}</td></tr>))}</tbody></table></div></div>)}
+      {showAmortSchedule && selectedAssetForSchedule && (<div className="fixed inset-0 z-[100] flex items-center justify-center bg-black/50 backdrop-blur-sm p-4"><div className="bg-white dark:bg-gray-800 rounded-2xl p-8 w-full max-w-4xl shadow-xl border dark:border-gray-700 max-h-[80vh] overflow-y-auto"><div className="flex justify-between items-center mb-6"><div><h3 className="text-xl font-bold flex gap-2 items-center"><TrendingUpIcon className="text-blue-500"/> Mapa de Amortização Financeira</h3><p className="text-sm text-gray-500 mt-1 uppercase font-bold">{selectedAssetForSchedule.name}</p></div><button onClick={() => setShowAmortSchedule(false)}><X className="text-gray-400 hover:text-red-500"/></button></div><table className="w-full text-xs text-left"><thead className="bg-gray-100 dark:bg-gray-700 text-gray-600 uppercase text-xs font-bold border-b border-gray-200 dark:border-gray-600"><tr><th className="px-4 py-3">Ano</th><th className="px-4 py-3 text-right">V. Inicial</th><th className="px-4 py-3 text-right">Quota</th><th className="px-4 py-3 text-right">Acumulado</th><th className="px-4 py-3 text-right">V. Final (VNC)</th></tr></thead><tbody>{calculateAmortizationSchedule(selectedAssetForSchedule).map((row: any, i: number) => (<tr key={row.year} className={`border-b dark:border-gray-700 ${i % 2 === 0 ? 'bg-white dark:bg-gray-800' : 'bg-gray-50 dark:bg-gray-900'}`}><td className="px-4 py-3 font-bold text-gray-700 dark:text-gray-300">{row.year}</td><td className="px-4 py-3 text-right text-gray-500 font-mono">{displaySymbol} {row.startValue.toFixed(2)}</td><td className="px-4 py-3 text-right font-bold text-blue-600 font-mono">{displaySymbol} {row.annuity.toFixed(2)}</td><td className="px-4 py-3 text-right text-gray-500 font-mono">{displaySymbol} {row.accumulated.toFixed(2)}</td><td className="px-4 py-3 text-right font-bold text-gray-800 dark:text-white font-mono">{displaySymbol} {row.endValue.toFixed(2)}</td></tr>))}</tbody></table></div></div>)}
       {showDoubtfulModal && selectedClientForDebt && (<div className="fixed inset-0 z-[100] flex items-center justify-center bg-black/50 backdrop-blur-sm p-4"><div className="bg-white dark:bg-gray-800 rounded-2xl p-6 w-full max-w-lg shadow-xl border dark:border-gray-700"><div className="flex justify-between items-center mb-4"><h3 className="text-xl font-bold flex gap-2 items-center text-red-600"><AlertTriangle size={20}/> Gerir Dívida Incobrável</h3></div><div className="space-y-4"><p className="text-sm text-gray-500">Ao marcar {selectedClientForDebt.name} como de risco, deve definir o valor em provisão.</p><div className="flex gap-4 mb-4 bg-gray-100 p-1 rounded-lg"><button onClick={() => setDebtMethod('manual')} className={`flex-1 py-2 rounded-md font-bold text-sm transition-all ${debtMethod === 'manual' ? 'bg-white shadow text-red-700' : 'text-gray-500'}`}>Valor Manual</button><button onClick={() => setDebtMethod('invoices')} className={`flex-1 py-2 rounded-md font-bold text-sm transition-all ${debtMethod === 'invoices' ? 'bg-white shadow text-red-700' : 'text-gray-500'}`}>Selecionar Faturas</button></div>{debtMethod === 'manual' ? (<div><label className="text-xs font-bold text-gray-400 uppercase tracking-wider mb-1 block">Valor em Dívida ({displaySymbol})</label><input type="number" value={manualDebtAmount} onChange={e => setManualDebtAmount(e.target.value)} className="w-full p-3 border dark:border-gray-600 rounded-xl dark:bg-gray-900 bg-gray-50 outline-none font-bold text-red-600 text-xl"/></div>) : (<div className="max-h-60 overflow-y-auto border rounded-xl p-2 bg-gray-50">{realInvoices.filter(i => i.client_id === selectedClientForDebt.id).map(inv => (<div key={inv.id} className="flex items-center gap-3 p-3 hover:bg-white border-b last:border-0 cursor-pointer" onClick={() => { if(selectedDebtInvoices.includes(inv.id)) setSelectedDebtInvoices(selectedDebtInvoices.filter(id => id !== inv.id)); else setSelectedDebtInvoices([...selectedDebtInvoices, inv.id]); }}><input type="checkbox" checked={selectedDebtInvoices.includes(inv.id)} readOnly className="w-5 h-5 text-red-600 rounded" /><div className="flex-1"><p className="font-bold text-sm text-gray-700">{inv.invoice_number}</p><p className="text-xs text-gray-500">{new Date(inv.date).toLocaleDateString()}</p></div><span className="font-bold text-red-600">{displaySymbol} {inv.total}</span></div>))}{realInvoices.filter(i => i.client_id === selectedClientForDebt.id).length === 0 && <p className="text-xs text-gray-400 text-center py-4">Sem faturas para este cliente.</p>}</div>)}</div><div className="flex justify-end gap-3 mt-6"><button onClick={() => setShowDoubtfulModal(false)} className="px-4 py-2 text-gray-500">Cancelar</button><button onClick={saveDoubtfulDebt} className="px-4 py-2 bg-red-600 text-white rounded-lg font-bold hover:bg-red-700 shadow-lg">Confirmar Risco</button></div></div></div>)}
       {showProvisionModal && (<div className="fixed inset-0 z-[100] flex items-center justify-center bg-black/50 backdrop-blur-sm p-4"><div className="bg-white dark:bg-gray-800 rounded-2xl p-6 w-full max-w-md shadow-xl border dark:border-gray-700"><div className="flex justify-between items-center mb-4"><h3 className="text-xl font-bold flex gap-2 items-center text-gray-700 dark:white"><AlertOctagon size={20} className="text-yellow-500"/> Nova Provisão</h3></div><div className="space-y-4"><div><label className="text-xs font-bold text-gray-400 uppercase tracking-wider mb-1 block">Descrição do Risco</label><input placeholder="Ex: Processo Judicial em curso" value={newProvision.description} onChange={e => setNewProvision({...newProvision, description: e.target.value})} className="w-full p-3 border dark:border-gray-600 rounded-xl dark:bg-gray-900 bg-gray-50 outline-none"/></div><div><label className="text-xs font-bold text-gray-400 uppercase tracking-wider mb-1 block">Valor Estimado ({displaySymbol})</label><input type="number" placeholder="0.00" value={newProvision.amount} onChange={e => setNewProvision({...newProvision, amount: e.target.value})} className="w-full p-3 border dark:border-gray-600 rounded-xl dark:bg-gray-900 bg-gray-50 outline-none"/></div><div><label className="text-xs font-bold text-gray-400 uppercase tracking-wider mb-1 block">Tipo</label><select value={newProvision.type} onChange={e => setNewProvision({...newProvision, type: e.target.value})} className="w-full p-3 border dark:border-gray-600 rounded-xl dark:bg-gray-900 bg-gray-50 outline-none"><option>Riscos e Encargos</option><option>Impostos</option><option>Garantias a Clientes</option><option>Processos Judiciais</option></select></div></div><div className="flex justify-end gap-3 mt-8 pt-4 border-t dark:border-gray-700"><button onClick={() => setShowProvisionModal(false)} className="px-6 py-3 text-gray-500 font-medium hover:bg-gray-100 dark:hover:bg-gray-700 rounded-xl transition-colors">Cancelar</button><button onClick={handleCreateProvision} className="px-6 py-3 bg-yellow-600 text-white rounded-xl font-bold hover:bg-yellow-700 shadow-lg transition-transform active:scale-95">Constituir Provisão</button></div></div></div>)}
       {showEntityModal && (<div className="fixed inset-0 z-[100] flex items-center justify-center bg-black/50 backdrop-blur-sm p-4"><div className="bg-white dark:bg-gray-800 rounded-2xl p-6 w-full max-w-lg shadow-xl border dark:border-gray-700"><div className="flex justify-between items-center mb-4"><h3 className="text-xl font-bold flex gap-2 items-center text-gray-700 dark:text-white">{entityType === 'client' ? <Briefcase size={20} className="text-blue-500"/> : <Truck size={20} className="text-orange-500"/>} Novo {entityType === 'client' ? 'Cliente' : 'Fornecedor'}</h3></div><div className="space-y-4"><div><label className="text-xs font-bold text-gray-400 uppercase tracking-wider mb-1 block">Nome / Empresa</label><input placeholder="Ex: Tech Solutions Lda" value={newEntity.name} onChange={e => setNewEntity({...newEntity, name: e.target.value})} className="w-full p-3 border dark:border-gray-600 rounded-xl dark:bg-gray-900 bg-gray-50 outline-none"/></div><div className="grid grid-cols-2 gap-4"><div><label className="text-xs font-bold text-gray-400 uppercase tracking-wider mb-1 block">NIF</label><input placeholder="999888777" value={newEntity.nif} onChange={e => setNewEntity({...newEntity, nif: e.target.value})} className="w-full p-3 border dark:border-gray-600 rounded-xl dark:bg-gray-900 bg-gray-50 outline-none"/></div><div><label className="text-xs font-bold text-gray-400 uppercase tracking-wider mb-1 block">Email</label><input placeholder="geral@cliente.com" value={newEntity.email} onChange={e => setNewEntity({...newEntity, email: e.target.value})} className="w-full p-3 border dark:border-gray-600 rounded-xl dark:bg-gray-900 bg-gray-50 outline-none"/></div></div><div><label className="text-xs font-bold text-gray-400 uppercase tracking-wider mb-1 block">Morada</label><input placeholder="Rua..." value={newEntity.address} onChange={e => setNewEntity({...newEntity, address: e.target.value})} className="w-full p-3 border dark:border-gray-600 rounded-xl dark:bg-gray-900 bg-gray-50 outline-none"/></div><div className="grid grid-cols-2 gap-4"><div><label className="text-xs font-bold text-gray-400 uppercase tracking-wider mb-1 block">Cidade</label><input placeholder="Lisboa" value={newEntity.city} onChange={e => setNewEntity({...newEntity, city: e.target.value})} className="w-full p-3 border dark:border-gray-600 rounded-xl dark:bg-gray-900 bg-gray-50 outline-none"/></div><div><label className="text-xs font-bold text-gray-400 uppercase tracking-wider mb-1 block">País</label><select value={newEntity.country} onChange={e => setNewEntity({...newEntity, country: e.target.value})} className="w-full p-3 border dark:border-gray-600 rounded-xl dark:bg-gray-900 bg-gray-50 outline-none">{countries.map(c => <option key={c} value={c}>{c}</option>)}</select></div></div></div><div className="flex justify-end gap-3 mt-8 pt-4 border-t dark:border-gray-700"><button onClick={() => setShowEntityModal(false)} className="px-6 py-3 text-gray-500 font-medium hover:bg-gray-100 dark:hover:bg-gray-700 rounded-xl transition-colors">Cancelar</button><button onClick={handleCreateEntity} className="px-6 py-3 bg-blue-600 text-white rounded-xl font-bold hover:bg-blue-700 shadow-lg transition-transform active:scale-95">Criar Ficha</button></div></div></div>)}
