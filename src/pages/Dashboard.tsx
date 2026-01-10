@@ -4,6 +4,8 @@ import { useTranslation } from 'react-i18next';
 import { supabase } from '../supabase/client';
 import jsPDF from 'jspdf';
 import autoTable from 'jspdf-autotable';
+// ✅ IMPORTAR RECHARTS PARA GRÁFICOS
+import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip as RechartsTooltip, Legend, ResponsiveContainer, AreaChart, Area } from 'recharts';
 import { 
   LayoutDashboard, MessageSquare, FileText, Users, BarChart3, Settings, LogOut, Menu, X, 
   Globe, Moon, Sun, ChevronDown, Eye, EyeOff, User, Trash2, AlertTriangle, Building2, 
@@ -11,7 +13,7 @@ import {
   TrendingDown, Landmark, PieChart, FileSpreadsheet, Bell, Calendar, Printer, List, 
   BookOpen, CreditCard, Box, Save, Briefcase, Truck, RefreshCw, CheckCircle, 
   AlertCircle, Edit2, Download, Image as ImageIcon, UploadCloud, AlertOctagon, 
-  TrendingUp as TrendingUpIcon, MoreVertical, Palette, FileInput, Paperclip, Activity
+  TrendingUp as TrendingUpIcon, MoreVertical, Palette, FileInput, Paperclip, Activity, Zap
 } from 'lucide-react';
 
 // --- DADOS ESTÁTICOS ---
@@ -105,7 +107,7 @@ export default function Dashboard() {
   
   const [accountingTab, setAccountingTab] = useState('overview'); 
   
-  // ESTADOS DE DADOS
+  // ESTADOS DE DADOS (Ligados à BD nova)
   const [journalEntries, setJournalEntries] = useState<any[]>([]); 
   const [realInvoices, setRealInvoices] = useState<any[]>([]); 
   const [purchases, setPurchases] = useState<any[]>([]); 
@@ -114,7 +116,7 @@ export default function Dashboard() {
   const [clients, setClients] = useState<any[]>([]);
   const [suppliers, setSuppliers] = useState<any[]>([]);
   const [provisions, setProvisions] = useState<any[]>([]);
-  const [actionLogs, setActionLogs] = useState<any[]>([]); // ✅ NOVO: Logs
+  const [actionLogs, setActionLogs] = useState<any[]>([]); 
   const [exchangeRates, setExchangeRates] = useState<any>(defaultRates);
 
   // Modais
@@ -175,7 +177,7 @@ export default function Dashboard() {
   const [savingCompany, setSavingCompany] = useState(false);
 
   // Chat
-  const [messages, setMessages] = useState([{ role: 'assistant', content: 'Olá! Sou o seu assistente EasyCheck IA. Em que posso ajudar hoje?' }]);
+  const [messages, setMessages] = useState([{ role: 'assistant', content: 'Olá! Sou o seu assistente EasyCheck IA. Posso criar faturas, clientes ou tirar relatórios por si. O que precisa?' }]);
   const [chatInput, setChatInput] = useState('');
   const [isChatLoading, setIsChatLoading] = useState(false);
   const scrollRef = useRef<HTMLDivElement>(null);
@@ -189,14 +191,37 @@ export default function Dashboard() {
   const conversionRate = exchangeRates[currentCurrency] || 1;
   const displaySymbol = getCurrencySymbol(currentCurrency);
 
-  const totalRevenue = journalEntries
-    .reduce((acc, entry) => {
-        const incomeItems = entry.journal_items?.filter((i: any) => i.company_accounts?.type === 'rendimentos' || i.company_accounts?.code.startsWith('7'));
-        return acc + (incomeItems?.reduce((sum: number, i: any) => sum + i.credit, 0) || 0);
-    }, 0);
+  // ✅ CÁLCULO DE DADOS PARA O GRÁFICO
+  const getMonthlyFinancials = () => {
+    const months = ['Jan', 'Fev', 'Mar', 'Abr', 'Mai', 'Jun', 'Jul', 'Ago', 'Set', 'Out', 'Nov', 'Dez'];
+    const currentYear = new Date().getFullYear();
+    
+    // Inicializar array com 0
+    const data = months.map(m => ({ name: m, receitas: 0, despesas: 0 }));
 
-  const totalExpenses = purchases.reduce((acc, curr) => acc + curr.total, 0); 
-  const currentBalance = totalRevenue - totalExpenses; 
+    // Somar Receitas (Contas Classe 7)
+    journalEntries.forEach(entry => {
+        const date = new Date(entry.date);
+        if (date.getFullYear() === currentYear) {
+            const monthIdx = date.getMonth();
+            entry.journal_items?.forEach((item: any) => {
+                if (item.company_accounts?.code.startsWith('7') || item.company_accounts?.type === 'rendimentos') {
+                    data[monthIdx].receitas += item.credit;
+                }
+                // Somar Despesas (Contas Classe 6)
+                if (item.company_accounts?.code.startsWith('6') || item.company_accounts?.type === 'gastos') {
+                    data[monthIdx].despesas += item.debit;
+                }
+            });
+        }
+    });
+    return data;
+  };
+
+  const chartData = getMonthlyFinancials();
+  const totalRevenue = chartData.reduce((acc, curr) => acc + curr.receitas, 0);
+  const totalExpenses = chartData.reduce((acc, curr) => acc + curr.despesas, 0);
+  const currentBalance = totalRevenue - totalExpenses;
   const totalInvoicesCount = realInvoices.length;
 
   const getInitials = (name: string) => name ? (name.split(' ').length > 1 ? (name.split(' ')[0][0] + name.split(' ')[name.split(' ').length - 1][0]) : name.substring(0, 2)).toUpperCase() : 'EC';
@@ -205,13 +230,9 @@ export default function Dashboard() {
   const logAction = async (action: string, description: string) => {
       const { data: { user } } = await supabase.auth.getUser();
       if (!user) return;
-      
       const { data: newLog } = await supabase.from('action_logs').insert([{
-          user_id: user.id,
-          action_type: action,
-          description: description
+          user_id: user.id, action_type: action, description: description
       }]).select().single();
-
       if(newLog) setActionLogs(prev => [newLog, ...prev]);
   };
 
@@ -706,7 +727,6 @@ export default function Dashboard() {
       }
   };
 
-  // ✅ CORREÇÃO: CLIENT DOUTEUX (CLIENTE DUVIDOSO)
   const handleOpenDoubtful = (client: any) => { setSelectedClientForDebt(client); setShowDoubtfulModal(true); };
   
   const saveDoubtfulDebt = async () => { 
@@ -717,12 +737,9 @@ export default function Dashboard() {
           const clientInvoices = realInvoices.filter(inv => inv.client_id === selectedClientForDebt.id && selectedDebtInvoices.includes(inv.id)); 
           amount = clientInvoices.reduce((sum, inv) => sum + inv.total, 0); 
       } 
-      
       const newStatus = selectedClientForDebt.status === 'doubtful' ? 'active' : 'doubtful'; 
       const updates = { status: newStatus, doubtful_debt: newStatus === 'doubtful' ? amount : 0 }; 
-      
       const { error } = await supabase.from('clients').update(updates).eq('id', selectedClientForDebt.id); 
-      
       if (!error) { 
           setClients(prev => prev.map(c => c.id === selectedClientForDebt.id ? { ...c, ...updates } : c)); 
           logAction('RISCO', `Cliente ${selectedClientForDebt.name} marcado como ${newStatus} (${amount}€)`);
@@ -777,7 +794,63 @@ export default function Dashboard() {
   
   const handleDeleteAccount = async () => { if (deleteConfirmation !== 'ELIMINAR') return alert(t('delete.confirm_text')); setIsDeleting(true); try { await supabase.rpc('delete_user'); await supabase.auth.signOut(); navigate('/'); } catch(e: any) { alert(e.message); } finally { setIsDeleting(false); } };
   
-  const handleSendChatMessage = async (e: React.FormEvent) => { e.preventDefault(); if (!chatInput.trim() || isChatLoading) return; const userMessage = { role: 'user', content: chatInput }; setMessages(prev => [...prev, userMessage]); setChatInput(''); setIsChatLoading(true); try { const context = `[Empresa: ${companyForm.name}, País: ${companyForm.country}, Moeda: ${currentCurrency}] ${chatInput}`; const response = await fetch(`${API_URL}/api/chat`, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ message: context }) }); const data = await response.json(); if (data.reply) setMessages(prev => [...prev, { role: 'assistant', content: data.reply }]); } catch { setMessages(prev => [...prev, { role: 'assistant', content: '⚠️ Erro de conexão.' }]); } finally { setIsChatLoading(false); } };
+  // ✅ AGENTE IA: INTERPRETADOR DE COMANDOS
+  const processAICommand = (input: string) => {
+      const lower = input.toLowerCase();
+      // 1. Criar Fatura
+      if (lower.includes('fatura') && (lower.includes('cria') || lower.includes('nova') || lower.includes('emitir'))) {
+          resetInvoiceForm();
+          setShowInvoiceForm(true);
+          return "Com certeza! A abrir o formulário de faturação...";
+      }
+      // 2. Novo Cliente
+      if (lower.includes('cliente') && (lower.includes('novo') || lower.includes('criar'))) {
+          setEditingEntityId(null);
+          setNewEntity({ name: '', nif: '', email: '', address: '', city: '', postal_code: '', country: 'Portugal' });
+          setEntityType('client');
+          setShowEntityModal(true);
+          return "A abrir ficha de novo cliente...";
+      }
+      // 3. Relatórios
+      if (lower.includes('balancete')) {
+          generateFinancialReport('balancete');
+          return "A gerar o Balancete em PDF...";
+      }
+      if (lower.includes('resultados') || lower.includes('lucro')) {
+          generateFinancialReport('dre');
+          return "A gerar a Demonstração de Resultados...";
+      }
+      // 4. Reset
+      if (lower.includes('reset') || lower.includes('reiniciar')) {
+          handleResetFinancials();
+          return "A iniciar processo de limpeza...";
+      }
+      // 5. Navegação
+      if (lower.includes('definições') || lower.includes('configura')) {
+          navigate('/dashboard/settings');
+          return "A navegar para as Definições.";
+      }
+
+      // Fallback: Resposta Genérica
+      return "Desculpe, ainda estou a aprender. Tente 'Criar fatura', 'Novo cliente' ou 'Gerar balancete'.";
+  };
+
+  const handleSendChatMessage = async (e: React.FormEvent) => { 
+      e.preventDefault(); 
+      if (!chatInput.trim() || isChatLoading) return; 
+      
+      const userMessage = { role: 'user', content: chatInput }; 
+      setMessages(prev => [...prev, userMessage]); 
+      setChatInput(''); 
+      setIsChatLoading(true); 
+      
+      // Simulação de delay para parecer real
+      setTimeout(() => {
+          const aiResponse = processAICommand(userMessage.content);
+          setMessages(prev => [...prev, { role: 'assistant', content: aiResponse }]);
+          setIsChatLoading(false);
+      }, 800);
+  };
 
   const selectLanguage = (code: string) => { i18n.changeLanguage(code); setIsLangMenuOpen(false); };
   const toggleTheme = () => { document.documentElement.classList.toggle('dark'); setIsDark(!isDark); };
@@ -870,39 +943,61 @@ export default function Dashboard() {
           <Routes>
             <Route path="/" element={
                 <div className="space-y-6">
+                    {/* ✅ GRÁFICO VISUAL (RECHARTS) */}
                     <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-                        <div className="bg-white dark:bg-gray-800 p-6 rounded-2xl shadow-sm border dark:border-gray-700">
-                            <div className="flex justify-between items-center mb-2"><h3 className="text-gray-500 text-sm font-medium uppercase tracking-wider">Receita Mensal</h3><button onClick={toggleFinancials} className="text-gray-400">{showFinancials ? <Eye className="w-4 h-4"/> : <EyeOff className="w-4 h-4"/>}</button></div>
-                            <p className="text-3xl font-bold text-green-600 dark:text-green-400">{showFinancials ? `${displaySymbol} ${totalRevenue.toFixed(2)}` : '••••••'}</p>
-                        </div>
-                        <div className="bg-white dark:bg-gray-800 p-6 rounded-2xl shadow-sm border dark:border-gray-700">
-                            <div className="flex justify-between items-center mb-2"><h3 className="text-gray-500 text-sm font-medium uppercase tracking-wider">Despesas</h3><button onClick={toggleFinancials} className="text-gray-400">{showFinancials ? <Eye className="w-4 h-4"/> : <EyeOff className="w-4 h-4"/>}</button></div>
-                            <p className="text-3xl font-bold text-red-500 dark:text-red-400">{showFinancials ? `${displaySymbol} ${totalExpenses.toFixed(2)}` : '••••••'}</p>
-                        </div>
-                        <div className="bg-white dark:bg-gray-800 p-6 rounded-2xl shadow-sm border dark:border-gray-700">
-                            <div className="flex justify-between items-center mb-2"><h3 className="text-gray-500 text-sm font-medium uppercase tracking-wider">Saldo Atual</h3><button onClick={toggleFinancials} className="text-gray-400">{showFinancials ? <Eye className="w-4 h-4"/> : <EyeOff className="w-4 h-4"/>}</button></div>
-                            <p className={`text-3xl font-bold ${currentBalance >= 0 ? 'text-blue-600 dark:text-blue-400' : 'text-red-600 dark:text-red-400'}`}>{showFinancials ? `${displaySymbol} ${currentBalance.toFixed(2)}` : '••••••'}</p>
-                        </div>
-                    </div>
-                    {/* SECÇÃO DE ATIVIDADE & LOGS */}
-                    <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                        <div className="bg-white dark:bg-gray-800 p-6 rounded-2xl shadow-sm border dark:border-gray-700 flex flex-col h-full">
-                            <h3 className="text-gray-500 text-sm font-medium uppercase tracking-wider mb-4">Acesso Rápido</h3>
-                            <div className="grid grid-cols-2 gap-4">
-                                <button onClick={()=>{resetInvoiceForm();setShowInvoiceForm(true)}} className="p-4 bg-blue-50 dark:bg-blue-900/20 text-blue-600 dark:text-blue-300 rounded-xl font-bold flex flex-col items-center gap-2 hover:scale-105 transition-transform"><FileText/> Nova Fatura</button>
-                                <button onClick={()=>setAccountingTab('overview')} className="p-4 bg-purple-50 dark:bg-purple-900/20 text-purple-600 dark:text-purple-300 rounded-xl font-bold flex flex-col items-center gap-2 hover:scale-105 transition-transform"><BookOpen/> Diário</button>
+                        <div className="col-span-2 bg-white dark:bg-gray-800 p-6 rounded-2xl shadow-sm border dark:border-gray-700">
+                            <div className="flex justify-between items-center mb-6">
+                                <h3 className="font-bold text-lg text-gray-800 dark:text-white">Evolução Financeira</h3>
+                                <button className="text-gray-400 hover:text-blue-600"><Settings size={16}/></button>
+                            </div>
+                            <div className="h-64 w-full">
+                                <ResponsiveContainer width="100%" height="100%">
+                                    <BarChart data={chartData}>
+                                        <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#E5E7EB" />
+                                        <XAxis dataKey="name" axisLine={false} tickLine={false} tick={{fill: '#9CA3AF', fontSize: 12}} />
+                                        <YAxis axisLine={false} tickLine={false} tick={{fill: '#9CA3AF', fontSize: 12}} />
+                                        <RechartsTooltip cursor={{fill: 'transparent'}} contentStyle={{borderRadius: '8px', border: 'none', boxShadow: '0 4px 6px -1px rgb(0 0 0 / 0.1)'}} />
+                                        <Legend iconType="circle" />
+                                        <Bar dataKey="receitas" name="Receitas" fill="#22C55E" radius={[4, 4, 0, 0]} barSize={20} />
+                                        <Bar dataKey="despesas" name="Despesas" fill="#EF4444" radius={[4, 4, 0, 0]} barSize={20} />
+                                    </BarChart>
+                                </ResponsiveContainer>
                             </div>
                         </div>
-                        {/* ✅ LOG DE ATIVIDADES RECENTES */}
-                        <div className="bg-white dark:bg-gray-800 p-6 rounded-2xl shadow-sm border dark:border-gray-700 h-96 overflow-hidden flex flex-col">
+                        <div className="space-y-6">
+                            <div className="bg-white dark:bg-gray-800 p-6 rounded-2xl shadow-sm border dark:border-gray-700">
+                                <h3 className="text-gray-500 text-sm font-medium uppercase tracking-wider mb-2">Saldo Atual</h3>
+                                <p className={`text-3xl font-bold ${currentBalance >= 0 ? 'text-blue-600 dark:text-blue-400' : 'text-red-600 dark:text-red-400'}`}>{showFinancials ? `${displaySymbol} ${currentBalance.toFixed(2)}` : '••••••'}</p>
+                            </div>
+                            <div className="bg-white dark:bg-gray-800 p-6 rounded-2xl shadow-sm border dark:border-gray-700 flex items-center justify-between">
+                                <div><h3 className="text-gray-500 text-sm font-medium uppercase tracking-wider">Faturas</h3><p className="text-2xl font-bold text-gray-800 dark:text-white mt-1">{totalInvoicesCount}</p></div>
+                                <div className="bg-blue-100 p-3 rounded-xl"><FileText className="text-blue-600"/></div>
+                            </div>
+                        </div>
+                    </div>
+
+                    {/* SECÇÃO DE ATIVIDADE & LOGS */}
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                        <div className="bg-gradient-to-br from-blue-600 to-purple-700 p-6 rounded-2xl shadow-lg text-white flex flex-col justify-between">
+                            <div>
+                                <h3 className="font-bold text-lg mb-2 flex items-center gap-2"><Zap/> Assistente Rápido</h3>
+                                <p className="text-blue-100 text-sm mb-6">Precisa de ajuda? Use o chat ou estes atalhos para gerir a sua empresa.</p>
+                            </div>
+                            <div className="grid grid-cols-2 gap-4">
+                                <button onClick={()=>{resetInvoiceForm();setShowInvoiceForm(true)}} className="p-3 bg-white/10 hover:bg-white/20 backdrop-blur-sm rounded-xl font-bold text-sm flex items-center justify-center gap-2 transition-all"><Plus size={16}/> Nova Fatura</button>
+                                <button onClick={()=>{setEditingEntityId(null);setNewEntity({name:'',nif:'',email:'',address:'',city:'',postal_code:'',country:'Portugal'});setEntityType('client');setShowEntityModal(true)}} className="p-3 bg-white/10 hover:bg-white/20 backdrop-blur-sm rounded-xl font-bold text-sm flex items-center justify-center gap-2 transition-all"><Users size={16}/> Novo Cliente</button>
+                            </div>
+                        </div>
+                        {/* LOG DE ATIVIDADES RECENTES */}
+                        <div className="bg-white dark:bg-gray-800 p-6 rounded-2xl shadow-sm border dark:border-gray-700 h-64 overflow-hidden flex flex-col">
                             <h3 className="text-gray-500 text-sm font-medium uppercase tracking-wider mb-4 flex items-center gap-2"><Activity size={16}/> Últimas Atividades</h3>
                             <div className="flex-1 overflow-y-auto pr-2 space-y-3">
                                 {actionLogs.length === 0 ? <p className="text-xs text-gray-400 text-center py-10">Sem histórico recente.</p> : actionLogs.map(log => (
-                                    <div key={log.id} className="flex gap-3 text-sm p-3 bg-gray-50 dark:bg-gray-700/30 rounded-xl">
-                                        <div className="w-1 min-h-full bg-blue-500 rounded-full"></div>
+                                    <div key={log.id} className="flex gap-3 text-sm p-3 bg-gray-50 dark:bg-gray-700/30 rounded-xl items-center">
+                                        <div className={`w-2 h-2 rounded-full ${log.action_type === 'RISCO' ? 'bg-red-500' : 'bg-blue-500'}`}></div>
                                         <div>
                                             <p className="font-bold text-gray-700 dark:text-gray-200">{log.description}</p>
-                                            <p className="text-xs text-gray-400">{new Date(log.created_at).toLocaleString()}</p>
+                                            <p className="text-[10px] text-gray-400">{new Date(log.created_at).toLocaleString()}</p>
                                         </div>
                                     </div>
                                 ))}
@@ -920,7 +1015,6 @@ export default function Dashboard() {
                         {accountingTab === 'overview' && (
                             <div className="p-4">
                                 <div className="flex justify-between mb-4"><h3 className="font-bold flex gap-2"><BookOpen/> Diário Geral (Lançamentos)</h3><button onClick={()=>setShowTransactionModal(true)} className="bg-blue-600 text-white px-3 py-1 rounded text-sm"><Plus size={16}/></button></div>
-                                {/* ✅ NOVA TABELA DENSA PROFISSIONAL */}
                                 <div className="overflow-x-auto border rounded-xl shadow-sm">
                                     <table className="w-full text-xs text-left border-collapse">
                                         <thead className="bg-gray-100 dark:bg-gray-700 uppercase font-bold text-gray-600">
