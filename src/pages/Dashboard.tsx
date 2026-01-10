@@ -64,6 +64,19 @@ const vatRatesByCountry: Record<string, number[]> = {
     "United Kingdom": [20, 5, 0], "United States": [0, 5, 10]
 };
 
+// --- DICIONÁRIO MULTILÍNGUA PARA A IA ---
+const aiKeywords = {
+  invoice: ['fatura', 'recibo', 'invoice', 'facture', 'factura', 'rechnung', 'fattura'],
+  create: ['criar', 'nova', 'emitir', 'create', 'new', 'add', 'créer', 'nouvelle', 'crear', 'erstellen', 'creare'],
+  client: ['cliente', 'client', 'kunde'],
+  supplier: ['fornecedor', 'supplier', 'fournisseur', 'proveedor', 'lieferant', 'fornitore'],
+  expense: ['despesa', 'compra', 'gasto', 'expense', 'purchase', 'dépense', 'achat', 'ausgabe', 'spesa'],
+  report: ['relatório', 'balancete', 'report', 'balance', 'bilan', 'bericht', 'rapporto'],
+  profit: ['resultado', 'lucro', 'profit', 'résultat', 'gain', 'gewinn', 'utile'],
+  reset: ['reset', 'limpar', 'clear', 'reiniciar', 'löschen'],
+  list: ['lista', 'ver', 'list', 'view', 'show', 'voir', 'liste', 'anzeigen', 'vedere']
+};
+
 // --- INTERFACES ---
 interface InvoiceItem {
   description: string;
@@ -124,8 +137,8 @@ export default function Dashboard() {
   const [showTransactionModal, setShowTransactionModal] = useState(false);
   const [showAssetModal, setShowAssetModal] = useState(false);
   const [showEntityModal, setShowEntityModal] = useState(false); 
-  const [showInvoiceForm, setShowInvoiceForm] = useState(false); // ✅ AGORA É GLOBAL
-  const [showPurchaseForm, setShowPurchaseForm] = useState(false); // ✅ AGORA É GLOBAL
+  const [showInvoiceForm, setShowInvoiceForm] = useState(false);
+  const [showPurchaseForm, setShowPurchaseForm] = useState(false);
   const [showPreviewModal, setShowPreviewModal] = useState(false); 
   const [showProvisionModal, setShowProvisionModal] = useState(false);
   const [showDoubtfulModal, setShowDoubtfulModal] = useState(false);
@@ -179,6 +192,7 @@ export default function Dashboard() {
   const [messages, setMessages] = useState([{ role: 'assistant', content: 'Olá! Sou o seu assistente EasyCheck IA. Posso criar faturas, registar despesas, gerir clientes ou mostrar relatórios. Como posso ajudar?' }]);
   const [chatInput, setChatInput] = useState('');
   const [isChatLoading, setIsChatLoading] = useState(false);
+  const [chatContext, setChatContext] = useState<{ action?: string, data?: any }>({});
   const scrollRef = useRef<HTMLDivElement>(null);
 
   // --- HELPERS ---
@@ -784,73 +798,124 @@ export default function Dashboard() {
   
   const handleDeleteAccount = async () => { if (deleteConfirmation !== 'ELIMINAR') return alert(t('delete.confirm_text')); setIsDeleting(true); try { await supabase.rpc('delete_user'); await supabase.auth.signOut(); navigate('/'); } catch(e: any) { alert(e.message); } finally { setIsDeleting(false); } };
   
-  // ✅ AGENTE IA: INTERPRETADOR DE COMANDOS INTELIGENTE
+  // ✅ AGENTE IA INTELIGENTE (NLP + AUTO-FILL)
+  const extractInvoiceDetails = (text: string) => {
+      const lower = text.toLowerCase();
+      // 1. Valor (ex: 98 euros, 98€, 98.50)
+      const amountMatch = lower.match(/(\d+([.,]\d{1,2})?)\s*(euros|€|kz|reais|dólares|dollars|usd|\$)/i);
+      const amount = amountMatch ? parseFloat(amountMatch[1].replace(',', '.')) : 0;
+
+      // 2. Cliente (Procura na BD)
+      let clientId = '';
+      let detectedName = '';
+      clients.forEach(c => {
+          if (lower.includes(c.name.toLowerCase())) {
+              clientId = c.id;
+              detectedName = c.name;
+          }
+      });
+
+      // 3. Data (ex: dia 9/10, hoje, ontem)
+      let date = new Date().toISOString().split('T')[0];
+      const dateMatch = lower.match(/(\d{1,2})[\/-](\d{1,2})/);
+      if (dateMatch) {
+          const currentYear = new Date().getFullYear();
+          date = `${currentYear}-${dateMatch[2].padStart(2, '0')}-${dateMatch[1].padStart(2, '0')}`;
+      } else if (lower.includes('ontem')) {
+          const d = new Date(); d.setDate(d.getDate() - 1);
+          date = d.toISOString().split('T')[0];
+      }
+
+      return { amount, clientId, detectedName, date };
+  };
+
+  // ✅ DICIONÁRIO DE COMANDOS MULTILÍNGUA
+  const commandKeywords = {
+      invoice: ['fatura', 'recibo', 'invoice', 'facture', 'factura', 'rechnung', 'fattura'],
+      create: ['criar', 'nova', 'emitir', 'create', 'new', 'add', 'créer', 'nouvelle', 'crear', 'erstellen', 'creare'],
+      client: ['cliente', 'client', 'kunde'],
+      supplier: ['fornecedor', 'supplier', 'fournisseur', 'proveedor', 'lieferant', 'fornitore'],
+      expense: ['despesa', 'compra', 'gasto', 'expense', 'purchase', 'dépense', 'achat', 'ausgabe', 'spesa'],
+      report: ['relatório', 'balancete', 'report', 'balance', 'bilan', 'bericht', 'rapporto'],
+      profit: ['resultado', 'lucro', 'profit', 'résultat', 'gain', 'gewinn', 'utile'],
+      reset: ['reset', 'limpar', 'clear', 'reiniciar', 'löschen'],
+      list: ['lista', 'ver', 'list', 'view', 'show', 'voir', 'liste', 'anzeigen', 'vedere']
+  };
+
   const processAICommand = (input: string) => {
       const lower = input.toLowerCase();
-      
-      // 1. FATURAÇÃO
-      if (lower.includes('fatura') || lower.includes('recibo')) {
-          if(lower.includes('criar') || lower.includes('nova') || lower.includes('emitir')) {
-              resetInvoiceForm();
-              setShowInvoiceForm(true); // ✅ AGORA ABRE GLOBALMENTE
-              return "Com certeza! Abri o formulário de faturação para si.";
+
+      // CONTEXTO: RESPOSTA A PERGUNTA DA IA
+      if (chatContext.action === 'WAIT_FOR_AMOUNT') {
+          const amount = parseFloat(lower.replace(/[^0-9.,]/g, '').replace(',', '.'));
+          if (amount > 0) {
+              setInvoiceData(prev => ({...prev, items: [{...prev.items[0], price: amount}]}));
+              setShowInvoiceForm(true);
+              setChatContext({});
+              return `Perfeito. Fatura de ${amount}€ a ser criada.`;
           }
-          if(lower.includes('lista') || lower.includes('ver')) {
-              navigate('/dashboard/accounting'); setAccountingTab('invoices');
-              return "Aqui estão as suas faturas emitidas.";
+      }
+
+      // 1. FATURAÇÃO
+      if (commandKeywords.invoice.some(k => lower.includes(k))) {
+          if(commandKeywords.create.some(k => lower.includes(k))) {
+              const details = extractInvoiceDetails(input);
+              resetInvoiceForm();
+              
+              // Preenchimento Inteligente
+              if (details.clientId) {
+                  const defaultTax = getCurrentCountryVatRates()[0] || 23;
+                  setInvoiceData(prev => ({ 
+                      ...prev, 
+                      client_id: details.clientId, 
+                      date: details.date, 
+                      items: [{ ...prev.items[0], price: details.amount, tax: defaultTax }] 
+                  }));
+                  
+                  if (details.amount === 0) {
+                      setShowInvoiceForm(true);
+                      setChatContext({ action: 'WAIT_FOR_AMOUNT' });
+                      return `Abri a fatura para ${details.detectedName}. Qual é o valor?`;
+                  }
+                  
+                  setShowInvoiceForm(true);
+                  return `Entendido. A criar fatura para ${details.detectedName} no valor de ${details.amount}${displaySymbol}. Confirme e grave.`;
+              } else {
+                  setShowInvoiceForm(true);
+                  return "A abrir nova fatura. Por favor selecione o cliente (não consegui identificar pelo nome).";
+              }
           }
       }
 
       // 2. CLIENTES E FORNECEDORES
-      if (lower.includes('cliente')) {
-          if(lower.includes('novo') || lower.includes('criar')) {
-              setEditingEntityId(null);
-              setNewEntity({ name: '', nif: '', email: '', address: '', city: '', postal_code: '', country: 'Portugal' });
-              setEntityType('client');
-              setShowEntityModal(true); // ✅ GLOBAL
-              return "A abrir a ficha de criação de cliente...";
-          }
-      }
-      if (lower.includes('fornecedor')) {
-          if(lower.includes('novo') || lower.includes('criar')) {
-              setEditingEntityId(null);
-              setNewEntity({ name: '', nif: '', email: '', address: '', city: '', postal_code: '', country: 'Portugal' });
-              setEntityType('supplier');
-              setShowEntityModal(true); // ✅ GLOBAL
-              return "A abrir a ficha de novo fornecedor...";
-          }
+      if (commandKeywords.client.some(k => lower.includes(k)) && commandKeywords.create.some(k => lower.includes(k))) {
+          setEditingEntityId(null);
+          setNewEntity({ name: '', nif: '', email: '', address: '', city: '', postal_code: '', country: 'Portugal' });
+          setEntityType('client');
+          setShowEntityModal(true);
+          return "A abrir ficha de criação de cliente...";
       }
 
       // 3. DESPESAS
-      if (lower.includes('despesa') || lower.includes('compra')) {
-          if(lower.includes('nova') || lower.includes('criar') || lower.includes('registar')) {
-              setNewPurchase({ supplier_id: '', invoice_number: '', date: new Date().toISOString().split('T')[0], due_date: '', total: '', tax_total: '' }); 
-              setShowPurchaseForm(true); // ✅ GLOBAL
-              return "Vamos registar essa despesa. Abri o formulário.";
-          }
+      if (commandKeywords.expense.some(k => lower.includes(k)) && commandKeywords.create.some(k => lower.includes(k))) {
+          setNewPurchase({ supplier_id: '', invoice_number: '', date: new Date().toISOString().split('T')[0], due_date: '', total: '', tax_total: '' }); 
+          setShowPurchaseForm(true);
+          return "Vamos registar essa despesa. Abri o formulário.";
       }
 
-      // 4. CONTABILIDADE & RELATÓRIOS
-      if (lower.includes('balancete')) {
+      // 4. RELATÓRIOS
+      if (commandKeywords.report.some(k => lower.includes(k))) {
           generateFinancialReport('balancete');
           return "A gerar o Balancete em PDF... (verifique os pop-ups)";
       }
-      if (lower.includes('resultados') || lower.includes('lucro') || lower.includes('prejuízo')) {
-          generateFinancialReport('dre');
-          return "A gerar a Demonstração de Resultados...";
-      }
-      if (lower.includes('diário') || lower.includes('lançamentos')) {
-          navigate('/dashboard/accounting'); setAccountingTab('overview');
-          return "A redirecionar para o Diário Geral.";
-      }
 
-      // 5. NAÇÕES UNIDAS (RESET E SETTINGS)
-      if (lower.includes('reset') || lower.includes('limpar dados')) {
+      // 5. RESET
+      if (commandKeywords.reset.some(k => lower.includes(k))) {
           handleResetFinancials();
           return "Atenção: Iniciei o protocolo de limpeza de dados.";
       }
       
-      return "Posso ajudar a: 'Criar fatura', 'Registar despesa', 'Novo cliente' ou 'Tirar balancete'.";
+      return "Não entendi. Tente: 'Criar fatura para Pedro de 100 euros', 'Novo cliente' ou 'Tirar balancete'.";
   };
 
   const handleSendChatMessage = async (e: React.FormEvent) => { 
@@ -862,7 +927,6 @@ export default function Dashboard() {
       setChatInput(''); 
       setIsChatLoading(true); 
       
-      // Simulação de Inteligência (Delay + Processamento)
       setTimeout(() => {
           const aiResponse = processAICommand(userMessage.content);
           setMessages(prev => [...prev, { role: 'assistant', content: aiResponse }]);
@@ -1238,6 +1302,8 @@ export default function Dashboard() {
             </div>
         </div>
       )}
+
+      {showEntityModal && (<div className="fixed inset-0 z-[100] flex items-center justify-center bg-black/50 backdrop-blur-sm p-4"><div className="bg-white dark:bg-gray-800 rounded-2xl p-6 w-full max-w-lg shadow-xl border dark:border-gray-700"><div className="flex justify-between items-center mb-4"><h3 className="text-xl font-bold flex gap-2 items-center text-gray-700 dark:text-white">{entityType === 'client' ? <Briefcase size={20} className="text-blue-500"/> : <Truck size={20} className="text-orange-500"/>} Novo {entityType === 'client' ? 'Cliente' : 'Fornecedor'}</h3></div><div className="space-y-4"><div><label className="text-xs font-bold text-gray-400 uppercase tracking-wider mb-1 block">Nome / Empresa</label><input placeholder="Ex: Tech Solutions Lda" value={newEntity.name} onChange={e => setNewEntity({...newEntity, name: e.target.value})} className="w-full p-3 border dark:border-gray-600 rounded-xl dark:bg-gray-900 bg-gray-50 outline-none"/></div><div className="grid grid-cols-2 gap-4"><div><label className="text-xs font-bold text-gray-400 uppercase tracking-wider mb-1 block">NIF</label><input placeholder="999888777" value={newEntity.nif} onChange={e => setNewEntity({...newEntity, nif: e.target.value})} className="w-full p-3 border dark:border-gray-600 rounded-xl dark:bg-gray-900 bg-gray-50 outline-none"/></div><div><label className="text-xs font-bold text-gray-400 uppercase tracking-wider mb-1 block">Email</label><input placeholder="geral@cliente.com" value={newEntity.email} onChange={e => setNewEntity({...newEntity, email: e.target.value})} className="w-full p-3 border dark:border-gray-600 rounded-xl dark:bg-gray-900 bg-gray-50 outline-none"/></div></div><div><label className="text-xs font-bold text-gray-400 uppercase tracking-wider mb-1 block">Morada</label><input placeholder="Rua..." value={newEntity.address} onChange={e => setNewEntity({...newEntity, address: e.target.value})} className="w-full p-3 border dark:border-gray-600 rounded-xl dark:bg-gray-900 bg-gray-50 outline-none"/></div><div className="grid grid-cols-2 gap-4"><div><label className="text-xs font-bold text-gray-400 uppercase tracking-wider mb-1 block">Cidade</label><input placeholder="Lisboa" value={newEntity.city} onChange={e => setNewEntity({...newEntity, city: e.target.value})} className="w-full p-3 border dark:border-gray-600 rounded-xl dark:bg-gray-900 bg-gray-50 outline-none"/></div><div><label className="text-xs font-bold text-gray-400 uppercase tracking-wider mb-1 block">País</label><select value={newEntity.country} onChange={e => setNewEntity({...newEntity, country: e.target.value})} className="w-full p-3 border dark:border-gray-600 rounded-xl dark:bg-gray-900 bg-gray-50 outline-none">{countries.map(c => <option key={c} value={c}>{c}</option>)}</select></div></div></div><div className="flex justify-end gap-3 mt-8 pt-4 border-t dark:border-gray-700"><button onClick={() => setShowEntityModal(false)} className="px-6 py-3 text-gray-500 font-medium hover:bg-gray-100 dark:hover:bg-gray-700 rounded-xl transition-colors">Cancelar</button><button onClick={handleCreateEntity} className="px-6 py-3 bg-blue-600 text-white rounded-xl font-bold hover:bg-blue-700 shadow-lg transition-transform active:scale-95">Criar Ficha</button></div></div></div>)}
 
       {showPreviewModal && pdfPreviewUrl && (<div className="fixed inset-0 z-[100] flex flex-col bg-gray-900 bg-opacity-90 backdrop-blur-sm p-4 animate-fade-in"><div className="flex justify-between items-center text-white mb-4"><h3 className="text-xl font-bold flex gap-2"><FileText/> Pré-visualização Profissional</h3><div className="flex gap-4"><button onClick={handleDownloadPDF} className="bg-blue-600 px-4 py-2 rounded-lg font-bold hover:bg-blue-500 flex items-center gap-2"><Download size={18}/> Baixar PDF</button><button onClick={() => setShowPreviewModal(false)} className="bg-gray-700 px-4 py-2 rounded-lg font-bold hover:bg-gray-600"><X size={18}/></button></div></div><div className="flex-1 bg-gray-800 rounded-xl overflow-hidden border border-gray-700 shadow-2xl"><iframe src={pdfPreviewUrl} className="w-full h-full" title="PDF Preview"></iframe></div></div>)}
       {showAmortSchedule && selectedAssetForSchedule && (<div className="fixed inset-0 z-[100] flex items-center justify-center bg-black/50 backdrop-blur-sm p-4"><div className="bg-white dark:bg-gray-800 rounded-2xl p-8 w-full max-w-4xl shadow-xl border dark:border-gray-700 max-h-[80vh] overflow-y-auto"><div className="flex justify-between items-center mb-6"><div><h3 className="text-xl font-bold flex gap-2 items-center"><TrendingUpIcon className="text-blue-500"/> Mapa de Amortização Financeira</h3><p className="text-sm text-gray-500 mt-1 uppercase font-bold">{selectedAssetForSchedule.name}</p></div><button onClick={() => setShowAmortSchedule(false)}><X className="text-gray-400 hover:text-red-500"/></button></div><table className="w-full text-xs text-left"><thead className="bg-gray-100 dark:bg-gray-700 text-gray-600 uppercase text-xs font-bold border-b border-gray-200 dark:border-gray-600"><tr><th className="px-4 py-3">Ano</th><th className="px-4 py-3 text-right">V. Inicial</th><th className="px-4 py-3 text-right">Quota</th><th className="px-4 py-3 text-right">Acumulado</th><th className="px-4 py-3 text-right">V. Final (VNC)</th></tr></thead><tbody>{calculateAmortizationSchedule(selectedAssetForSchedule).map((row: any, i) => (<tr key={row.year} className={`border-b dark:border-gray-700 ${i % 2 === 0 ? 'bg-white dark:bg-gray-800' : 'bg-gray-50 dark:bg-gray-900'}`}><td className="px-4 py-3 font-bold text-gray-700 dark:text-gray-300">{row.year}</td><td className="px-4 py-3 text-right text-gray-500 font-mono">{displaySymbol} {row.startValue.toFixed(2)}</td><td className="px-4 py-3 text-right font-bold text-blue-600 font-mono">{displaySymbol} {row.annuity.toFixed(2)}</td><td className="px-4 py-3 text-right text-gray-500 font-mono">{displaySymbol} {row.accumulated.toFixed(2)}</td><td className="px-4 py-3 text-right font-bold text-gray-800 dark:text-white font-mono">{displaySymbol} {row.endValue.toFixed(2)}</td></tr>))}</tbody></table></div></div>)}
