@@ -6,54 +6,54 @@ import jsPDF from 'jspdf';
 import autoTable from 'jspdf-autotable';
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip as RechartsTooltip, Legend, ResponsiveContainer } from 'recharts';
 import { 
-  LayoutDashboard, MessageSquare, FileText, Users, BarChart3, Settings, LogOut, Menu, X, 
-  Globe, Moon, Sun, ChevronDown, Eye, EyeOff, User, Trash2, AlertTriangle, Building2, 
-  Copy, Send, Shield, Mail, Plus, Search, FileCheck, Calculator, TrendingUp, Archive, 
-  TrendingDown, Landmark, PieChart, FileSpreadsheet, Bell, Calendar, Printer, List, 
-  BookOpen, CreditCard, Box, Save, Briefcase, Truck, RefreshCw, CheckCircle, 
-  AlertCircle, Edit2, Download, Image as ImageIcon, UploadCloud, AlertOctagon, 
-  TrendingUp as TrendingUpIcon, MoreVertical, Palette, FileInput, Paperclip, Activity, Zap
+    LayoutDashboard, MessageSquare, FileText, Users, BarChart3, Settings, LogOut, Menu, X, 
+    Globe, Moon, Sun, ChevronDown, Eye, EyeOff, User, Trash2, AlertTriangle, Building2, 
+    Copy, Send, Shield, Mail, Plus, Search, FileCheck, Calculator, TrendingUp, Archive, 
+    TrendingDown, Landmark, PieChart, FileSpreadsheet, Bell, Calendar, Printer, List, 
+    BookOpen, CreditCard, Box, Save, Briefcase, Truck, RefreshCw, CheckCircle, 
+    AlertCircle, Edit2, Download, Image as ImageIcon, UploadCloud, AlertOctagon, 
+    TrendingUp as TrendingUpIcon, MoreVertical, Palette, FileInput, Paperclip, Activity, Zap 
 } from 'lucide-react';
 
 // --- DADOS ESTÁTICOS ---
-
 const countries = [
-  "Portugal", "Brasil", "Angola", "Moçambique", "Cabo Verde", 
-  "France", "Deutschland", "United Kingdom", "España", "United States", 
+  "Portugal", "Brasil", "Angola", "Moçambique", "Cabo Verde",
+  "France", "Deutschland", "United Kingdom", "España", "United States",
   "Italia", "Belgique", "Suisse", "Luxembourg"
 ];
 
-const invoiceTypesMap: Record<string, string> = {
-    "Fatura": "FT", "Fatura-Recibo": "FR", "Fatura Simplificada": "FS", "Fatura Proforma": "FP",
-    "Nota de Crédito": "NC", "Nota de Débito": "ND", "Recibo": "RC",
-    "Fatura Intracomunitária": "FI", "Fatura Isenta / Autoliquidação": "FA"
+const invoiceTypesMap: Record<string, string> = { 
+    "Fatura": "FT", "Fatura-Recibo": "FR", "Fatura Simplificada": "FS", "Fatura Proforma": "FP", 
+    "Nota de Crédito": "NC", "Nota de Débito": "ND", "Recibo": "RC", 
+    "Fatura Intracomunitária": "FI", "Fatura Isenta / Autoliquidação": "FA" 
 };
+
 const invoiceTypes = Object.keys(invoiceTypesMap);
 
-const languages = [ 
-  { code: 'pt', label: 'Português', flag: '🇵🇹' }, 
-  { code: 'en', label: 'English', flag: '🇬🇧' }, 
-  { code: 'fr', label: 'Français', flag: '🇫🇷' }, 
-  { code: 'es', label: 'Español', flag: '🇪🇸' }, 
-  { code: 'de', label: 'Deutsch', flag: '🇩🇪' }, 
-  { code: 'it', label: 'Italiano', flag: '🇮🇹' } 
+const languages = [
+    { code: 'pt', label: 'Português', flag: '🇵🇹' },
+    { code: 'en', label: 'English', flag: '🇬🇧' },
+    { code: 'fr', label: 'Français', flag: '🇫🇷' },
+    { code: 'es', label: 'Español', flag: '🇪🇸' },
+    { code: 'de', label: 'Deutsch', flag: '🇩🇪' },
+    { code: 'it', label: 'Italiano', flag: '🇮🇹' }
 ];
 
-const defaultRates: Record<string, number> = { 
-  'EUR': 1, 'USD': 1.05, 'BRL': 6.15, 'AOA': 930, 'MZN': 69, 
-  'CVE': 110.27, 'CHF': 0.94, 'GBP': 0.83 
+const defaultRates: Record<string, number> = {
+    'EUR': 1, 'USD': 1.05, 'BRL': 6.15, 'AOA': 930, 'MZN': 69,
+    'CVE': 110.27, 'CHF': 0.94, 'GBP': 0.83
 };
 
-const countryCurrencyMap: Record<string, string> = { 
-  "Portugal": "EUR", "France": "EUR", "Deutschland": "EUR", "España": "EUR", 
-  "Italia": "EUR", "Belgique": "EUR", "Luxembourg": "EUR", "Brasil": "BRL", 
-  "United States": "USD", "United Kingdom": "GBP", "Angola": "AOA", 
-  "Moçambique": "MZN", "Cabo Verde": "CVE", "Suisse": "CHF" 
+const countryCurrencyMap: Record<string, string> = {
+    "Portugal": "EUR", "France": "EUR", "Deutschland": "EUR", "España": "EUR",
+    "Italia": "EUR", "Belgique": "EUR", "Luxembourg": "EUR", "Brasil": "BRL",
+    "United States": "USD", "United Kingdom": "GBP", "Angola": "AOA",
+    "Moçambique": "MZN", "Cabo Verde": "CVE", "Suisse": "CHF"
 };
 
-const currencySymbols: Record<string, string> = { 
-  'EUR': '€', 'USD': '$', 'BRL': 'R$', 'AOA': 'Kz', 'MZN': 'MT', 
-  'CVE': 'Esc', 'CHF': 'CHF', 'GBP': '£' 
+const currencySymbols: Record<string, string> = {
+    'EUR': '€', 'USD': '$', 'BRL': 'R$', 'AOA': 'Kz', 'MZN': 'MT',
+    'CVE': 'Esc', 'CHF': 'CHF', 'GBP': '£'
 };
 
 const vatRatesByCountry: Record<string, number[]> = {
@@ -62,19 +62,6 @@ const vatRatesByCountry: Record<string, number[]> = {
     "France": [20, 10, 5.5, 0], "Deutschland": [19, 7, 0], "España": [21, 10, 4, 0],
     "Italia": [22, 10, 5, 0], "Belgique": [21, 12, 6, 0], "Suisse": [8.1, 2.6, 0],
     "United Kingdom": [20, 5, 0], "United States": [0, 5, 10]
-};
-
-// --- DICIONÁRIO MULTILÍNGUA PARA A IA ---
-const aiKeywords = {
-  invoice: ['fatura', 'recibo', 'invoice', 'facture', 'factura', 'rechnung', 'fattura'],
-  create: ['criar', 'nova', 'emitir', 'create', 'new', 'add', 'créer', 'nouvelle', 'crear', 'erstellen', 'creare'],
-  client: ['cliente', 'client', 'kunde'],
-  supplier: ['fornecedor', 'supplier', 'fournisseur', 'proveedor', 'lieferant', 'fornitore'],
-  expense: ['despesa', 'compra', 'gasto', 'expense', 'purchase', 'dépense', 'achat', 'ausgabe', 'spesa'],
-  report: ['relatório', 'balancete', 'report', 'balance', 'bilan', 'bericht', 'rapporto'],
-  profit: ['resultado', 'lucro', 'profit', 'résultat', 'gain', 'gewinn', 'utile'],
-  reset: ['reset', 'limpar', 'clear', 'reiniciar', 'löschen'],
-  list: ['lista', 'ver', 'list', 'view', 'show', 'voir', 'liste', 'anzeigen', 'vedere']
 };
 
 // --- INTERFACES ---
@@ -96,8 +83,21 @@ interface InvoiceData {
   items: InvoiceItem[];
 }
 
-// --- COMPONENTE PRINCIPAL ---
+interface JournalGridLine {
+    account_id: string;
+    debit: number;
+    credit: number;
+}
 
+interface BankStatementLine {
+    date: string;
+    description: string;
+    amount: number;
+    matched_invoice_id?: string;
+    suggested_match?: string;
+}
+
+// --- COMPONENTE PRINCIPAL ---
 export default function Dashboard() {
   const { t, i18n } = useTranslation();
   const location = useLocation();
@@ -109,70 +109,74 @@ export default function Dashboard() {
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
   const [isProfileDropdownOpen, setIsProfileDropdownOpen] = useState(false);
   const [isLangMenuOpen, setIsLangMenuOpen] = useState(false);
-  const [showFinancials, setShowFinancials] = useState(true); 
+  const [showFinancials, setShowFinancials] = useState(true);
   const [showPageCode, setShowPageCode] = useState(false);
   const [isDark, setIsDark] = useState(false);
-
   const [userData, setUserData] = useState<any>(null);
   const [profileData, setProfileData] = useState<any>(null);
   const [loadingUser, setLoadingUser] = useState(true);
-  
-  const [accountingTab, setAccountingTab] = useState('overview'); 
-  
+  const [accountingTab, setAccountingTab] = useState('overview');
+
   // ESTADOS DE DADOS
-  const [journalEntries, setJournalEntries] = useState<any[]>([]); 
-  const [realInvoices, setRealInvoices] = useState<any[]>([]); 
-  const [purchases, setPurchases] = useState<any[]>([]); 
-  const [companyAccounts, setCompanyAccounts] = useState<any[]>([]); 
-  const [assets, setAssets] = useState<any[]>([]); 
+  const [journalEntries, setJournalEntries] = useState<any[]>([]);
+  const [realInvoices, setRealInvoices] = useState<any[]>([]);
+  const [purchases, setPurchases] = useState<any[]>([]);
+  const [companyAccounts, setCompanyAccounts] = useState<any[]>([]);
+  const [assets, setAssets] = useState<any[]>([]);
   const [clients, setClients] = useState<any[]>([]);
   const [suppliers, setSuppliers] = useState<any[]>([]);
   const [provisions, setProvisions] = useState<any[]>([]);
-  const [actionLogs, setActionLogs] = useState<any[]>([]); 
+  const [actionLogs, setActionLogs] = useState<any[]>([]);
   const [exchangeRates, setExchangeRates] = useState<any>(defaultRates);
+
+  // ✅ NOVOS ESTADOS: Reconciliação
+  const [bankStatement, setBankStatement] = useState<BankStatementLine[]>([]);
+  const [isUploadingCSV, setIsUploadingCSV] = useState(false);
 
   // Modais
   const [isDeleteModalOpen, setIsDeleteModalOpen] = useState(false);
   const [isProfileModalOpen, setIsProfileModalOpen] = useState(false);
   const [showTransactionModal, setShowTransactionModal] = useState(false);
   const [showAssetModal, setShowAssetModal] = useState(false);
-  const [showEntityModal, setShowEntityModal] = useState(false); 
+  const [showEntityModal, setShowEntityModal] = useState(false);
   const [showInvoiceForm, setShowInvoiceForm] = useState(false);
   const [showPurchaseForm, setShowPurchaseForm] = useState(false);
-  const [showPreviewModal, setShowPreviewModal] = useState(false); 
+  const [showPreviewModal, setShowPreviewModal] = useState(false);
   const [showProvisionModal, setShowProvisionModal] = useState(false);
   const [showDoubtfulModal, setShowDoubtfulModal] = useState(false);
   const [showAmortSchedule, setShowAmortSchedule] = useState(false);
-  
+
   // Forms & Edição
-  const [entityType, setEntityType] = useState<'client' | 'supplier'>('client'); 
+  const [entityType, setEntityType] = useState<'client' | 'supplier'>('client');
   const [editingEntityId, setEditingEntityId] = useState<string | null>(null);
   const [editingProvisionId, setEditingProvisionId] = useState<string | null>(null);
   const [editingAssetId, setEditingAssetId] = useState<string | null>(null);
-
   const [deleteConfirmation, setDeleteConfirmation] = useState('');
   const [isDeleting, setIsDeleting] = useState(false);
   const [uploadingLogo, setUploadingLogo] = useState(false);
   const [uploadingTemplate, setUploadingTemplate] = useState(false);
   const [pdfPreviewUrl, setPdfPreviewUrl] = useState<string | null>(null);
-
   const [selectedClientForDebt, setSelectedClientForDebt] = useState<any>(null);
   const [debtMethod, setDebtMethod] = useState<'manual' | 'invoices'>('manual');
   const [manualDebtAmount, setManualDebtAmount] = useState('');
   const [selectedDebtInvoices, setSelectedDebtInvoices] = useState<string[]>([]);
   const [selectedAssetForSchedule, setSelectedAssetForSchedule] = useState<any>(null);
-  
   const [editForm, setEditForm] = useState({ fullName: '', jobTitle: '', email: '' });
-  
+
   // Company Form
-  const [companyForm, setCompanyForm] = useState({ 
-    name: '', country: 'Portugal', currency: 'EUR', 
-    address: '', nif: '', logo_url: '', footer: '', 
-    invoice_color: '#2563EB', header_text: '', template_url: '',
-    invoice_template_url: '' 
-  });
-  
-  const [newTransaction, setNewTransaction] = useState({ description: '', amount: '', type: 'expense', category: '', date: new Date().toISOString().split('T')[0] });
+  const [companyForm, setCompanyForm] = useState({
+      name: '', country: 'Portugal', currency: 'EUR',
+      address: '', nif: '', logo_url: '', footer: '',
+      invoice_color: '#2563EB', header_text: '', template_url: '',
+      invoice_template_url: ''
+   });
+
+  // Grelha Contabilística
+  const [journalGrid, setJournalGrid] = useState<JournalGridLine[]>([
+      { account_id: '', debit: 0, credit: 0 },
+      { account_id: '', debit: 0, credit: 0 }
+  ]);
+  const [newTransaction, setNewTransaction] = useState({ description: '', date: new Date().toISOString().split('T')[0] });
   const [newAsset, setNewAsset] = useState({ name: '', category: 'Equipamento', purchase_date: new Date().toISOString().split('T')[0], purchase_value: '', lifespan_years: 3, amortization_method: 'linear' });
   const [newEntity, setNewEntity] = useState({ name: '', nif: '', email: '', address: '', city: '', postal_code: '', country: 'Portugal' });
   const [newProvision, setNewProvision] = useState({ description: '', amount: '', type: 'Riscos e Encargos', date: new Date().toISOString().split('T')[0] });
@@ -182,21 +186,23 @@ export default function Dashboard() {
       id: '', client_id: '', type: 'Fatura', invoice_number: '',
       date: new Date().toISOString().split('T')[0],
       due_date: new Date(new Date().setDate(new Date().getDate() + 30)).toISOString().split('T')[0],
-      exemption_reason: '', items: [{ description: '', quantity: 1, price: 0, tax: 23 }] 
+      exemption_reason: '', items: [{ description: '', quantity: 1, price: 0, tax: 23 }]
   });
 
   const [savingProfile, setSavingProfile] = useState(false);
   const [savingCompany, setSavingCompany] = useState(false);
 
-  // Chat
-  const [messages, setMessages] = useState([{ role: 'assistant', content: 'Olá! Sou o seu assistente EasyCheck IA. Posso criar faturas, registar despesas, gerir clientes ou mostrar relatórios. Como posso ajudar?' }]);
+  // Chat e IA
+  const [messages, setMessages] = useState([{ role: 'assistant', content: 'Olá! Sou o seu assistente EasyCheck IA. Posso criar faturas, registar despesas ou analisar o seu balancete. O que precisa?' }]);
   const [chatInput, setChatInput] = useState('');
   const [isChatLoading, setIsChatLoading] = useState(false);
-  const [chatContext, setChatContext] = useState<{ action?: string, data?: any }>({});
+  
+  // ✅ NOVO: Memória de Intenção da IA
+  const [aiIntentMemory, setAiIntentMemory] = useState<{ pendingAction?: string, pendingData?: any } | null>(null);
+  
   const scrollRef = useRef<HTMLDivElement>(null);
 
   // --- HELPERS ---
-
   const getCurrencyCode = (country: string) => countryCurrencyMap[country] || 'EUR';
   const getCurrencySymbol = (code: string) => currencySymbols[code] || '€';
   const getCurrentCountryVatRates = () => vatRatesByCountry[companyForm.country || "Portugal"] || [23, 0];
@@ -242,6 +248,30 @@ export default function Dashboard() {
       if(newLog) setActionLogs(prev => [newLog, ...prev]);
   };
 
+  // HELPERS DA GRELHA CONTABILÍSTICA
+  const addGridLine = () => setJournalGrid([...journalGrid, { account_id: '', debit: 0, credit: 0 }]);
+  const removeGridLine = (index: number) => setJournalGrid(journalGrid.filter((_, i) => i !== index));
+  
+  // ✅ FIX: TypeScript Casting Seguro
+  const updateGridLine = (index: number, field: keyof JournalGridLine, value: any) => {
+      setJournalGrid(prev => {
+          const newGrid = [...prev];
+          (newGrid[index] as any)[field] = value;
+          return newGrid;
+      });
+  };
+
+  const getGridTotals = () => {
+      return journalGrid.reduce((acc, line) => ({
+          debit: acc.debit + (Number(line.debit) || 0),
+          credit: acc.credit + (Number(line.credit) || 0)
+      }), { debit: 0, credit: 0 });
+  };
+  const isGridBalanced = () => {
+      const t = getGridTotals();
+      return Math.abs(t.debit - t.credit) < 0.01 && t.debit > 0;
+  };
+
   // --- AMORTIZAÇÃO ---
   const calculateAmortizationSchedule = (asset: any) => {
       if (!asset) return [];
@@ -253,8 +283,8 @@ export default function Dashboard() {
       if (asset.amortization_method === 'degressive') {
         if (lifespan >= 5 && lifespan < 6) coef = 1.5;
         else if (lifespan >= 6) coef = 2.0;
-        else coef = 2.5; 
-      }
+        else coef = 2.5;
+       }
       const linearRate = 1 / lifespan;
       const degressiveRate = linearRate * coef;
       for (let i = 0; i < lifespan; i++) {
@@ -266,8 +296,8 @@ export default function Dashboard() {
               const currentLinearAnnuity = currentValue / remainingYears;
               const currentDegressiveAnnuity = currentValue * degressiveRate;
               if (currentDegressiveAnnuity < currentLinearAnnuity || i === lifespan - 1) {
-                  annuity = currentLinearAnnuity; 
-              } else {
+                  annuity = currentLinearAnnuity;
+               } else {
                   annuity = currentDegressiveAnnuity;
               }
           }
@@ -320,35 +350,35 @@ export default function Dashboard() {
             setProfileData(profile);
             setEditForm({ fullName: profile.full_name, jobTitle: profile.job_title || '', email: user.email || '' });
             const initialCurrency = profile.currency || getCurrencyCode(profile.country || 'Portugal');
-            setCompanyForm({ 
-                name: profile.company_name, 
-                country: profile.country || 'Portugal', 
-                currency: initialCurrency, 
-                address: profile.company_address || '', 
-                nif: profile.company_nif || '', 
-                logo_url: profile.logo_url || '', 
-                footer: profile.company_footer || '', 
-                invoice_color: profile.invoice_color || '#2563EB', 
-                header_text: profile.header_text || '',
-                template_url: profile.template_url || '',
-                invoice_template_url: profile.invoice_template_url || '' 
-            });
+            setCompanyForm({
+                  name: profile.company_name,
+                  country: profile.country || 'Portugal',
+                  currency: initialCurrency,
+                  address: profile.company_address || '',
+                  nif: profile.company_nif || '',
+                  logo_url: profile.logo_url || '',
+                  footer: profile.company_footer || '',
+                  invoice_color: profile.invoice_color || '#2563EB',
+                  header_text: profile.header_text || '',
+                 template_url: profile.template_url || '',
+                 invoice_template_url: profile.invoice_template_url || ''
+              });
             if (profile.custom_exchange_rates) { setExchangeRates({ ...defaultRates, ...profile.custom_exchange_rates }); }
         }
         
         const [journal, inv, pur, acc, ass, cl, sup, prov, logs] = await Promise.all([
-             supabase.from('journal_entries').select('*, journal_items(debit, credit, company_accounts(code, name, type))').order('date', { ascending: false }),
-             supabase.from('invoices').select('*, clients(name)').order('created_at', { ascending: false }),
-             supabase.from('purchases').select('*, suppliers(name)').order('date', { ascending: false }),
-             supabase.from('company_accounts').select('*').order('code', { ascending: true }),
-             supabase.from('accounting_assets').select('*'),
-             supabase.from('clients').select('*'),
-             supabase.from('suppliers').select('*'),
-             supabase.from('accounting_provisions').select('*'),
-             supabase.from('action_logs').select('*').order('created_at', { ascending: false }).limit(20)
+              supabase.from('journal_entries').select('*, journal_items(debit, credit, company_accounts(code, name, type))').order('date', { ascending: false }),
+              supabase.from('invoices').select('*, clients(name)').order('created_at', { ascending: false }),
+              supabase.from('purchases').select('*, suppliers(name)').order('date', { ascending: false }),
+              supabase.from('company_accounts').select('*').order('code', { ascending: true }),
+              supabase.from('accounting_assets').select('*'),
+              supabase.from('clients').select('*'),
+              supabase.from('suppliers').select('*'),
+              supabase.from('accounting_provisions').select('*'),
+              supabase.from('action_logs').select('*').order('created_at', { ascending: false }).limit(20)
         ]);
-
-        if (journal.data) setJournalEntries(journal.data);
+        
+         if (journal.data) setJournalEntries(journal.data);
         if (inv.data) setRealInvoices(inv.data);
         if (pur.data) setPurchases(pur.data);
         if (acc.data) setCompanyAccounts(acc.data);
@@ -367,27 +397,84 @@ export default function Dashboard() {
 
   useEffect(() => {
       if (!invoiceData.client_id) return;
-      const defaultRate = getCurrentCountryVatRates()[0]; 
-      let newTax = defaultRate;
+      const defaultRate = getCurrentCountryVatRates()[0];
+       let newTax = defaultRate;
       let exemption = '';
-      if (invoiceData.type.includes('Isenta') || invoiceData.type.includes('Intracomunitária')) { 
-          newTax = 0; 
-          exemption = invoiceData.type.includes('Intracomunitária') ? 'Isento Artigo 14.º RITI' : 'IVA - Autoliquidação'; 
-      }
-      const updatedItems = invoiceData.items.map(item => ({ 
-          ...item, 
-          tax: (item.tax === 0 && newTax !== 0) || (item.tax !== 0 && newTax === 0) ? newTax : item.tax 
-      }));
+      if (invoiceData.type.includes('Isenta') || invoiceData.type.includes('Intracomunitária')) {
+           newTax = 0;
+           exemption = invoiceData.type.includes('Intracomunitária') ? 'Isento Artigo 14.º RITI' : 'IVA - Autoliquidação';
+       }
+      const updatedItems = invoiceData.items.map(item => ({
+           ...item,
+           tax: (item.tax === 0 && newTax !== 0) || (item.tax !== 0 && newTax === 0) ? newTax : item.tax
+       }));
       setInvoiceData(prev => ({ ...prev, items: updatedItems, exemption_reason: exemption }));
-  }, [invoiceData.type]); 
+  }, [invoiceData.type]);
+
+  // ✅ NOVO: EFEITO DE MEMÓRIA IA
+  // Quando um cliente é criado, verifica se havia uma fatura pendente para ele
+  useEffect(() => {
+    if (aiIntentMemory?.pendingAction === 'create_invoice' && aiIntentMemory.pendingData?.detectedName) {
+        const justCreated = clients.find(c => c.name.toLowerCase().includes(aiIntentMemory.pendingData.detectedName.toLowerCase()));
+        if (justCreated) {
+            setInvoiceData(prev => ({
+                ...prev,
+                client_id: justCreated.id,
+                items: [{ ...prev.items[0], price: aiIntentMemory.pendingData.amount || 0 }]
+            }));
+            setShowInvoiceForm(true);
+            setMessages(prev => [...prev, { role: 'assistant', content: `Cliente ${justCreated.name} detetado. Abri a fatura como solicitado!` }]);
+            setAiIntentMemory(null);
+        }
+    }
+  }, [clients]);
 
   // --- ACTIONS ---
+  
+  // ✅ NOVO: RECONCILIAÇÃO BANCÁRIA (CSV IMPORT & MATCH)
+  const handleCSVUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+      const file = e.target.files?.[0];
+      if (!file) return;
+      
+      setIsUploadingCSV(true);
+      const reader = new FileReader();
+      
+      reader.onload = async (event) => {
+          const text = event.target?.result as string;
+          const lines = text.split('\n').slice(1); // Ignorar header
+          
+          const parsedLines: BankStatementLine[] = lines.filter(l => l.trim()).map(line => {
+              const cols = line.split(/[,;]/); // Suporta virgula ou ponto-e-virgula
+              const date = cols[0]?.trim();
+              const description = cols[1]?.trim();
+              const val = parseFloat(cols[2]?.trim()?.replace(',', '.'));
+              
+              // AUTO-MATCH ALGORITHM
+              // Procura faturas com o mesmo valor (positivo para vendas, negativo para compras)
+              const match = realInvoices.find(inv => Math.abs(inv.total - Math.abs(val)) < 0.01);
+              
+              return {
+                  date,
+                  description,
+                  amount: val,
+                  matched_invoice_id: match?.id,
+                  suggested_match: match?.invoice_number
+              };
+          });
+          
+          setBankStatement(parsedLines);
+          setIsUploadingCSV(false);
+          logAction('BANCO', `Importado extrato com ${parsedLines.length} linhas`);
+      };
+      
+      reader.readAsText(file);
+  };
 
-  const copyCode = () => { 
-      if(profileData?.company_code) { 
-          navigator.clipboard.writeText(profileData.company_code); 
-          alert("Código copiado!"); 
-      } 
+  const copyCode = () => {
+      if(profileData?.company_code) {
+          navigator.clipboard.writeText(profileData.company_code);
+          alert("Código copiado!");
+      }
   };
 
   const handleLogoUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -434,31 +521,29 @@ export default function Dashboard() {
       }
       
       let invoiceId;
-      
       if (invoiceData.id) {
           const res = await supabase.from('invoices').update({
-             client_id: invoiceData.client_id, type: invoiceData.type, date: invoiceData.date, 
-             due_date: invoiceData.due_date, exemption_reason: invoiceData.exemption_reason, 
-             subtotal: totals.subtotal, tax_total: totals.taxTotal, total: totals.total
+              client_id: invoiceData.client_id, type: invoiceData.type, date: invoiceData.date,
+               due_date: invoiceData.due_date, exemption_reason: invoiceData.exemption_reason,
+               subtotal: totals.subtotal, tax_total: totals.taxTotal, total: totals.total
           }).eq('id', invoiceData.id).select().single();
           if (res.error) return alert("Erro ao atualizar: " + res.error.message);
           invoiceId = res.data.id;
           await supabase.from('invoice_items').delete().eq('invoice_id', invoiceData.id);
       } else {
-          const res = await supabase.from('invoices').insert([{ 
-              user_id: userData.id, client_id: invoiceData.client_id, type: invoiceData.type, 
-              invoice_number: docNumber, date: invoiceData.date, due_date: invoiceData.due_date, 
-              exemption_reason: invoiceData.exemption_reason, subtotal: totals.subtotal, 
-              tax_total: totals.taxTotal, total: totals.total, currency: currentCurrency, status: 'sent' 
-          }]).select().single();
+          const res = await supabase.from('invoices').insert([{
+                user_id: userData.id, client_id: invoiceData.client_id, type: invoiceData.type,
+                invoice_number: docNumber, date: invoiceData.date, due_date: invoiceData.due_date,
+                exemption_reason: invoiceData.exemption_reason, subtotal: totals.subtotal,
+                tax_total: totals.taxTotal, total: totals.total, currency: currentCurrency, status: 'sent'
+            }]).select().single();
           if (res.error) return alert("Erro ao criar: " + res.error.message);
           invoiceId = res.data.id;
       }
-
       const itemsToInsert = invoiceData.items.map(item => ({ invoice_id: invoiceId, description: item.description, quantity: item.quantity, unit_price: item.price, tax_rate: item.tax }));
       await supabase.from('invoice_items').insert(itemsToInsert);
 
-      const clientAccount = companyAccounts.find(a => a.code.startsWith('211') || a.code.startsWith('311')); 
+      const clientAccount = companyAccounts.find(a => a.code.startsWith('211') || a.code.startsWith('311'));
       const salesAccount = companyAccounts.find(a => a.code.startsWith('71') || a.code.startsWith('61'));
       const taxAccount = companyAccounts.find(a => a.code.startsWith('243') || a.code.startsWith('342'));
 
@@ -483,12 +568,11 @@ export default function Dashboard() {
       }
 
       await logAction('FATURA', `Emitida Fatura ${docNumber} (${totals.total} ${displaySymbol})`);
-
-      const { data: updatedInvoices } = await supabase.from('invoices').select('*, clients(name)').order('created_at', { ascending: false }); 
+      const { data: updatedInvoices } = await supabase.from('invoices').select('*, clients(name)').order('created_at', { ascending: false });
       if (updatedInvoices) setRealInvoices(updatedInvoices);
       const { data: updatedJournal } = await supabase.from('journal_entries').select('*, journal_items(debit, credit, company_accounts(code, name))').order('date', { ascending: false });
       if (updatedJournal) setJournalEntries(updatedJournal);
-
+      
       setShowPreviewModal(false); setShowInvoiceForm(false);
       resetInvoiceForm();
       alert("Fatura emitida e contabilizada!");
@@ -504,38 +588,56 @@ export default function Dashboard() {
       setShowInvoiceForm(true);
   };
 
-  const handleDeleteInvoice = async (id: string) => { 
-      if (window.confirm("ATENÇÃO: Apagar uma fatura emitida pode ter implicações fiscais.\nTem a certeza absoluta?")) { 
-          if (window.prompt("Escreva 'APAGAR' para confirmar:") === 'APAGAR') { 
-              const { error } = await supabase.from('invoices').delete().eq('id', id); 
+  // ✅ FIX: Função handleDeleteAccount estava em falta ou mal implementada
+  const handleDeleteAccount = async () => {
+      if (deleteConfirmation !== 'ELIMINAR') {
+          alert("Por favor, escreva ELIMINAR para confirmar.");
+          return;
+      }
+      setIsDeleting(true);
+      try {
+          // Nota: 'delete_user' deve ser uma função RPC definida no seu Supabase
+          await supabase.rpc('delete_user');
+          await supabase.auth.signOut();
+          navigate('/');
+      } catch (e: any) {
+          alert(e.message);
+      } finally {
+          setIsDeleting(false);
+      }
+  };
+
+  const handleDeleteInvoice = async (id: string) => {
+      if (window.confirm("ATENÇÃO: Apagar uma fatura emitida pode ter implicações fiscais.\nTem a certeza absoluta?")) {
+          if (window.prompt("Escreva 'APAGAR' para confirmar:") === 'APAGAR') {
+              const { error } = await supabase.from('invoices').delete().eq('id', id);
               if (!error) {
-                  setRealInvoices(prev => prev.filter(i => i.id !== id)); 
+                 setRealInvoices(prev => prev.filter(i => i.id !== id));
                   logAction('ANULAR', `Fatura ${id} anulada`);
-              }
-          } 
-      } 
+             }
+         }
+      }
   };
 
   const handleCreatePurchase = async () => {
       if(!newPurchase.supplier_id || !newPurchase.total) return alert("Preencha fornecedor e total.");
       const { data, error } = await supabase.from('purchases').insert([{
-          user_id: userData.id, 
-          supplier_id: newPurchase.supplier_id, 
-          invoice_number: newPurchase.invoice_number,
-          date: newPurchase.date, 
-          due_date: newPurchase.due_date, 
-          total: parseFloat(newPurchase.total),
+          user_id: userData.id,
+           supplier_id: newPurchase.supplier_id,
+           invoice_number: newPurchase.invoice_number,
+          date: newPurchase.date,
+           due_date: newPurchase.due_date,
+           total: parseFloat(newPurchase.total),
           tax_total: parseFloat(newPurchase.tax_total || '0')
       }]).select('*, suppliers(name)').single();
-
-      if(!error && data) { 
-          setPurchases([data, ...purchases]); 
-          setShowPurchaseForm(false); 
-          setNewPurchase({ supplier_id: '', invoice_number: '', date: new Date().toISOString().split('T')[0], due_date: '', total: '', tax_total: '' }); 
+      if(!error && data) {
+          setPurchases([data, ...purchases]);
+          setShowPurchaseForm(false);
+          setNewPurchase({ supplier_id: '', invoice_number: '', date: new Date().toISOString().split('T')[0], due_date: '', total: '', tax_total: '' });
           logAction('DESPESA', `Registada compra ${data.invoice_number} de ${data.total}€`);
-      } else {
-          alert("Erro ao criar compra.");
-      }
+     } else {
+         alert("Erro ao criar compra.");
+     }
   };
 
   const generatePDFBlob = async (dataOverride?: any): Promise<Blob> => {
@@ -553,42 +655,39 @@ export default function Dashboard() {
       const totals = { subtotal, taxTotal, total: subtotal + taxTotal };
       const client = clients.find(c => c.id === dataToUse.client_id) || { name: 'Cliente Final', address: '', nif: '', city: '', postal_code: '', country: '' };
       
-      const templateToUse = companyForm.invoice_template_url || companyForm.template_url; 
+      const templateToUse = companyForm.invoice_template_url || companyForm.template_url;
       if(templateToUse) {
           try {
-              const img = new Image(); 
-              img.src = templateToUse; 
-              img.crossOrigin = "Anonymous";
+              const img = new Image();
+               img.src = templateToUse;
+               img.crossOrigin = "Anonymous";
               await new Promise((resolve) => { img.onload = resolve; img.onerror = resolve; });
-              doc.addImage(img, 'PNG', 0, 0, 210, 297); 
-          } catch (e) { console.error("Erro template", e); }
+              doc.addImage(img, 'PNG', 0, 0, 210, 297);
+           } catch (e) { console.error("Erro template", e); }
       }
-
       if(!templateToUse) {
-          doc.setFillColor(companyForm.invoice_color || '#2563EB'); 
-          doc.rect(0, 0, 210, 10, 'F'); 
+          doc.setFillColor(companyForm.invoice_color || '#2563EB');
+          doc.rect(0, 0, 210, 10, 'F');
           if (companyForm.logo_url) {
-            try { 
-                const img = new Image(); img.src = companyForm.logo_url; img.crossOrigin = "Anonymous"; 
+           try {
+                const img = new Image(); img.src = companyForm.logo_url; img.crossOrigin = "Anonymous";
                 await new Promise((resolve) => { img.onload = resolve; img.onerror = resolve; });
-                doc.addImage(img, 'PNG', 15, 20, 30, 20); 
-            } catch {}
+               doc.addImage(img, 'PNG', 15, 20, 30, 20);
+             } catch {}
           }
-          doc.setFont("helvetica", "bold"); doc.setFontSize(14); doc.setTextColor(40); 
+          doc.setFont("helvetica", "bold"); doc.setFontSize(14); doc.setTextColor(40);
           doc.text(companyForm.name || 'Minha Empresa', 200, 25, { align: 'right' });
-          doc.setFont("helvetica", "normal"); doc.setFontSize(9); doc.setTextColor(80); 
-          doc.text(companyForm.address || '', 200, 30, { align: 'right' }); 
+          doc.setFont("helvetica", "normal"); doc.setFontSize(9); doc.setTextColor(80);
+          doc.text(companyForm.address || '', 200, 30, { align: 'right' });
           doc.text(`NIF: ${companyForm.nif || 'N/A'}`, 200, 35, { align: 'right' });
       }
-
       doc.setFont("helvetica", "bold"); doc.setFontSize(10); doc.setTextColor(0);
       doc.text("FATURA Nº", 140, 50);
       doc.text("DATA", 140, 55);
       doc.setFont("helvetica", "normal");
       const docNum = dataToUse.invoice_number || "RASCUNHO";
-      doc.text(docNum, 170, 50, { align: 'right' }); 
+      doc.text(docNum, 170, 50, { align: 'right' });
       doc.text(dataToUse.date, 170, 55, { align: 'right' });
-
       doc.setFont("helvetica", "bold"); doc.text("Exmo.(s) Sr.(s)", 15, 60);
       doc.setFont("helvetica", "normal"); doc.setFontSize(11);
       doc.text(client.name, 15, 66);
@@ -596,21 +695,21 @@ export default function Dashboard() {
       if(client.address) doc.text(client.address, 15, 71);
       if(client.nif) doc.text(`NIF: ${client.nif}`, 15, 76);
 
-      const tableRows = dataToUse.items.map((item: any) => { 
-          const price = item.price ?? item.unit_price; 
-          const tax = item.tax ?? item.tax_rate; 
-          return [ item.description, item.quantity, `${displaySymbol} ${price.toFixed(2)}`, `${tax}%`, `${displaySymbol} ${(item.quantity * price).toFixed(2)}` ]; 
+      const tableRows = dataToUse.items.map((item: any) => {
+          const price = item.price ?? item.unit_price;
+          const tax = item.tax ?? item.tax_rate;
+          return [ item.description, item.quantity, `${displaySymbol} ${price.toFixed(2)}`, `${tax}%`, `${displaySymbol} ${(item.quantity * price).toFixed(2)}` ];
       });
-      autoTable(doc, { 
-          head: [["Descrição", "Qtd", "Preço Unit.", "IVA", "Total"]], 
-          body: tableRows, 
-          startY: 90, 
-          theme: 'plain', 
+      autoTable(doc, {
+          head: [["Descrição", "Qtd", "Preço Unit.", "IVA", "Total"]],
+          body: tableRows,
+          startY: 90,
+          theme: 'plain',
           headStyles: { fillColor: companyForm.invoice_color || '#444', textColor: 255, fontStyle: 'bold' },
-          styles: { fontSize: 9, cellPadding: 3 },
-          columnStyles: { 4: { halign: 'right' } }
+         styles: { fontSize: 9, cellPadding: 3 },
+         columnStyles: { 4: { halign: 'right' } }
       });
-      
+
       const finalY = (doc as any).lastAutoTable.finalY + 10;
       doc.setFontSize(10);
       doc.text(`Ilíquido:`, 130, finalY); doc.text(`${displaySymbol} ${totals.subtotal.toFixed(2)}`, 195, finalY, { align: 'right' });
@@ -622,18 +721,6 @@ export default function Dashboard() {
       doc.setFontSize(7); doc.setTextColor(150); doc.setFont('helvetica', 'normal');
       doc.text("Processado por EasyCheck ERP (Licença Nº 001)", 105, pageHeight - 10, { align: 'center' });
       return doc.output('blob');
-  };
-
-  const handleQuickPreview = async (invoice: any) => {
-    const { data: items } = await supabase.from('invoice_items').select('*').eq('invoice_id', invoice.id);
-    if (!items) return alert("Erro ao carregar itens.");
-    const fullInvoiceData = { ...invoice, items: items.map((i: any) => ({ description: i.description, quantity: i.quantity, price: i.unit_price, tax: i.tax_rate })) };
-    try { const blob = await generatePDFBlob(fullInvoiceData); setPdfPreviewUrl(URL.createObjectURL(blob)); setShowPreviewModal(true); } catch { alert("Erro ao gerar PDF."); }
-  };
-
-  const handleDownloadPDF = async () => {
-    const blob = await generatePDFBlob(); const url = URL.createObjectURL(blob);
-    const link = document.createElement('a'); link.href = url; link.download = `EasyCheck_${invoiceData.invoice_number || 'Doc'}.pdf`; link.click();
   };
 
   const generateFinancialReport = (type: 'balancete' | 'dre') => {
@@ -695,32 +782,49 @@ export default function Dashboard() {
             doc.setTextColor(200, 0, 0); doc.text("❌ Desequilíbrio!", 15, finalY + 10);
         }
     } else {
-        const result = totalCredit - totalDebit; 
-        doc.setFontSize(12); doc.text(`Resultado Líquido: ${displaySymbol} ${result.toFixed(2)}`, 15, finalY);
+        const result = totalCredit - totalDebit;
+         doc.setFontSize(12); doc.text(`Resultado Líquido: ${displaySymbol} ${result.toFixed(2)}`, 15, finalY);
     }
     window.open(URL.createObjectURL(doc.output('blob')), '_blank');
     logAction('RELATÓRIO', `Gerado ${title}`);
   };
 
-  const handleCreateTransaction = async () => { 
-      if (!newTransaction.amount || !newTransaction.description) return alert("Preencha dados."); 
-      const { data: entry, error } = await supabase.from('journal_entries').insert([{ 
-          user_id: userData.id, description: newTransaction.description, date: newTransaction.date 
+  const handleSaveJournalEntry = async () => {
+      if (!newTransaction.description) return alert("Indique uma descrição.");
+      if (!isGridBalanced()) return alert("O lançamento não está balanceado (Débito ≠ Crédito).");
+
+      const { data: entry, error } = await supabase.from('journal_entries').insert([{
+           user_id: userData.id,
+           description: newTransaction.description,
+           date: newTransaction.date,
+          document_ref: 'MANUAL'
       }]).select().single();
-      if (!error && entry) { 
-          alert("Movimento criado!");
-          const { data: updatedJournal } = await supabase.from('journal_entries').select('*, journal_items(debit, credit, company_accounts(code, name))').order('date', { ascending: false });
-          if(updatedJournal) setJournalEntries(updatedJournal);
-          logAction('DIARIO', `Lançamento manual: ${newTransaction.description}`);
-          setShowTransactionModal(false); 
-      } 
+
+      if (error) return alert("Erro ao criar lançamento.");
+
+      const linesToInsert = journalGrid.filter(l => l.account_id && (l.debit > 0 || l.credit > 0)).map(line => ({
+          entry_id: entry.id,
+          account_id: line.account_id,
+          debit: line.debit,
+          credit: line.credit
+      }));
+
+      await supabase.from('journal_items').insert(linesToInsert);
+
+      const { data: updatedJournal } = await supabase.from('journal_entries').select('*, journal_items(debit, credit, company_accounts(code, name))').order('date', { ascending: false });
+      if(updatedJournal) setJournalEntries(updatedJournal);
+      
+      logAction('DIARIO', `Lançamento manual: ${newTransaction.description}`);
+      setShowTransactionModal(false);
+      setJournalGrid([{ account_id: '', debit: 0, credit: 0 }, { account_id: '', debit: 0, credit: 0 }]);
+      alert("Lançamento gravado com sucesso!");
   };
-  
+
   const handleResetFinancials = async () => {
       if(window.confirm("⚠️ ZONA DE PERIGO ⚠️\n\nIsto vai APAGAR:\n- Todas as Faturas\n- Todas as Compras\n- Todo o Diário\n\nTem a certeza absoluta?")) {
           if(window.prompt("Escreva 'RESET' para confirmar:") === 'RESET') {
-              await supabase.from('journal_items').delete().neq('id', '00000000-0000-0000-0000-000000000000'); 
-              await supabase.from('journal_entries').delete().neq('id', '00000000-0000-0000-0000-000000000000');
+              await supabase.from('journal_items').delete().neq('id', '00000000-0000-0000-0000-000000000000');
+               await supabase.from('journal_entries').delete().neq('id', '00000000-0000-0000-0000-000000000000');
               await supabase.from('invoice_items').delete().neq('id', '00000000-0000-0000-0000-000000000000');
               await supabase.from('invoices').delete().neq('id', '00000000-0000-0000-0000-000000000000');
               await supabase.from('purchases').delete().neq('id', '00000000-0000-0000-0000-000000000000');
@@ -732,80 +836,148 @@ export default function Dashboard() {
   };
 
   const handleOpenDoubtful = (client: any) => { setSelectedClientForDebt(client); setShowDoubtfulModal(true); };
-  
-  const saveDoubtfulDebt = async () => { 
-      if (!selectedClientForDebt) return;
-      let amount = 0; 
-      if (debtMethod === 'manual') amount = parseFloat(manualDebtAmount) || 0; 
-      else { 
-          const clientInvoices = realInvoices.filter(inv => inv.client_id === selectedClientForDebt.id && selectedDebtInvoices.includes(inv.id)); 
-          amount = clientInvoices.reduce((sum, inv) => sum + inv.total, 0); 
-      } 
-      const newStatus = selectedClientForDebt.status === 'doubtful' ? 'active' : 'doubtful'; 
-      const updates = { status: newStatus, doubtful_debt: newStatus === 'doubtful' ? amount : 0 }; 
-      const { error } = await supabase.from('clients').update(updates).eq('id', selectedClientForDebt.id); 
-      if (!error) { 
-          setClients(prev => prev.map(c => c.id === selectedClientForDebt.id ? { ...c, ...updates } : c)); 
-          logAction('RISCO', `Cliente ${selectedClientForDebt.name} marcado como ${newStatus} (${amount}€)`);
-          setShowDoubtfulModal(false); setManualDebtAmount(''); setSelectedDebtInvoices([]); 
-      } else {
+
+  const saveDoubtfulDebt = async () => {
+       if (!selectedClientForDebt) return;
+      let amount = 0;
+       if (debtMethod === 'manual') amount = parseFloat(manualDebtAmount) || 0;
+       else {
+           const clientInvoices = realInvoices.filter(inv => inv.client_id === selectedClientForDebt.id && selectedDebtInvoices.includes(inv.id));
+           amount = clientInvoices.reduce((sum, inv) => sum + inv.total, 0);
+       }
+       const newStatus = selectedClientForDebt.status === 'doubtful' ? 'active' : 'doubtful';
+       const updates = { status: newStatus, doubtful_debt: newStatus === 'doubtful' ? amount : 0 };
+       const { error } = await supabase.from('clients').update(updates).eq('id', selectedClientForDebt.id);
+       if (!error) {
+           setClients(prev => prev.map(c => c.id === selectedClientForDebt.id ? { ...c, ...updates } : c));
+           logAction('RISCO', `Cliente ${selectedClientForDebt.name} marcado como ${newStatus} (${amount}€)`);
+          setShowDoubtfulModal(false); setManualDebtAmount(''); setSelectedDebtInvoices([]);
+       } else {
           alert("Erro ao atualizar cliente: " + error.message);
       }
   };
 
-  const handleCreateAsset = async () => { if (!newAsset.name || !newAsset.purchase_value) return alert("Preencha dados."); const valueInEur = parseFloat(newAsset.purchase_value) / conversionRate; let error, data; if (editingAssetId) { const res = await supabase.from('accounting_assets').update({ ...newAsset, purchase_value: valueInEur }).eq('id', editingAssetId).select(); error = res.error; data = res.data; if(!error && data) setAssets(prev => prev.map(a => a.id === editingAssetId ? data[0] : a)); } else { const res = await supabase.from('accounting_assets').insert([{ user_id: userData.id, name: newAsset.name, purchase_date: newAsset.purchase_date, purchase_value: valueInEur, lifespan_years: newAsset.lifespan_years, amortization_method: newAsset.amortization_method }]).select(); error = res.error; data = res.data; if(!error && data) setAssets([...assets, data[0]]); } if (!error) { setShowAssetModal(false); setEditingAssetId(null); setNewAsset({ name: '', category: 'Equipamento', purchase_date: new Date().toISOString().split('T')[0], purchase_value: '', lifespan_years: 3, amortization_method: 'linear' }); } };
+  const handleCreateAsset = async () => { 
+      if (!newAsset.name || !newAsset.purchase_value) return alert("Preencha dados."); 
+      const valueInEur = parseFloat(newAsset.purchase_value) / conversionRate; 
+      let error, data; 
+      if (editingAssetId) { 
+          const res = await supabase.from('accounting_assets').update({ ...newAsset, purchase_value: valueInEur }).eq('id', editingAssetId).select(); 
+          error = res.error; data = res.data; 
+          if(!error && data) setAssets(prev => prev.map(a => a.id === editingAssetId ? data[0] : a)); 
+      } else { 
+          const res = await supabase.from('accounting_assets').insert([{ user_id: userData.id, name: newAsset.name, purchase_date: newAsset.purchase_date, purchase_value: valueInEur, lifespan_years: newAsset.lifespan_years, amortization_method: newAsset.amortization_method }]).select(); 
+          error = res.error; data = res.data; 
+          if(!error && data) setAssets([...assets, data[0]]); 
+      } 
+      if (!error) { 
+          setShowAssetModal(false); setEditingAssetId(null); 
+          setNewAsset({ name: '', category: 'Equipamento', purchase_date: new Date().toISOString().split('T')[0], purchase_value: '', lifespan_years: 3, amortization_method: 'linear' }); 
+      } 
+  };
+
   const handleDeleteAsset = async (id: string) => { if (!window.confirm("Apagar este ativo?")) return; const { error } = await supabase.from('accounting_assets').delete().eq('id', id); if (!error) setAssets(prev => prev.filter(a => a.id !== id)); };
-  const handleEditAsset = (asset: any) => { setEditingAssetId(asset.id); setNewAsset({ name: asset.name, category: 'Equipamento', purchase_date: asset.purchase_date, purchase_value: asset.purchase_value, lifespan_years: asset.lifespan_years, amortization_method: asset.amortization_method }); setShowAssetModal(true); };
+
   const handleShowAmortSchedule = (asset: any) => { setSelectedAssetForSchedule(asset); setShowAmortSchedule(true); };
 
-  const handleCreateEntity = async () => { if (!newEntity.name) return alert("Nome obrigatório"); const table = entityType === 'client' ? 'clients' : 'suppliers'; let error = null, data = null; if (editingEntityId) { const res = await supabase.from(table).update({ ...newEntity, updated_at: new Date() }).eq('id', editingEntityId).select(); error = res.error; data = res.data; if (!error && data) { if (entityType === 'client') setClients(prev => prev.map(c => c.id === editingEntityId ? data[0] : c)); else setSuppliers(prev => prev.map(s => s.id === editingEntityId ? data[0] : s)); } } else { const res = await supabase.from(table).insert([{ user_id: userData.id, ...newEntity }]).select(); error = res.error; data = res.data; if (!error && data) { if (entityType === 'client') setClients([data[0], ...clients]); else setSuppliers([data[0], ...suppliers]); } } if (!error) { setShowEntityModal(false); setEditingEntityId(null); setNewEntity({ name: '', nif: '', email: '', address: '', city: '', postal_code: '', country: 'Portugal' }); } else { alert("Erro: " + error.message); } };
+  const handleCreateEntity = async () => { 
+      if (!newEntity.name) return alert("Nome obrigatório"); 
+      const table = entityType === 'client' ? 'clients' : 'suppliers'; 
+      let error = null, data = null; 
+      if (editingEntityId) { 
+          const res = await supabase.from(table).update({ ...newEntity, updated_at: new Date() }).eq('id', editingEntityId).select(); 
+          error = res.error; data = res.data; 
+          if (!error && data) { 
+              if (entityType === 'client') setClients(prev => prev.map(c => c.id === editingEntityId ? data[0] : c)); 
+              else setSuppliers(prev => prev.map(s => s.id === editingEntityId ? data[0] : s)); 
+          } 
+      } else { 
+          const res = await supabase.from(table).insert([{ user_id: userData.id, ...newEntity }]).select(); 
+          error = res.error; data = res.data; 
+          if (!error && data) { 
+              if (entityType === 'client') setClients([data[0], ...clients]); 
+              else setSuppliers([data[0], ...suppliers]); 
+          } 
+      } 
+      if (!error) { 
+          setShowEntityModal(false); setEditingEntityId(null); 
+          setNewEntity({ name: '', nif: '', email: '', address: '', city: '', postal_code: '', country: 'Portugal' }); 
+      } else { 
+          alert("Erro: " + error.message); 
+      } 
+  };
+
   const handleEditEntity = (entity: any, type: 'client' | 'supplier') => { setNewEntity({ name: entity.name, nif: entity.nif, email: entity.email, address: entity.address || '', city: entity.city || '', postal_code: entity.postal_code || '', country: entity.country || 'Portugal' }); setEntityType(type); setEditingEntityId(entity.id); setShowEntityModal(true); };
   const handleDeleteEntity = async (id: string, type: 'client' | 'supplier') => { if (!window.confirm("Apagar este registo?")) return; const table = type === 'client' ? 'clients' : 'suppliers'; const { error } = await supabase.from(table).delete().eq('id', id); if (!error) { if (type === 'client') setClients(prev => prev.filter(c => c.id !== id)); else setSuppliers(prev => prev.filter(s => s.id !== id)); } };
-  const handleDeleteTransaction = async (id: string) => { if (!window.confirm("Eliminar registo?")) return; const { error } = await supabase.from('journal_entries').delete().eq('id', id); if (!error) setJournalEntries(prev => prev.filter(t => t.id !== id)); };
-  
-  const handleCreateProvision = async () => { if (!newProvision.description || !newProvision.amount) return alert("Dados insuficientes"); const amountInEur = parseFloat(newProvision.amount) / conversionRate; let error = null, data = null; if (editingProvisionId) { const res = await supabase.from('accounting_provisions').update({ ...newProvision, amount: amountInEur }).eq('id', editingProvisionId).select(); error = res.error; data = res.data; if (!error && data) setProvisions(prev => prev.map(p => p.id === editingProvisionId ? data[0] : p)); } else { const res = await supabase.from('accounting_provisions').insert([{ user_id: userData.id, ...newProvision, amount: amountInEur }]).select(); error = res.error; data = res.data; if (!error && data) setProvisions([data[0], ...provisions]); } if (!error) { setShowProvisionModal(false); setEditingProvisionId(null); setNewProvision({ description: '', amount: '', type: 'Riscos e Encargos', date: new Date().toISOString().split('T')[0] }); } };
-  const handleEditProvision = (prov: any) => { setEditingProvisionId(prov.id); setNewProvision({ description: prov.description, amount: prov.amount, type: prov.type, date: prov.date }); setShowProvisionModal(true); };
-  const handleDeleteProvision = async (id: string) => { if (window.confirm("Apagar provisão?")) { const { error } = await supabase.from('accounting_provisions').delete().eq('id', id); if (!error) setProvisions(prev => prev.filter(p => p.id !== id)); } };
+
+  const handleCreateProvision = async () => { 
+      if (!newProvision.description || !newProvision.amount) return alert("Dados insuficientes"); 
+      const amountInEur = parseFloat(newProvision.amount) / conversionRate; 
+      let error = null, data = null; 
+      if (editingProvisionId) { 
+          const res = await supabase.from('accounting_provisions').update({ ...newProvision, amount: amountInEur }).eq('id', editingProvisionId).select(); 
+          error = res.error; data = res.data; 
+          if (!error && data) setProvisions(prev => prev.map(p => p.id === editingProvisionId ? data[0] : p)); 
+      } else { 
+          const res = await supabase.from('accounting_provisions').insert([{ user_id: userData.id, ...newProvision, amount: amountInEur }]).select(); 
+          error = res.error; data = res.data; 
+          if (!error && data) setProvisions([data[0], ...provisions]); 
+      } 
+      if (!error) { 
+          setShowProvisionModal(false); setEditingProvisionId(null); 
+          setNewProvision({ description: '', amount: '', type: 'Riscos e Encargos', date: new Date().toISOString().split('T')[0] }); 
+      } 
+  };
 
   const handleSaveProfile = async () => { setSavingProfile(true); try { await supabase.from('profiles').update({ full_name: editForm.fullName, job_title: editForm.jobTitle, updated_at: new Date() }).eq('id', userData.id); setProfileData({ ...profileData, ...{ full_name: editForm.fullName } }); alert(`Perfil atualizado!`); setIsProfileModalOpen(false); } catch { alert("Erro ao guardar."); } finally { setSavingProfile(false); } };
   const handleSaveCompany = async () => { setSavingCompany(true); try { 
-      const updates = { 
-          company_name: companyForm.name, 
-          company_nif: companyForm.nif, 
-          company_address: companyForm.address, 
-          country: companyForm.country, 
-          currency: companyForm.currency, 
-          custom_exchange_rates: exchangeRates, 
-          logo_url: companyForm.logo_url, 
-          company_footer: companyForm.footer, 
-          invoice_color: companyForm.invoice_color, 
-          header_text: companyForm.header_text, 
-          template_url: companyForm.template_url,
-          invoice_template_url: companyForm.invoice_template_url, 
-          updated_at: new Date() 
-      }; 
-      await supabase.from('profiles').update(updates).eq('id', userData.id); 
-      setProfileData({ ...profileData, ...updates }); 
-      if(companyForm.country) {
-          const { error: rpcError } = await supabase.rpc('init_company_accounting', { target_user_id: userData.id, target_country: companyForm.country });
-          if(!rpcError) {
-              const { data: newAccounts } = await supabase.from('company_accounts').select('*').order('code', { ascending: true });
-              if(newAccounts) setCompanyAccounts(newAccounts);
-          }
-      }
-      alert(`Dados guardados!`); 
-  } catch { alert("Erro ao guardar."); } finally { setSavingCompany(false); } };
-  
-  const handleDeleteAccount = async () => { if (deleteConfirmation !== 'ELIMINAR') return alert(t('delete.confirm_text')); setIsDeleting(true); try { await supabase.rpc('delete_user'); await supabase.auth.signOut(); navigate('/'); } catch(e: any) { alert(e.message); } finally { setIsDeleting(false); } };
-  
-  // ✅ AGENTE IA INTELIGENTE (NLP + AUTO-FILL)
+        const updates = { 
+            company_name: companyForm.name, company_nif: companyForm.nif, company_address: companyForm.address, country: companyForm.country, currency: companyForm.currency, custom_exchange_rates: exchangeRates, logo_url: companyForm.logo_url, company_footer: companyForm.footer, invoice_color: companyForm.invoice_color, header_text: companyForm.header_text, template_url: companyForm.template_url, invoice_template_url: companyForm.invoice_template_url, updated_at: new Date() 
+        }; 
+        await supabase.from('profiles').update(updates).eq('id', userData.id); 
+        setProfileData({ ...profileData, ...updates }); 
+        if(companyForm.country) { 
+            const { error: rpcError } = await supabase.rpc('init_company_accounting', { target_user_id: userData.id, target_country: companyForm.country }); 
+            if(!rpcError) { 
+                const { data: newAccounts } = await supabase.from('company_accounts').select('*').order('code', { ascending: true }); 
+                if(newAccounts) setCompanyAccounts(newAccounts); 
+            } 
+        } 
+        alert(`Dados guardados!`); 
+    } catch { alert("Erro ao guardar."); } finally { setSavingCompany(false); } 
+  };
+
+  const handleQuickPreview = async (inv: any) => {
+    const blob = await generatePDFBlob(inv);
+    setPdfPreviewUrl(URL.createObjectURL(blob));
+    setShowPreviewModal(true);
+  };
+
+  const handleDownloadPDF = () => {
+    if (pdfPreviewUrl) {
+      const link = document.createElement('a');
+      link.href = pdfPreviewUrl;
+      link.download = `Documento_${Date.now()}.pdf`;
+      link.click();
+    }
+  };
+
+  // ✅ DICIONÁRIO DE COMANDOS MULTILÍNGUA EXPANDIDO
+  const commandKeywords = {
+      invoice: ['fatura', 'recibo', 'invoice', 'facture', 'factura', 'rechnung', 'fattura'],
+      create: ['criar', 'nova', 'emitir', 'create', 'new', 'add', 'créer', 'nouvelle', 'crear', 'erstellen', 'creare', 'neuer', 'nuovo', 'nuova'],
+      client: ['cliente', 'client', 'kunde'],
+      supplier: ['fornecedor', 'supplier', 'fournisseur', 'proveedor', 'lieferant', 'fornitore'],
+      expense: ['despesa', 'compra', 'gasto', 'expense', 'purchase', 'dépense', 'achat', 'ausgabe', 'spesa'],
+      report: ['relatório', 'balancete', 'report', 'balance', 'bilan', 'bericht', 'rapporto'],
+      reset: ['reset', 'limpar', 'clear', 'reiniciar', 'löschen'],
+  };
+
   const extractInvoiceDetails = (text: string) => {
       const lower = text.toLowerCase();
-      // 1. Valor (ex: 98 euros, 98€, 98.50)
       const amountMatch = lower.match(/(\d+([.,]\d{1,2})?)\s*(euros|€|kz|reais|dólares|dollars|usd|\$)/i);
       const amount = amountMatch ? parseFloat(amountMatch[1].replace(',', '.')) : 0;
-
-      // 2. Cliente (Procura na BD)
+      
       let clientId = '';
       let detectedName = '';
       clients.forEach(c => {
@@ -814,119 +986,63 @@ export default function Dashboard() {
               detectedName = c.name;
           }
       });
-
-      // 3. Data (ex: dia 9/10, hoje, ontem)
-      let date = new Date().toISOString().split('T')[0];
-      const dateMatch = lower.match(/(\d{1,2})[\/-](\d{1,2})/);
-      if (dateMatch) {
-          const currentYear = new Date().getFullYear();
-          date = `${currentYear}-${dateMatch[2].padStart(2, '0')}-${dateMatch[1].padStart(2, '0')}`;
-      } else if (lower.includes('ontem')) {
-          const d = new Date(); d.setDate(d.getDate() - 1);
-          date = d.toISOString().split('T')[0];
+      
+      // Detetar nome mesmo que não exista (para Tesla por ex)
+      if (!detectedName) {
+          const clientNameMatch = lower.match(/(?:para|for|pour|zu|per)\s+([A-Z][a-z]+)/);
+          if (clientNameMatch) detectedName = clientNameMatch[1];
       }
 
-      return { amount, clientId, detectedName, date };
+      const taxMatch = lower.match(/(?:iva|tva|vat|tax)\s*(\d+)/i);
+      const tax = taxMatch ? parseInt(taxMatch[1]) : null;
+      
+      return { amount, clientId, detectedName, tax };
   };
 
-  // ✅ DICIONÁRIO DE COMANDOS MULTILÍNGUA
-  const commandKeywords = {
-      invoice: ['fatura', 'recibo', 'invoice', 'facture', 'factura', 'rechnung', 'fattura'],
-      create: ['criar', 'nova', 'emitir', 'create', 'new', 'add', 'créer', 'nouvelle', 'crear', 'erstellen', 'creare'],
-      client: ['cliente', 'client', 'kunde'],
-      supplier: ['fornecedor', 'supplier', 'fournisseur', 'proveedor', 'lieferant', 'fornitore'],
-      expense: ['despesa', 'compra', 'gasto', 'expense', 'purchase', 'dépense', 'achat', 'ausgabe', 'spesa'],
-      report: ['relatório', 'balancete', 'report', 'balance', 'bilan', 'bericht', 'rapporto'],
-      profit: ['resultado', 'lucro', 'profit', 'résultat', 'gain', 'gewinn', 'utile'],
-      reset: ['reset', 'limpar', 'clear', 'reiniciar', 'löschen'],
-      list: ['lista', 'ver', 'list', 'view', 'show', 'voir', 'liste', 'anzeigen', 'vedere']
-  };
-
+  // ✅ PROCESSO IA COM CHAIN OF THOUGHT (Memória de Intenção)
   const processAICommand = (input: string) => {
       const lower = input.toLowerCase();
+      const details = extractInvoiceDetails(input);
 
-      // CONTEXTO: RESPOSTA A PERGUNTA DA IA
-      if (chatContext.action === 'WAIT_FOR_AMOUNT') {
-          const amount = parseFloat(lower.replace(/[^0-9.,]/g, '').replace(',', '.'));
-          if (amount > 0) {
-              setInvoiceData(prev => ({...prev, items: [{...prev.items[0], price: amount}]}));
-              setShowInvoiceForm(true);
-              setChatContext({});
-              return `Perfeito. Fatura de ${amount}€ a ser criada.`;
+      // 1. CRIAR FATURA (Com verificação de existência de cliente)
+      if (commandKeywords.invoice.some(k => lower.includes(k)) && commandKeywords.create.some(k => lower.includes(k))) {
+          if (details.detectedName && !details.clientId) {
+              // CLIENTE NÃO EXISTE -> CHAIN OF THOUGHT
+              setAiIntentMemory({
+                  pendingAction: 'create_invoice',
+                  pendingData: details
+              });
+              setNewEntity({ ...newEntity, name: details.detectedName });
+              setEntityType('client');
+              setShowEntityModal(true);
+              return `Não encontrei o cliente "${details.detectedName}". Abri a ficha para o criar primeiro. Assim que gravar, abrirei a fatura de ${details.amount || '...'} ${displaySymbol} automaticamente!`;
           }
-      }
 
-      // 1. FATURAÇÃO
-      if (commandKeywords.invoice.some(k => lower.includes(k))) {
-          if(commandKeywords.create.some(k => lower.includes(k))) {
-              const details = extractInvoiceDetails(input);
-              resetInvoiceForm();
-              
-              // Preenchimento Inteligente
-              if (details.clientId) {
-                  const defaultTax = getCurrentCountryVatRates()[0] || 23;
-                  setInvoiceData(prev => ({ 
-                      ...prev, 
-                      client_id: details.clientId, 
-                      date: details.date, 
-                      items: [{ ...prev.items[0], price: details.amount, tax: defaultTax }] 
-                  }));
-                  
-                  if (details.amount === 0) {
-                      setShowInvoiceForm(true);
-                      setChatContext({ action: 'WAIT_FOR_AMOUNT' });
-                      return `Abri a fatura para ${details.detectedName}. Qual é o valor?`;
-                  }
-                  
-                  setShowInvoiceForm(true);
-                  return `Entendido. A criar fatura para ${details.detectedName} no valor de ${details.amount}${displaySymbol}. Confirme e grave.`;
-              } else {
-                  setShowInvoiceForm(true);
-                  return "A abrir nova fatura. Por favor selecione o cliente (não consegui identificar pelo nome).";
-              }
+          resetInvoiceForm();
+          if (details.clientId) {
+              setInvoiceData(prev => ({ 
+                  ...prev, 
+                  client_id: details.clientId, 
+                  items: [{ ...prev.items[0], price: details.amount || 0, tax: details.tax || prev.items[0].tax }] 
+              }));
           }
+          setShowInvoiceForm(true);
+          return details.clientId ? `Abri a fatura para ${details.detectedName}.` : "A abrir nova fatura. Qual é o cliente?";
       }
 
-      // 2. CLIENTES E FORNECEDORES
-      if (commandKeywords.client.some(k => lower.includes(k)) && commandKeywords.create.some(k => lower.includes(k))) {
-          setEditingEntityId(null);
-          setNewEntity({ name: '', nif: '', email: '', address: '', city: '', postal_code: '', country: 'Portugal' });
-          setEntityType('client');
-          setShowEntityModal(true);
-          return "A abrir ficha de criação de cliente...";
-      }
+      if (commandKeywords.report.some(k => lower.includes(k))) { generateFinancialReport('balancete'); return "A gerar o Balancete..."; }
+      if (commandKeywords.expense.some(k => lower.includes(k))) { setShowPurchaseForm(true); return "Abri o formulário de despesas."; }
 
-      // 3. DESPESAS
-      if (commandKeywords.expense.some(k => lower.includes(k)) && commandKeywords.create.some(k => lower.includes(k))) {
-          setNewPurchase({ supplier_id: '', invoice_number: '', date: new Date().toISOString().split('T')[0], due_date: '', total: '', tax_total: '' }); 
-          setShowPurchaseForm(true);
-          return "Vamos registar essa despesa. Abri o formulário.";
-      }
-
-      // 4. RELATÓRIOS
-      if (commandKeywords.report.some(k => lower.includes(k))) {
-          generateFinancialReport('balancete');
-          return "A gerar o Balancete em PDF... (verifique os pop-ups)";
-      }
-
-      // 5. RESET
-      if (commandKeywords.reset.some(k => lower.includes(k))) {
-          handleResetFinancials();
-          return "Atenção: Iniciei o protocolo de limpeza de dados.";
-      }
-      
-      return "Não entendi. Tente: 'Criar fatura para Pedro de 100 euros', 'Novo cliente' ou 'Tirar balancete'.";
+      return "Não entendi. Tente: 'Criar fatura para [Cliente] de 100 euros'.";
   };
 
-  const handleSendChatMessage = async (e: React.FormEvent) => { 
-      e.preventDefault(); 
-      if (!chatInput.trim() || isChatLoading) return; 
-      
-      const userMessage = { role: 'user', content: chatInput }; 
-      setMessages(prev => [...prev, userMessage]); 
-      setChatInput(''); 
-      setIsChatLoading(true); 
-      
+  const handleSendChatMessage = async (e: React.FormEvent) => {
+      e.preventDefault();
+      if (!chatInput.trim() || isChatLoading) return;
+      const userMessage = { role: 'user', content: chatInput };
+      setMessages(prev => [...prev, userMessage]);
+      setChatInput('');
+      setIsChatLoading(true);
       setTimeout(() => {
           const aiResponse = processAICommand(userMessage.content);
           setMessages(prev => [...prev, { role: 'assistant', content: aiResponse }]);
@@ -936,10 +1052,8 @@ export default function Dashboard() {
 
   const selectLanguage = (code: string) => { i18n.changeLanguage(code); setIsLangMenuOpen(false); };
   const toggleTheme = () => { document.documentElement.classList.toggle('dark'); setIsDark(!isDark); };
-  const toggleFinancials = () => setShowFinancials(!showFinancials);
   const handleLogout = async () => { await supabase.auth.signOut(); navigate('/'); };
   const handleCountryChange = (e: React.ChangeEvent<HTMLSelectElement>) => { const selectedCountry = e.target.value; const newCurrency = getCurrencyCode(selectedCountry); setCompanyForm({ ...companyForm, country: selectedCountry, currency: newCurrency }); };
-  const handleRateChange = (currency: string, value: string) => { setExchangeRates((prev: any) => ({ ...prev, [currency]: parseFloat(value) || 0 })); };
 
   if (loadingUser) return <div className="h-screen flex items-center justify-center bg-gray-50 dark:bg-gray-900 dark:text-white">A carregar escritório...</div>;
   const isOwner = profileData?.role === 'owner';
@@ -957,8 +1071,6 @@ export default function Dashboard() {
 
   return (
     <div className="flex h-screen bg-gray-50 dark:bg-gray-900 transition-colors duration-300 font-sans text-gray-900 dark:text-gray-100">
-      
-      {/* SIDEBAR */}
       <aside className={`fixed inset-y-0 left-0 z-50 w-64 bg-white dark:bg-gray-800 border-r dark:border-gray-700 transform md:translate-x-0 transition-transform ${isMobileMenuOpen ? 'translate-x-0' : '-translate-x-full'}`}>
         <div className="h-20 flex items-center px-6 border-b dark:border-gray-700">
             <Link to="/" className="flex items-center gap-3"><img src="/logopequena.PNG" className="h-8 w-auto"/><span className="font-bold text-xl">EasyCheck</span></Link>
@@ -978,7 +1090,6 @@ export default function Dashboard() {
         </div>
       </aside>
 
-      {/* MAIN CONTENT */}
       <main className="flex-1 md:ml-64 flex flex-col h-screen overflow-hidden relative">
         <header className="h-20 bg-white dark:bg-gray-800 border-b dark:border-gray-700 flex justify-between px-8 shadow-sm z-20 items-center">
           <div className="flex items-center gap-4">
@@ -1025,7 +1136,6 @@ export default function Dashboard() {
           <Routes>
             <Route path="/" element={
                 <div className="space-y-6">
-                    {/* ✅ GRÁFICO VISUAL (RECHARTS) */}
                     <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
                         <div className="col-span-2 bg-white dark:bg-gray-800 p-6 rounded-2xl shadow-sm border dark:border-gray-700">
                             <div className="flex justify-between items-center mb-6">
@@ -1057,8 +1167,6 @@ export default function Dashboard() {
                             </div>
                         </div>
                     </div>
-
-                    {/* SECÇÃO DE ATIVIDADE & LOGS */}
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                         <div className="bg-gradient-to-br from-blue-600 to-purple-700 p-6 rounded-2xl shadow-lg text-white flex flex-col justify-between">
                             <div>
@@ -1070,7 +1178,6 @@ export default function Dashboard() {
                                 <button onClick={()=>{setEditingEntityId(null);setNewEntity({name:'',nif:'',email:'',address:'',city:'',postal_code:'',country:'Portugal'});setEntityType('client');setShowEntityModal(true)}} className="p-3 bg-white/10 hover:bg-white/20 backdrop-blur-sm rounded-xl font-bold text-sm flex items-center justify-center gap-2 transition-all"><Users size={16}/> Novo Cliente</button>
                             </div>
                         </div>
-                        {/* LOG DE ATIVIDADES RECENTES */}
                         <div className="bg-white dark:bg-gray-800 p-6 rounded-2xl shadow-sm border dark:border-gray-700 h-64 overflow-hidden flex flex-col">
                             <h3 className="text-gray-500 text-sm font-medium uppercase tracking-wider mb-4 flex items-center gap-2"><Activity size={16}/> Últimas Atividades</h3>
                             <div className="flex-1 overflow-y-auto pr-2 space-y-3">
@@ -1153,20 +1260,139 @@ export default function Dashboard() {
                         )}
                         {accountingTab === 'invoices' && (
                             <div>
-                                <div className="p-4 flex justify-between bg-gray-50 dark:bg-gray-800 border-b dark:border-gray-700"><h3 className="font-bold flex gap-2"><FileText/> Faturas Emitidas</h3><button onClick={()=>{resetInvoiceForm();setShowInvoiceForm(true)}} className="bg-blue-600 text-white px-3 py-1.5 rounded flex gap-2 items-center text-sm font-bold"><Plus size={16}/> Nova Fatura</button></div>
-                                <table className="w-full text-xs text-left"><thead className="bg-gray-100 dark:bg-gray-700 uppercase"><tr><th className="p-3">Nº</th><th className="p-3">Cliente</th><th className="p-3">Data</th><th className="p-3 text-right">Total</th><th className="p-3 text-right">...</th></tr></thead>
-                                <tbody>{realInvoices.map(i=>(<tr key={i.id} className="border-b dark:border-gray-700 hover:bg-gray-50 dark:hover:bg-gray-700"><td className="p-3 font-mono text-blue-600">{i.invoice_number}</td><td className="p-3">{i.clients?.name}</td><td className="p-3">{new Date(i.date).toLocaleDateString()}</td><td className="p-3 text-right font-bold">{displaySymbol} {i.total}</td><td className="p-3 text-right"><button onClick={()=>handleQuickPreview(i)} className="mr-2 text-gray-500 hover:text-blue-600"><Eye size={14}/></button><button onClick={()=>handleDeleteInvoice(i.id)} className="text-red-400 hover:text-red-600"><Trash2 size={14}/></button></td></tr>))}</tbody></table>
+                                {!showInvoiceForm ? (
+                                    <>
+                                        <div className="p-4 flex justify-between bg-gray-50 dark:bg-gray-800 border-b dark:border-gray-700"><h3 className="font-bold flex gap-2"><FileText/> Faturas Emitidas</h3><button onClick={()=>{resetInvoiceForm();setShowInvoiceForm(true)}} className="bg-blue-600 text-white px-3 py-1.5 rounded flex gap-2 items-center text-sm font-bold"><Plus size={16}/> Nova Fatura</button></div>
+                                        <table className="w-full text-xs text-left"><thead className="bg-gray-100 dark:bg-gray-700 uppercase"><tr><th className="p-3">Nº</th><th className="p-3">Cliente</th><th className="p-3">Data</th><th className="p-3 text-right">Total</th><th className="p-3 text-right">...</th></tr></thead>
+                                        <tbody>{realInvoices.map(i=>(<tr key={i.id} className="border-b dark:border-gray-700 hover:bg-gray-50 dark:hover:bg-gray-700"><td className="p-3 font-mono text-blue-600">{i.invoice_number}</td><td className="p-3">{i.clients?.name}</td><td className="p-3">{new Date(i.date).toLocaleDateString()}</td><td className="p-3 text-right font-bold">{displaySymbol} {i.total}</td><td className="p-3 text-right"><button onClick={()=>handleQuickPreview(i)} className="mr-2 text-gray-500 hover:text-blue-600"><Eye size={14}/></button><button onClick={()=>handleDeleteInvoice(i.id)} className="text-red-400 hover:text-red-600"><Trash2 size={14}/></button></td></tr>))}</tbody></table>
+                                    </>
+                                ) : (
+                                    <div className="fixed inset-0 z-[100] flex items-center justify-center bg-black/50 backdrop-blur-sm p-4">
+                                        <div className="bg-white dark:bg-gray-800 rounded-2xl w-full max-w-4xl shadow-2xl border dark:border-gray-700 h-[90vh] flex flex-col">
+                                            <div className="p-6 border-b dark:border-gray-700 flex justify-between items-center bg-gray-50 dark:bg-gray-900 rounded-t-2xl">
+                                                <h3 className="font-bold text-xl flex gap-2 items-center"><FileText className="text-blue-600"/> Editor de Fatura</h3>
+                                                <button onClick={()=>setShowInvoiceForm(false)} className="hover:bg-gray-200 p-2 rounded-full"><X/></button>
+                                            </div>
+                                            <div className="flex-1 overflow-y-auto p-8">
+                                                <div className="grid grid-cols-3 gap-6 mb-6">
+                                                    <div><label className="text-xs font-bold block mb-2 uppercase text-gray-500">Cliente</label><select className="w-full p-3 border rounded-xl dark:bg-gray-900 outline-none" value={invoiceData.client_id} onChange={e=>setInvoiceData({...invoiceData,client_id:e.target.value})}><option value="">Selecione...</option>{clients.map(c=><option key={c.id} value={c.id}>{c.name}</option>)}</select></div>
+                                                    <div><label className="text-xs font-bold block mb-2 uppercase text-gray-500">Tipo Doc.</label><select className="w-full p-3 border rounded-xl dark:bg-gray-900 outline-none" value={invoiceData.type} onChange={e=>setInvoiceData({...invoiceData,type:e.target.value})}>{invoiceTypes.map(t=><option key={t} value={t}>{t}</option>)}</select></div>
+                                                    <div><label className="text-xs font-bold block mb-2 uppercase text-gray-500">Data</label><input type="date" className="w-full p-3 border rounded-xl dark:bg-gray-900 outline-none" value={invoiceData.date} onChange={e=>setInvoiceData({...invoiceData,date:e.target.value})}/></div>
+                                                </div>
+                                                <table className="w-full text-sm mb-6 border-collapse">
+                                                    <thead><tr className="bg-gray-100 dark:bg-gray-700 text-left"><th className="p-3 rounded-l-lg">Descrição</th><th className="p-3 w-20 text-center">Qtd</th><th className="p-3 w-32 text-right">Preço</th><th className="p-3 w-24 text-right">IVA</th><th className="p-3 w-32 text-right rounded-r-lg">Total</th><th className="p-3 w-10"></th></tr></thead>
+                                                    <tbody>
+                                                        {invoiceData.items.map((it,ix)=>(
+                                                            <tr key={ix} className="border-b dark:border-gray-700 group">
+                                                                <td className="p-3"><input className="w-full bg-transparent outline-none font-medium" placeholder="Item" value={it.description} onChange={e=>updateInvoiceItem(ix,'description',e.target.value)}/></td>
+                                                                <td className="p-3"><input type="number" className="w-full bg-transparent text-center outline-none" value={it.quantity} onChange={e=>updateInvoiceItem(ix,'quantity',e.target.value)}/></td>
+                                                                <td className="p-3"><input type="number" className="w-full bg-transparent text-right outline-none" value={it.price} onChange={e=>updateInvoiceItem(ix,'price',e.target.value)}/></td>
+                                                                <td className="p-3"><select className="w-full bg-transparent outline-none text-right appearance-none cursor-pointer" value={it.tax} onChange={e=>updateInvoiceItem(ix,'tax',e.target.value)}>{getCurrentCountryVatRates().map(r=><option key={r} value={r}>{r}%</option>)}</select></td>
+                                                                <td className="p-3 text-right font-bold">{displaySymbol} {(it.quantity*it.price).toFixed(2)}</td>
+                                                                <td className="p-3 text-center"><button onClick={()=>handleRemoveInvoiceItem(ix)} className="text-gray-300 hover:text-red-500 opacity-0 group-hover:opacity-100"><Trash2 size={16}/></button></td>
+                                                            </tr>
+                                                        ))}
+                                                    </tbody>
+                                                </table>
+                                                <button onClick={handleAddInvoiceItem} className="text-blue-600 text-sm font-bold flex items-center gap-2 hover:underline"><Plus size={16}/> Adicionar Linha</button>
+                                            </div>
+                                            <div className="p-6 border-t dark:border-gray-700 bg-gray-50 dark:bg-gray-900 rounded-b-2xl flex justify-end gap-3">
+                                                <button onClick={()=>setShowInvoiceForm(false)} className="px-6 py-3 border rounded-xl font-bold text-gray-500 hover:bg-white transition-colors">Cancelar</button>
+                                                <button onClick={handleSaveInvoice} className="px-6 py-3 bg-blue-600 text-white rounded-xl font-bold shadow-lg hover:bg-blue-700 transition-colors flex items-center gap-2"><CheckCircle size={20}/> Emitir Documento</button>
+                                            </div>
+                                        </div>
+                                    </div>
+                                )}
                             </div>
                         )}
                         {accountingTab === 'purchases' && (
                             <div>
-                                <div className="p-4 flex justify-between bg-gray-50 dark:bg-gray-800 border-b dark:border-gray-700"><h3 className="font-bold flex gap-2"><TrendingDown/> Registo de Compras</h3><button onClick={()=>setShowPurchaseForm(true)} className="bg-blue-600 text-white px-3 py-1.5 rounded flex gap-2 items-center text-sm font-bold"><Plus size={16}/> Lançar Compra</button></div>
-                                <table className="w-full text-xs text-left"><thead className="bg-gray-100 dark:bg-gray-700 uppercase"><tr><th className="p-3">Data</th><th className="p-3">Fornecedor</th><th className="p-3">Ref. Fatura</th><th className="p-3 text-right">Total</th></tr></thead>
-                                <tbody>{purchases.map(p=>(<tr key={p.id} className="border-b dark:border-gray-700"><td className="p-3">{new Date(p.date).toLocaleDateString()}</td><td className="p-3">{p.suppliers?.name}</td><td className="p-3">{p.invoice_number}</td><td className="p-3 text-right font-bold text-red-500">{displaySymbol} {p.total}</td></tr>))}</tbody></table>
+                                {!showPurchaseForm ? (
+                                    <>
+                                        <div className="p-4 flex justify-between bg-gray-50 dark:bg-gray-800 border-b dark:border-gray-700"><h3 className="font-bold flex gap-2"><TrendingDown/> Registo de Compras</h3><button onClick={()=>setShowPurchaseForm(true)} className="bg-blue-600 text-white px-3 py-1.5 rounded flex gap-2 items-center text-sm font-bold"><Plus size={16}/> Lançar Compra</button></div>
+                                        <table className="w-full text-xs text-left"><thead className="bg-gray-100 dark:bg-gray-700 uppercase"><tr><th className="p-3">Data</th><th className="p-3">Fornecedor</th><th className="p-3">Ref. Fatura</th><th className="p-3 text-right">Total</th></tr></thead>
+                                        <tbody>{purchases.map(p=>(<tr key={p.id} className="border-b dark:border-gray-700"><td className="p-3">{new Date(p.date).toLocaleDateString()}</td><td className="p-3">{p.suppliers?.name}</td><td className="p-3">{p.invoice_number}</td><td className="p-3 text-right font-bold text-red-500">{displaySymbol} {p.total}</td></tr>))}</tbody></table>
+                                    </>
+                                ) : (
+                                    <div className="p-6">
+                                        <h3 className="font-bold mb-4 text-lg">Registar Fatura de Fornecedor</h3>
+                                        <div className="grid grid-cols-2 gap-4 mb-4">
+                                            <div><label className="text-xs font-bold block uppercase text-gray-500 mb-1">Fornecedor</label><select className="w-full p-3 border rounded-xl dark:bg-gray-900 outline-none" onChange={e=>setNewPurchase({...newPurchase,supplier_id:e.target.value})}><option>Selecione...</option>{suppliers.map(s=><option key={s.id} value={s.id}>{s.name}</option>)}</select></div>
+                                            <div><label className="text-xs font-bold block uppercase text-gray-500 mb-1">Total Com IVA</label><input type="number" className="w-full p-3 border rounded-xl dark:bg-gray-900 outline-none" onChange={e=>setNewPurchase({...newPurchase,total:e.target.value})}/></div>
+                                            <div><label className="text-xs font-bold block uppercase text-gray-500 mb-1">Nº Fatura</label><input className="w-full p-3 border rounded-xl dark:bg-gray-900 outline-none" onChange={e=>setNewPurchase({...newPurchase,invoice_number:e.target.value})}/></div>
+                                            <div><label className="text-xs font-bold block uppercase text-gray-500 mb-1">Valor do IVA</label><input type="number" className="w-full p-3 border rounded-xl dark:bg-gray-900 outline-none" onChange={e=>setNewPurchase({...newPurchase,tax_total:e.target.value})}/></div>
+                                        </div>
+                                        <div className="flex justify-end gap-2 mt-6">
+                                            <button onClick={()=>setShowPurchaseForm(false)} className="px-4 py-2 border rounded-lg font-bold">Cancelar</button>
+                                            <button onClick={handleCreatePurchase} className="px-4 py-2 bg-blue-600 text-white rounded-lg font-bold">Gravar Despesa</button>
+                                        </div>
+                                    </div>
+                                )}
                             </div>
                         )}
+                        
+                        {/* ✅ ABA BANCOS ATUALIZADA COM RECONCILIAÇÃO REAL */}
                         {accountingTab === 'banking' && (
-                            <div className="p-6 text-center"><h3 className="text-xl font-bold mb-2">Reconciliação Bancária</h3><p className="text-gray-500 mb-4">Saldo Contabilístico: <span className="font-bold text-blue-600">{displaySymbol} {currentBalance.toFixed(2)}</span></p><div className="border rounded-xl overflow-hidden"><table className="w-full text-xs text-left"><thead className="bg-gray-100 dark:bg-gray-700"><tr><th className="p-3">Movimento</th><th className="p-3 text-right">Valor</th><th className="p-3 text-center">Banco?</th></tr></thead><tbody>{journalEntries.map(t=>(<tr key={t.id} className="border-b dark:border-gray-700"><td className="p-3">{t.description}</td><td className="p-3 text-right">{t.amount || '-'}</td><td className="p-3 text-center"><input type="checkbox"/></td></tr>))}</tbody></table></div></div>
+                            <div className="p-6">
+                                <div className="flex justify-between items-center mb-6">
+                                    <div>
+                                        <h3 className="text-xl font-bold mb-1">Reconciliação Bancária Profissional</h3>
+                                        <p className="text-xs text-gray-500">Saldo Contabilístico: <span className="font-bold text-blue-600">{displaySymbol} {currentBalance.toFixed(2)}</span></p>
+                                    </div>
+                                    <div className="flex gap-2">
+                                        <label className="cursor-pointer bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-xl text-sm font-bold flex items-center gap-2 shadow-lg transition-all">
+                                            <UploadCloud size={16}/> 
+                                            {isUploadingCSV ? 'A processar...' : 'Importar Extrato CSV'}
+                                            <input type="file" accept=".csv" onChange={handleCSVUpload} className="hidden" />
+                                        </label>
+                                    </div>
+                                </div>
+
+                                {bankStatement.length > 0 ? (
+                                    <div className="border rounded-2xl overflow-hidden shadow-sm">
+                                        <table className="w-full text-xs text-left">
+                                            <thead className="bg-gray-50 dark:bg-gray-900 uppercase font-bold text-gray-600 border-b">
+                                                <tr>
+                                                    <th className="p-4">Data</th>
+                                                    <th className="p-4">Descrição Bancária</th>
+                                                    <th className="p-4 text-right">Valor</th>
+                                                    <th className="p-4 text-center">Auto-Match</th>
+                                                    <th className="p-4 text-center">Estado</th>
+                                                </tr>
+                                            </thead>
+                                            <tbody>
+                                                {bankStatement.map((line, idx) => (
+                                                    <tr key={idx} className="border-b dark:border-gray-700 hover:bg-gray-50 transition-colors">
+                                                        <td className="p-4 font-mono">{line.date}</td>
+                                                        <td className="p-4">{line.description}</td>
+                                                        <td className={`p-4 text-right font-bold ${line.amount < 0 ? 'text-red-500' : 'text-green-600'}`}>
+                                                            {displaySymbol} {line.amount.toFixed(2)}
+                                                        </td>
+                                                        <td className="p-4 text-center">
+                                                            {line.suggested_match ? (
+                                                                <span className="bg-blue-50 text-blue-700 px-3 py-1 rounded-full text-[10px] font-bold border border-blue-100 flex items-center gap-1 justify-center">
+                                                                    <RefreshCw size={10}/> {line.suggested_match}
+                                                                </span>
+                                                            ) : <span className="text-gray-400">-</span>}
+                                                        </td>
+                                                        <td className="p-4 text-center">
+                                                            <button className={`px-4 py-1.5 rounded-lg text-[10px] font-bold uppercase tracking-wider ${line.matched_invoice_id ? 'bg-green-600 text-white' : 'bg-gray-200 text-gray-500'}`}>
+                                                                {line.matched_invoice_id ? 'Confirmar' : 'Manualmente'}
+                                                            </button>
+                                                        </td>
+                                                    </tr>
+                                                ))}
+                                            </tbody>
+                                        </table>
+                                    </div>
+                                ) : (
+                                    <div className="py-20 text-center border-2 border-dashed rounded-3xl border-gray-200 dark:border-gray-700">
+                                        <Landmark size={48} className="mx-auto text-gray-300 mb-4"/>
+                                        <p className="text-gray-500 font-medium">Nenhum extrato importado.</p>
+                                        <p className="text-xs text-gray-400 mt-1">Carregue um ficheiro CSV para iniciar a reconciliação automática.</p>
+                                    </div>
+                                )}
+                            </div>
                         )}
                         {accountingTab === 'taxes' && (
                             <div className="p-6">
@@ -1201,9 +1427,19 @@ export default function Dashboard() {
                                 <tbody>{suppliers.map(s=>(<tr key={s.id} className="border-b dark:border-gray-700"><td className="p-3 font-bold">{s.name}</td><td className="p-3 font-mono">{s.nif}</td><td className="p-3">{s.email}</td><td className="p-3"><span className="bg-gray-100 px-2 py-1 rounded text-[10px] uppercase font-bold">Geral</span></td><td className="p-3 text-right flex justify-end gap-2"><button onClick={()=>handleEditEntity(s,'supplier')} className="text-blue-500 hover:bg-blue-50 p-1 rounded"><Edit2 size={14}/></button><button onClick={()=>handleDeleteEntity(s.id, 'supplier')} className="text-red-500 hover:bg-red-50 p-1 rounded"><Trash2 size={14}/></button></td></tr>))}</tbody></table>
                             </div>
                         )}
-                        {accountingTab === 'clients' && (<div><div className="p-4 border-b dark:border-gray-700 flex justify-between items-center bg-gray-50 dark:bg-gray-800"><h3 className="font-bold text-gray-700 dark:text-gray-200 flex items-center gap-2"><Users size={18}/> Gestão de Clientes</h3><button onClick={() => {setEditingEntityId(null); setNewEntity({ name: '', nif: '', email: '', address: '', city: '', postal_code: '', country: 'Portugal' }); setEntityType('client'); setShowEntityModal(true)}} className="bg-blue-600 text-white px-3 py-1.5 rounded-lg text-sm flex gap-2 items-center hover:bg-blue-700"><Plus size={16}/> Novo Cliente</button></div><table className="w-full text-xs text-left"><thead className="bg-gray-100 dark:bg-gray-700 text-gray-600 dark:text-gray-300 uppercase font-bold"><tr><th className="px-6 py-3">Entidade</th><th className="px-6 py-3">NIF</th><th className="px-6 py-3">Localidade</th><th className="px-6 py-3 text-center">Estado</th><th className="px-6 py-3 text-right">Saldo Corrente</th><th className="px-6 py-3 text-right">Ações</th></tr></thead><tbody className="divide-y dark:divide-gray-700">{clients.map(c => (<tr key={c.id} className={`hover:bg-gray-50 dark:hover:bg-gray-700 ${c.status === 'doubtful' ? 'bg-red-50 dark:bg-red-900/10' : ''}`}><td className="px-6 py-3 font-bold text-gray-700 dark:text-gray-200">{c.name}</td><td className="px-6 py-3 font-mono">{c.nif || 'N/A'}</td><td className="px-6 py-3 text-gray-500">{c.city}</td><td className="px-6 py-3 text-center"><span className={`px-2 py-0.5 rounded-full text-[10px] font-bold uppercase tracking-wider ${c.status === 'doubtful' ? 'bg-red-100 text-red-600' : 'bg-green-100 text-green-600'}`}>{c.status === 'doubtful' ? 'Risco' : 'Ativo'}</span></td><td className={`px-6 py-3 text-right font-mono font-bold ${c.status === 'doubtful' ? 'text-red-600' : 'text-gray-700 dark:text-gray-300'}`}>{c.doubtful_debt ? `${displaySymbol} ${c.doubtful_debt}` : '-'}</td><td className="px-6 py-3 text-right flex justify-end gap-2"><button onClick={() => handleOpenDoubtful(c)} className={`p-1.5 rounded hover:bg-gray-200 dark:hover:bg-gray-600 ${c.status === 'doubtful' ? 'text-red-500' : 'text-gray-400'}`}><AlertTriangle size={14}/></button><button onClick={() => handleEditEntity(c, 'client')} className="p-1.5 text-blue-500 hover:bg-blue-50 rounded"><Edit2 size={14}/></button><button onClick={() => handleDeleteEntity(c.id, 'client')} className="p-1.5 text-red-500 hover:bg-red-50 rounded"><Trash2 size={14}/></button></td></tr>))}</tbody></table></div>)}
+                        {accountingTab === 'clients' && (
+                            <div>
+                                <div className="p-4 border-b dark:border-gray-700 flex justify-between items-center bg-gray-50 dark:bg-gray-800"><h3 className="font-bold text-gray-700 dark:text-gray-200 flex items-center gap-2"><Users size={18}/> Gestão de Clientes</h3><button onClick={() => {setEditingEntityId(null); setNewEntity({ name: '', nif: '', email: '', address: '', city: '', postal_code: '', country: 'Portugal' }); setEntityType('client'); setShowEntityModal(true)}} className="bg-blue-600 text-white px-3 py-1.5 rounded-lg text-sm flex gap-2 items-center hover:bg-blue-700"><Plus size={16}/> Novo Cliente</button></div>
+                                <table className="w-full text-xs text-left"><thead className="bg-gray-100 dark:bg-gray-700 text-gray-600 dark:text-gray-300 uppercase font-bold"><tr><th className="px-6 py-3">Entidade</th><th className="px-6 py-3">NIF</th><th className="px-6 py-3">Localidade</th><th className="px-6 py-3 text-center">Estado</th><th className="px-6 py-3 text-right">Saldo Corrente</th><th className="px-6 py-3 text-right">Ações</th></tr></thead>
+                                <tbody className="divide-y dark:divide-gray-700">{clients.map(c => (<tr key={c.id} className={`hover:bg-gray-50 dark:hover:bg-gray-700 ${c.status === 'doubtful' ? 'bg-red-50 dark:bg-red-900/10' : ''}`}><td className="px-6 py-3 font-bold text-gray-700 dark:text-gray-200">{c.name}</td><td className="px-6 py-3 font-mono">{c.nif || 'N/A'}</td><td className="px-6 py-3 text-gray-500">{c.city}</td><td className="px-6 py-3 text-center"><span className={`px-2 py-0.5 rounded-full text-[10px] font-bold uppercase tracking-wider ${c.status === 'doubtful' ? 'bg-red-100 text-red-600' : 'bg-green-100 text-green-600'}`}>{c.status === 'doubtful' ? 'Risco' : 'Ativo'}</span></td><td className={`px-6 py-3 text-right font-mono font-bold ${c.status === 'doubtful' ? 'text-red-600' : 'text-gray-700 dark:text-gray-300'}`}>{c.doubtful_debt ? `${displaySymbol} ${c.doubtful_debt}` : '-'}</td><td className="px-6 py-3 text-right flex justify-end gap-2"><button onClick={() => handleOpenDoubtful(c)} className={`p-1.5 rounded hover:bg-gray-200 dark:hover:bg-gray-600 ${c.status === 'doubtful' ? 'text-red-500' : 'text-gray-400'}`}><AlertTriangle size={14}/></button><button onClick={() => handleEditEntity(c, 'client')} className="p-1.5 text-blue-500 hover:bg-blue-50 rounded"><Edit2 size={14}/></button><button onClick={() => handleDeleteEntity(c.id, 'client')} className="p-1.5 text-red-500 hover:bg-red-50 rounded"><Trash2 size={14}/></button></td></tr>))}</tbody></table>
+                            </div>
+                        )}
                         {accountingTab === 'assets' && (
-                            <div><div className="p-4 border-b dark:border-gray-700 flex justify-between items-center bg-gray-50 dark:bg-gray-800"><h3 className="font-bold text-gray-700 dark:text-gray-200 flex items-center gap-2"><Box size={18}/> Mapa de Imobilizado</h3><button onClick={() => {setEditingAssetId(null); setNewAsset({ name: '', category: 'Equipamento', purchase_date: new Date().toISOString().split('T')[0], purchase_value: '', lifespan_years: 3, amortization_method: 'linear' }); setShowAssetModal(true)}} className="bg-blue-600 text-white px-3 py-1.5 rounded-md text-sm font-bold flex gap-2 items-center hover:bg-blue-700"><Plus size={16}/> Novo Ativo</button></div><table className="w-full text-xs text-left"><thead className="bg-gray-100 dark:bg-gray-700 text-gray-600 dark:text-gray-300 uppercase font-bold"><tr><th className="px-6 py-3">Ativo</th><th className="px-6 py-3">Data Aq.</th><th className="px-6 py-3 text-right">Valor Aq.</th><th className="px-6 py-3 text-right">Amort. Acumulada</th><th className="px-6 py-3 text-right">Valor Líquido (VNC)</th><th className="px-6 py-3 text-center">Método</th><th className="px-6 py-3 text-center">...</th></tr></thead><tbody className="divide-y dark:divide-gray-700">{assets.length === 0 ? <tr><td colSpan={7} className="text-center py-8 text-gray-400">Nenhum ativo registado.</td></tr> : assets.map(a => { const currentVal = getCurrentAssetValue(a); const accumulated = a.purchase_value - currentVal; return (<tr key={a.id} className="hover:bg-gray-50 dark:hover:bg-gray-700"><td className="px-6 py-3 font-bold text-gray-700 dark:text-gray-200">{a.name}</td><td className="px-6 py-3 font-mono text-gray-500">{new Date(a.purchase_date).toLocaleDateString()}</td><td className="px-6 py-3 text-right font-mono">{displaySymbol} {(a.purchase_value * conversionRate).toFixed(2)}</td><td className="px-6 py-3 text-right font-mono text-gray-500">{displaySymbol} {(accumulated * conversionRate).toFixed(2)}</td><td className="px-6 py-3 text-right font-mono font-bold text-blue-600">{displaySymbol} {(currentVal * conversionRate).toFixed(2)}</td><td className="px-6 py-3 text-center"><span className="bg-gray-100 dark:bg-gray-600 px-2 py-0.5 rounded text-[9px] font-bold uppercase">{a.amortization_method === 'linear' ? 'Linear' : 'Degress.'}</span></td><td className="px-6 py-3 text-center flex justify-center gap-2"><button onClick={() => handleShowAmortSchedule(a)} className="text-blue-500 hover:text-blue-700" title="Ver Plano"><List size={14}/></button><button onClick={() => handleDeleteAsset(a.id)} className="text-red-400 hover:text-red-600" title="Abater"><Trash2 size={14}/></button></td></tr>); })}</tbody></table></div>
+                            <div>
+                                <div className="p-4 border-b dark:border-gray-700 flex justify-between items-center bg-gray-50 dark:bg-gray-800"><h3 className="font-bold text-gray-700 dark:text-gray-200 flex items-center gap-2"><Box size={18}/> Mapa de Imobilizado</h3><button onClick={() => {setEditingAssetId(null); setNewAsset({ name: '', category: 'Equipamento', purchase_date: new Date().toISOString().split('T')[0], purchase_value: '', lifespan_years: 3, amortization_method: 'linear' }); setShowAssetModal(true)}} className="bg-blue-600 text-white px-3 py-1.5 rounded-md text-sm font-bold flex gap-2 items-center hover:bg-blue-700"><Plus size={16}/> Novo Ativo</button></div>
+                                <table className="w-full text-xs text-left"><thead className="bg-gray-100 dark:bg-gray-700 text-gray-600 dark:text-gray-300 uppercase font-bold"><tr><th className="px-6 py-3">Ativo</th><th className="px-6 py-3">Data Aq.</th><th className="px-6 py-3 text-right">Valor Aq.</th><th className="px-6 py-3 text-right">Amort. Acumulada</th><th className="px-6 py-3 text-right">Valor Líquido (VNC)</th><th className="px-6 py-3 text-center">Método</th><th className="px-6 py-3 text-center">...</th></tr></thead>
+                                <tbody className="divide-y dark:divide-gray-700">{assets.length === 0 ? <tr><td colSpan={7} className="text-center py-8 text-gray-400">Nenhum ativo registado.</td></tr> : assets.map(a => { const currentVal = getCurrentAssetValue(a); const accumulated = a.purchase_value - currentVal; return (<tr key={a.id} className="hover:bg-gray-50 dark:hover:bg-gray-700"><td className="px-6 py-3 font-bold text-gray-700 dark:text-gray-200">{a.name}</td><td className="px-6 py-3 font-mono text-gray-500">{new Date(a.purchase_date).toLocaleDateString()}</td><td className="px-6 py-3 text-right font-mono">{displaySymbol} {(a.purchase_value * conversionRate).toFixed(2)}</td><td className="px-6 py-3 text-right font-mono text-gray-500">{displaySymbol} {(accumulated * conversionRate).toFixed(2)}</td><td className="px-6 py-3 text-right font-mono font-bold text-blue-600">{displaySymbol} {(currentVal * conversionRate).toFixed(2)}</td><td className="px-6 py-3 text-center"><span className="bg-gray-100 dark:bg-gray-600 px-2 py-0.5 rounded text-[9px] font-bold uppercase">{a.amortization_method === 'linear' ? 'Linear' : 'Degress.'}</span></td><td className="px-6 py-3 text-center flex justify-center gap-2"><button onClick={() => handleShowAmortSchedule(a)} className="text-blue-500 hover:text-blue-700" title="Ver Plano"><List size={14}/></button><button onClick={() => handleDeleteAsset(a.id)} className="text-red-400 hover:text-red-600" title="Abater"><Trash2 size={14}/></button></td></tr>); })}</tbody></table>
+                            </div>
                         )}
                     </div>
                 </div>
@@ -1217,7 +1453,6 @@ export default function Dashboard() {
                             <div><label className="block text-xs font-bold mb-1">Moeda</label><input value={companyForm.currency} className="w-full p-3 border rounded-xl dark:bg-gray-900 bg-gray-100" disabled/></div>
                         </div>
                     </div>
-                    {/* ✅ SECÇÃO DE PERSONALIZAÇÃO DE FATURA */}
                     <div className="bg-white dark:bg-gray-800 rounded-2xl shadow-sm border dark:border-gray-700 p-8">
                         <h2 className="text-xl font-bold mb-6 flex gap-2"><Palette/> Personalização Documentos</h2>
                         <div className="grid grid-cols-2 gap-6">
@@ -1230,7 +1465,6 @@ export default function Dashboard() {
                             <div><label className="block text-xs font-bold mb-1">Template de Fundo (Imagem A4/PDF)</label><input type="file" onChange={handleTemplateUpload} className="block w-full text-sm text-gray-500 file:mr-4 file:py-2 file:px-4 file:rounded-full file:border-0 file:text-sm file:font-semibold file:bg-purple-50 file:text-purple-700 hover:file:bg-purple-100"/>{uploadingTemplate && <p className="text-xs text-purple-500 mt-1">A carregar...</p>}</div>
                         </div>
                     </div>
-                    {/* ✅ ZONA DE PERIGO (RESET) */}
                     <div className="bg-red-50 dark:bg-red-900/20 rounded-2xl border border-red-200 dark:border-red-800 p-8">
                         <h2 className="text-xl font-bold mb-4 flex gap-2 text-red-700 dark:text-red-400"><AlertOctagon/> Zona de Perigo</h2>
                         <p className="text-sm text-red-600 dark:text-red-300 mb-4">Se deseja reiniciar a sua contabilidade para começar do zero, use este botão. Isto apagará todas as faturas e movimentos.</p>
@@ -1284,7 +1518,6 @@ export default function Dashboard() {
             </div>
         </div>
       )}
-
       {showPurchaseForm && (
         <div className="fixed inset-0 z-[100] flex items-center justify-center bg-black/50 backdrop-blur-sm p-4">
             <div className="bg-white dark:bg-gray-800 rounded-2xl p-6 w-full max-w-lg shadow-xl border dark:border-gray-700">
@@ -1302,15 +1535,44 @@ export default function Dashboard() {
             </div>
         </div>
       )}
-
-      {showEntityModal && (<div className="fixed inset-0 z-[100] flex items-center justify-center bg-black/50 backdrop-blur-sm p-4"><div className="bg-white dark:bg-gray-800 rounded-2xl p-6 w-full max-w-lg shadow-xl border dark:border-gray-700"><div className="flex justify-between items-center mb-4"><h3 className="text-xl font-bold flex gap-2 items-center text-gray-700 dark:text-white">{entityType === 'client' ? <Briefcase size={20} className="text-blue-500"/> : <Truck size={20} className="text-orange-500"/>} Novo {entityType === 'client' ? 'Cliente' : 'Fornecedor'}</h3></div><div className="space-y-4"><div><label className="text-xs font-bold text-gray-400 uppercase tracking-wider mb-1 block">Nome / Empresa</label><input placeholder="Ex: Tech Solutions Lda" value={newEntity.name} onChange={e => setNewEntity({...newEntity, name: e.target.value})} className="w-full p-3 border dark:border-gray-600 rounded-xl dark:bg-gray-900 bg-gray-50 outline-none"/></div><div className="grid grid-cols-2 gap-4"><div><label className="text-xs font-bold text-gray-400 uppercase tracking-wider mb-1 block">NIF</label><input placeholder="999888777" value={newEntity.nif} onChange={e => setNewEntity({...newEntity, nif: e.target.value})} className="w-full p-3 border dark:border-gray-600 rounded-xl dark:bg-gray-900 bg-gray-50 outline-none"/></div><div><label className="text-xs font-bold text-gray-400 uppercase tracking-wider mb-1 block">Email</label><input placeholder="geral@cliente.com" value={newEntity.email} onChange={e => setNewEntity({...newEntity, email: e.target.value})} className="w-full p-3 border dark:border-gray-600 rounded-xl dark:bg-gray-900 bg-gray-50 outline-none"/></div></div><div><label className="text-xs font-bold text-gray-400 uppercase tracking-wider mb-1 block">Morada</label><input placeholder="Rua..." value={newEntity.address} onChange={e => setNewEntity({...newEntity, address: e.target.value})} className="w-full p-3 border dark:border-gray-600 rounded-xl dark:bg-gray-900 bg-gray-50 outline-none"/></div><div className="grid grid-cols-2 gap-4"><div><label className="text-xs font-bold text-gray-400 uppercase tracking-wider mb-1 block">Cidade</label><input placeholder="Lisboa" value={newEntity.city} onChange={e => setNewEntity({...newEntity, city: e.target.value})} className="w-full p-3 border dark:border-gray-600 rounded-xl dark:bg-gray-900 bg-gray-50 outline-none"/></div><div><label className="text-xs font-bold text-gray-400 uppercase tracking-wider mb-1 block">País</label><select value={newEntity.country} onChange={e => setNewEntity({...newEntity, country: e.target.value})} className="w-full p-3 border dark:border-gray-600 rounded-xl dark:bg-gray-900 bg-gray-50 outline-none">{countries.map(c => <option key={c} value={c}>{c}</option>)}</select></div></div></div><div className="flex justify-end gap-3 mt-8 pt-4 border-t dark:border-gray-700"><button onClick={() => setShowEntityModal(false)} className="px-6 py-3 text-gray-500 font-medium hover:bg-gray-100 dark:hover:bg-gray-700 rounded-xl transition-colors">Cancelar</button><button onClick={handleCreateEntity} className="px-6 py-3 bg-blue-600 text-white rounded-xl font-bold hover:bg-blue-700 shadow-lg transition-transform active:scale-95">Criar Ficha</button></div></div></div>)}
-
-      {showPreviewModal && pdfPreviewUrl && (<div className="fixed inset-0 z-[100] flex flex-col bg-gray-900 bg-opacity-90 backdrop-blur-sm p-4 animate-fade-in"><div className="flex justify-between items-center text-white mb-4"><h3 className="text-xl font-bold flex gap-2"><FileText/> Pré-visualização Profissional</h3><div className="flex gap-4"><button onClick={handleDownloadPDF} className="bg-blue-600 px-4 py-2 rounded-lg font-bold hover:bg-blue-500 flex items-center gap-2"><Download size={18}/> Baixar PDF</button><button onClick={() => setShowPreviewModal(false)} className="bg-gray-700 px-4 py-2 rounded-lg font-bold hover:bg-gray-600"><X size={18}/></button></div></div><div className="flex-1 bg-gray-800 rounded-xl overflow-hidden border border-gray-700 shadow-2xl"><iframe src={pdfPreviewUrl} className="w-full h-full" title="PDF Preview"></iframe></div></div>)}
+      {showTransactionModal && (
+        <div className="fixed inset-0 z-[100] flex items-center justify-center bg-black/50 backdrop-blur-sm p-4">
+            <div className="bg-white dark:bg-gray-800 rounded-2xl w-full max-w-4xl shadow-2xl border dark:border-gray-700 h-[80vh] flex flex-col">
+                <div className="p-6 border-b dark:border-gray-700 flex justify-between items-center bg-gray-50 dark:bg-gray-900 rounded-t-2xl">
+                    <div><h3 className="font-bold text-xl flex gap-2 items-center"><BookOpen className="text-blue-600"/> Lançamento Contabilístico</h3><p className="text-xs text-gray-500">Registe movimentos complexos (Salários, Ajustes, RRR)</p></div>
+                    <button onClick={()=>setShowTransactionModal(false)} className="hover:bg-gray-200 p-2 rounded-full"><X/></button>
+                </div>
+                <div className="flex-1 overflow-y-auto p-8">
+                    <div className="grid grid-cols-3 gap-6 mb-6">
+                        <div className="col-span-2"><label className="text-xs font-bold block mb-2 uppercase text-gray-500">Descrição do Movimento</label><input className="w-full p-3 border rounded-xl dark:bg-gray-900 outline-none font-medium" placeholder="Ex: Pagamento Salários Maio" value={newTransaction.description} onChange={e => setNewTransaction({...newTransaction, description: e.target.value})} /></div>
+                        <div><label className="text-xs font-bold block mb-2 uppercase text-gray-500">Data</label><input type="date" className="w-full p-3 border rounded-xl dark:bg-gray-900 outline-none" value={newTransaction.date} onChange={e => setNewTransaction({...newTransaction, date: e.target.value})} /></div>
+                    </div>
+                    <div className="border rounded-xl overflow-hidden shadow-sm">
+                        <table className="w-full text-sm"><thead className="bg-gray-100 dark:bg-gray-700 text-xs uppercase font-bold text-gray-600"><tr><th className="p-3 text-left">Conta</th><th className="p-3 text-right w-32">Débito</th><th className="p-3 text-right w-32">Crédito</th><th className="p-3 w-10"></th></tr></thead>
+                        <tbody className="divide-y dark:divide-gray-600">
+                            {journalGrid.map((line, idx) => (
+                                <tr key={idx} className="bg-white dark:bg-gray-800">
+                                    <td className="p-2"><select className="w-full p-2 border rounded-lg dark:bg-gray-900 outline-none text-sm" value={line.account_id} onChange={e => updateGridLine(idx, 'account_id', e.target.value)}><option value="">Selecione a conta...</option>{companyAccounts.map(acc => (<option key={acc.id} value={acc.id}>{acc.code} - {acc.name}</option>))}</select></td>
+                                    <td className="p-2"><input type="number" className="w-full p-2 border rounded-lg text-right dark:bg-gray-900 outline-none" placeholder="0.00" value={line.debit || ''} onChange={e => updateGridLine(idx, 'debit', parseFloat(e.target.value))}/></td>
+                                    <td className="p-2"><input type="number" className="w-full p-2 border rounded-lg text-right dark:bg-gray-900 outline-none" placeholder="0.00" value={line.credit || ''} onChange={e => updateGridLine(idx, 'credit', parseFloat(e.target.value))}/></td>
+                                    <td className="p-2 text-center"><button onClick={() => removeGridLine(idx)} className="text-red-400 hover:text-red-600"><Trash2 size={16}/></button></td>
+                                </tr>
+                            ))}
+                        </tbody>
+                        <tfoot className="bg-gray-50 dark:bg-gray-900 font-bold text-xs uppercase"><tr><td className="p-3 text-right">Totais:</td><td className={`p-3 text-right ${isGridBalanced() ? 'text-green-600' : 'text-red-600'}`}>{displaySymbol} {getGridTotals().debit.toFixed(2)}</td><td className={`p-3 text-right ${isGridBalanced() ? 'text-green-600' : 'text-red-600'}`}>{displaySymbol} {getGridTotals().credit.toFixed(2)}</td><td></td></tr></tfoot>
+                        </table>
+                    </div>
+                    <button onClick={addGridLine} className="mt-2 text-blue-600 font-bold text-sm flex items-center gap-2 hover:underline"><Plus size={16}/> Adicionar Linha</button>
+                    {!isGridBalanced() && (<div className="mt-4 p-3 bg-red-50 dark:bg-red-900/20 text-red-600 dark:text-red-400 text-sm rounded-lg flex items-center gap-2 border border-red-100 dark:border-red-800"><AlertOctagon size={16}/> O lançamento não está balanceado.</div>)}
+                </div>
+                <div className="p-6 border-t dark:border-gray-700 bg-gray-50 dark:bg-gray-900 rounded-b-2xl flex justify-end gap-3"><button onClick={()=>setShowTransactionModal(false)} className="px-6 py-3 border rounded-xl font-bold text-gray-500">Cancelar</button><button onClick={handleSaveJournalEntry} disabled={!isGridBalanced()} className="px-6 py-3 bg-blue-600 text-white rounded-xl font-bold disabled:opacity-50"><CheckCircle size={20}/> Lançar no Diário</button></div>
+            </div>
+        </div>
+      )}
+      {showPreviewModal && pdfPreviewUrl && (<div className="fixed inset-0 z-[100] flex flex-col bg-gray-900 bg-opacity-90 backdrop-blur-sm p-4"><div className="flex justify-between items-center text-white mb-4"><h3 className="text-xl font-bold flex gap-2"><FileText/> Pré-visualização Profissional</h3><div className="flex gap-4"><button onClick={handleDownloadPDF} className="bg-blue-600 px-4 py-2 rounded-lg font-bold hover:bg-blue-500 flex items-center gap-2"><Download size={18}/> Baixar PDF</button><button onClick={() => setShowPreviewModal(false)} className="bg-gray-700 px-4 py-2 rounded-lg font-bold hover:bg-gray-600"><X size={18}/></button></div></div><div className="flex-1 bg-gray-800 rounded-xl overflow-hidden border border-gray-700 shadow-2xl"><iframe src={pdfPreviewUrl} className="w-full h-full" title="PDF Preview"></iframe></div></div>)}
       {showAmortSchedule && selectedAssetForSchedule && (<div className="fixed inset-0 z-[100] flex items-center justify-center bg-black/50 backdrop-blur-sm p-4"><div className="bg-white dark:bg-gray-800 rounded-2xl p-8 w-full max-w-4xl shadow-xl border dark:border-gray-700 max-h-[80vh] overflow-y-auto"><div className="flex justify-between items-center mb-6"><div><h3 className="text-xl font-bold flex gap-2 items-center"><TrendingUpIcon className="text-blue-500"/> Mapa de Amortização Financeira</h3><p className="text-sm text-gray-500 mt-1 uppercase font-bold">{selectedAssetForSchedule.name}</p></div><button onClick={() => setShowAmortSchedule(false)}><X className="text-gray-400 hover:text-red-500"/></button></div><table className="w-full text-xs text-left"><thead className="bg-gray-100 dark:bg-gray-700 text-gray-600 uppercase text-xs font-bold border-b border-gray-200 dark:border-gray-600"><tr><th className="px-4 py-3">Ano</th><th className="px-4 py-3 text-right">V. Inicial</th><th className="px-4 py-3 text-right">Quota</th><th className="px-4 py-3 text-right">Acumulado</th><th className="px-4 py-3 text-right">V. Final (VNC)</th></tr></thead><tbody>{calculateAmortizationSchedule(selectedAssetForSchedule).map((row: any, i) => (<tr key={row.year} className={`border-b dark:border-gray-700 ${i % 2 === 0 ? 'bg-white dark:bg-gray-800' : 'bg-gray-50 dark:bg-gray-900'}`}><td className="px-4 py-3 font-bold text-gray-700 dark:text-gray-300">{row.year}</td><td className="px-4 py-3 text-right text-gray-500 font-mono">{displaySymbol} {row.startValue.toFixed(2)}</td><td className="px-4 py-3 text-right font-bold text-blue-600 font-mono">{displaySymbol} {row.annuity.toFixed(2)}</td><td className="px-4 py-3 text-right text-gray-500 font-mono">{displaySymbol} {row.accumulated.toFixed(2)}</td><td className="px-4 py-3 text-right font-bold text-gray-800 dark:text-white font-mono">{displaySymbol} {row.endValue.toFixed(2)}</td></tr>))}</tbody></table></div></div>)}
       {showDoubtfulModal && selectedClientForDebt && (<div className="fixed inset-0 z-[100] flex items-center justify-center bg-black/50 backdrop-blur-sm p-4"><div className="bg-white dark:bg-gray-800 rounded-2xl p-6 w-full max-w-lg shadow-xl border dark:border-gray-700"><div className="flex justify-between items-center mb-4"><h3 className="text-xl font-bold flex gap-2 items-center text-red-600"><AlertTriangle size={20}/> Gerir Dívida Incobrável</h3></div><div className="space-y-4"><p className="text-sm text-gray-500">Ao marcar {selectedClientForDebt.name} como de risco, deve definir o valor em provisão.</p><div className="flex gap-4 mb-4 bg-gray-100 p-1 rounded-lg"><button onClick={() => setDebtMethod('manual')} className={`flex-1 py-2 rounded-md font-bold text-sm transition-all ${debtMethod === 'manual' ? 'bg-white shadow text-red-700' : 'text-gray-500'}`}>Valor Manual</button><button onClick={() => setDebtMethod('invoices')} className={`flex-1 py-2 rounded-md font-bold text-sm transition-all ${debtMethod === 'invoices' ? 'bg-white shadow text-red-700' : 'text-gray-500'}`}>Selecionar Faturas</button></div>{debtMethod === 'manual' ? (<div><label className="text-xs font-bold text-gray-400 uppercase tracking-wider mb-1 block">Valor em Dívida ({displaySymbol})</label><input type="number" value={manualDebtAmount} onChange={e => setManualDebtAmount(e.target.value)} className="w-full p-3 border dark:border-gray-600 rounded-xl dark:bg-gray-900 bg-gray-50 outline-none font-bold text-red-600 text-xl"/></div>) : (<div className="max-h-60 overflow-y-auto border rounded-xl p-2 bg-gray-50">{realInvoices.filter(i => i.client_id === selectedClientForDebt.id).map(inv => (<div key={inv.id} className="flex items-center gap-3 p-3 hover:bg-white border-b last:border-0 cursor-pointer" onClick={() => { if(selectedDebtInvoices.includes(inv.id)) setSelectedDebtInvoices(selectedDebtInvoices.filter(id => id !== inv.id)); else setSelectedDebtInvoices([...selectedDebtInvoices, inv.id]); }}><input type="checkbox" checked={selectedDebtInvoices.includes(inv.id)} readOnly className="w-5 h-5 text-red-600 rounded" /><div className="flex-1"><p className="font-bold text-sm text-gray-700">{inv.invoice_number}</p><p className="text-xs text-gray-500">{new Date(inv.date).toLocaleDateString()}</p></div><span className="font-bold text-red-600">{displaySymbol} {inv.total}</span></div>))}{realInvoices.filter(i => i.client_id === selectedClientForDebt.id).length === 0 && <p className="text-xs text-gray-400 text-center py-4">Sem faturas para este cliente.</p>}</div>)}</div><div className="flex justify-end gap-3 mt-6"><button onClick={() => setShowDoubtfulModal(false)} className="px-4 py-2 text-gray-500">Cancelar</button><button onClick={saveDoubtfulDebt} className="px-4 py-2 bg-red-600 text-white rounded-lg font-bold hover:bg-red-700 shadow-lg">Confirmar Risco</button></div></div></div>)}
-      {showProvisionModal && (<div className="fixed inset-0 z-[100] flex items-center justify-center bg-black/50 backdrop-blur-sm p-4"><div className="bg-white dark:bg-gray-800 rounded-2xl p-6 w-full max-w-md shadow-xl border dark:border-gray-700"><div className="flex justify-between items-center mb-4"><h3 className="text-xl font-bold flex gap-2 items-center text-gray-700 dark:text-white"><AlertOctagon size={20} className="text-yellow-500"/> Nova Provisão</h3></div><div className="space-y-4"><div><label className="text-xs font-bold text-gray-400 uppercase tracking-wider mb-1 block">Descrição do Risco</label><input placeholder="Ex: Processo Judicial em curso" value={newProvision.description} onChange={e => setNewProvision({...newProvision, description: e.target.value})} className="w-full p-3 border dark:border-gray-600 rounded-xl dark:bg-gray-900 bg-gray-50 outline-none"/></div><div><label className="text-xs font-bold text-gray-400 uppercase tracking-wider mb-1 block">Valor Estimado ({displaySymbol})</label><input type="number" placeholder="0.00" value={newProvision.amount} onChange={e => setNewProvision({...newProvision, amount: e.target.value})} className="w-full p-3 border dark:border-gray-600 rounded-xl dark:bg-gray-900 bg-gray-50 outline-none"/></div><div><label className="text-xs font-bold text-gray-400 uppercase tracking-wider mb-1 block">Tipo</label><select value={newProvision.type} onChange={e => setNewProvision({...newProvision, type: e.target.value})} className="w-full p-3 border dark:border-gray-600 rounded-xl dark:bg-gray-900 bg-gray-50 outline-none"><option>Riscos e Encargos</option><option>Impostos</option><option>Garantias a Clientes</option><option>Processos Judiciais</option></select></div></div><div className="flex justify-end gap-3 mt-8 pt-4 border-t dark:border-gray-700"><button onClick={() => setShowProvisionModal(false)} className="px-6 py-3 text-gray-500 font-medium hover:bg-gray-100 dark:hover:bg-gray-700 rounded-xl transition-colors">Cancelar</button><button onClick={handleCreateProvision} className="px-6 py-3 bg-yellow-600 text-white rounded-xl font-bold hover:bg-yellow-700 shadow-lg transition-transform active:scale-95">Constituir Provisão</button></div></div></div>)}
-      {showTransactionModal && (<div className="fixed inset-0 z-[100] flex items-center justify-center bg-black/50 backdrop-blur-sm p-4"><div className="bg-white dark:bg-gray-800 rounded-2xl p-6 w-full max-w-md shadow-xl border dark:border-gray-700"><div className="flex justify-between items-center mb-4"><h3 className="text-xl font-bold flex gap-2 items-center text-gray-700 dark:text-white"><FileText size={20} className="text-blue-500"/> Nova Transação</h3></div><div className="grid grid-cols-2 gap-2 mb-6 p-1 bg-gray-100 dark:bg-gray-700 rounded-xl"><button onClick={() => setNewTransaction({...newTransaction, type: 'income'})} className={`py-2 rounded-lg font-bold text-sm transition-all ${newTransaction.type === 'income' ? 'bg-white dark:bg-gray-800 text-green-600 shadow-sm' : 'text-gray-500 dark:text-gray-400'}`}>Receita (+)</button><button onClick={() => setNewTransaction({...newTransaction, type: 'expense'})} className={`py-2 rounded-lg font-bold text-sm transition-all ${newTransaction.type === 'expense' ? 'bg-red-500 text-white shadow-sm' : 'text-gray-500 dark:text-gray-400'}`}>Despesa (-)</button></div><div className="space-y-4"><div><label className="text-xs font-bold text-gray-400 uppercase tracking-wider mb-1 block">Descrição</label><input placeholder="Ex: Venda de Software" value={newTransaction.description} onChange={e => setNewTransaction({...newTransaction, description: e.target.value})} className="w-full p-3 border dark:border-gray-600 rounded-xl dark:bg-gray-900 bg-gray-50 focus:ring-2 focus:ring-blue-500 outline-none"/></div><div className="grid grid-cols-2 gap-4"><div><label className="text-xs font-bold text-gray-400 uppercase tracking-wider mb-1 block">Valor ({displaySymbol})</label><input type="number" placeholder="0.00" value={newTransaction.amount} onChange={e => setNewTransaction({...newTransaction, amount: e.target.value})} className="w-full p-3 border dark:border-gray-600 rounded-xl dark:bg-gray-900 bg-gray-50 focus:ring-2 focus:ring-blue-500 outline-none"/></div><div><label className="text-xs font-bold text-gray-400 uppercase tracking-wider mb-1 block">Data</label><input type="date" value={newTransaction.date} onChange={e => setNewTransaction({...newTransaction, date: e.target.value})} className="w-full p-3 border dark:border-gray-600 rounded-xl dark:bg-gray-900 bg-gray-50 focus:ring-2 focus:ring-blue-500 outline-none text-sm"/></div></div><div><label className="text-xs font-bold text-gray-400 uppercase tracking-wider mb-1 block">Categoria</label><input placeholder="Sem categoria" list="categories" value={newTransaction.category} onChange={e => setNewTransaction({...newTransaction, category: e.target.value})} className="w-full p-3 border dark:border-gray-600 rounded-xl dark:bg-gray-900 bg-gray-50 focus:ring-2 focus:ring-blue-500 outline-none"/><datalist id="categories"><option value="Geral"/><option value="Alimentação"/><option value="Transporte"/><option value="Serviços"/><option value="Vendas"/><option value="Salários"/></datalist></div></div><div className="flex justify-end gap-3 mt-8 pt-4 border-t dark:border-gray-700"><button onClick={() => setShowTransactionModal(false)} className="px-6 py-3 text-gray-500 font-medium hover:bg-gray-100 dark:hover:bg-gray-700 rounded-xl transition-colors">Cancelar</button><button onClick={handleCreateTransaction} className="px-6 py-3 bg-blue-600 text-white rounded-xl font-bold hover:bg-blue-700 shadow-lg transition-transform active:scale-95">Registar</button></div></div></div>)}
-      {showAssetModal && (<div className="fixed inset-0 z-[100] flex items-center justify-center bg-black/50 backdrop-blur-sm p-4"><div className="bg-white dark:bg-gray-800 rounded-2xl p-6 w-full max-w-md shadow-xl border dark:border-gray-700"><div className="flex justify-between items-center mb-4"><h3 className="text-xl font-bold flex gap-2 items-center text-gray-700 dark:text-white"><Box size={20} className="text-blue-500"/> Novo Ativo Imobilizado</h3></div><div className="space-y-4"><div><label className="text-xs font-bold text-gray-400 uppercase tracking-wider mb-1 block">Nome do Ativo</label><input placeholder="Ex: Computador Dell XPS" value={newAsset.name} onChange={e => setNewAsset({...newAsset, name: e.target.value})} className="w-full p-3 border dark:border-gray-600 rounded-xl dark:bg-gray-900 bg-gray-50 outline-none"/></div><div className="grid grid-cols-2 gap-4"><div><label className="text-xs font-bold text-gray-400 uppercase tracking-wider mb-1 block">Valor Compra ({displaySymbol})</label><input type="number" placeholder="0.00" value={newAsset.purchase_value} onChange={e => setNewAsset({...newAsset, purchase_value: e.target.value})} className="w-full p-3 border dark:border-gray-600 rounded-xl dark:bg-gray-900 bg-gray-50 outline-none"/></div><div><label className="text-xs font-bold text-gray-400 uppercase tracking-wider mb-1 block">Data Compra</label><input type="date" value={newAsset.purchase_date} onChange={e => setNewAsset({...newAsset, purchase_date: e.target.value})} className="w-full p-3 border dark:border-gray-600 rounded-xl dark:bg-gray-900 bg-gray-50 outline-none text-sm"/></div></div><div><label className="text-xs font-bold text-gray-400 uppercase tracking-wider mb-1 block">Categoria</label><select value={newAsset.category} onChange={e => setNewAsset({...newAsset, category: e.target.value})} className="w-full p-3 border dark:border-gray-600 rounded-xl dark:bg-gray-900 bg-gray-50 outline-none"><option value="Equipamento">Equipamento Básico</option><option value="Software">Software / Licenças</option><option value="Transporte">Material de Transporte</option><option value="Imobiliario">Edifícios e Construções</option></select></div><div><label className="text-xs font-bold text-gray-400 uppercase tracking-wider mb-1 block">Vida Útil (Anos)</label><select value={newAsset.lifespan_years} onChange={e => setNewAsset({...newAsset, lifespan_years: parseInt(e.target.value)})} className="w-full p-3 border dark:border-gray-600 rounded-xl dark:bg-gray-900 bg-gray-50 outline-none"><option value="3">3 Anos (Hardware/Software)</option><option value="4">4 Anos (Veículos Ligeiros)</option><option value="5">5 Anos (Mobiliário/Equipamento)</option><option value="8">8 Anos (Maquinaria Pesada)</option><option value="20">20 Anos (Edifícios)</option></select></div><div><label className="text-xs font-bold text-gray-400 uppercase tracking-wider mb-1 block">Método de Amortização</label><select value={newAsset.amortization_method} onChange={e => setNewAsset({...newAsset, amortization_method: e.target.value})} className="w-full p-3 border dark:border-gray-600 rounded-xl dark:bg-gray-900 bg-gray-50 outline-none"><option value="linear">Quotas Constantes (Linear)</option><option value="degressive">Quotas Degressivas</option></select></div></div><div className="flex justify-end gap-3 mt-8 pt-4 border-t dark:border-gray-700"><button onClick={() => setShowAssetModal(false)} className="px-6 py-3 text-gray-500 font-medium hover:bg-gray-100 dark:hover:bg-gray-700 rounded-xl transition-colors">Cancelar</button><button onClick={handleCreateAsset} className="px-6 py-3 bg-blue-600 text-white rounded-xl font-bold hover:bg-blue-700 shadow-lg transition-transform active:scale-95">Adicionar Ativo</button></div></div></div>)}
+      {showProvisionModal && (<div className="fixed inset-0 z-[100] flex items-center justify-center bg-black/50 backdrop-blur-sm p-4"><div className="bg-white dark:bg-gray-800 rounded-2xl p-6 w-full max-w-md shadow-xl border dark:border-gray-700"><div className="flex justify-between items-center mb-4"><h3 className="text-xl font-bold flex gap-2 items-center text-gray-700 dark:white"><AlertOctagon size={20} className="text-yellow-500"/> Nova Provisão</h3></div><div className="space-y-4"><div><label className="text-xs font-bold text-gray-400 uppercase tracking-wider mb-1 block">Descrição do Risco</label><input placeholder="Ex: Processo Judicial em curso" value={newProvision.description} onChange={e => setNewProvision({...newProvision, description: e.target.value})} className="w-full p-3 border dark:border-gray-600 rounded-xl dark:bg-gray-900 bg-gray-50 outline-none"/></div><div><label className="text-xs font-bold text-gray-400 uppercase tracking-wider mb-1 block">Valor Estimado ({displaySymbol})</label><input type="number" placeholder="0.00" value={newProvision.amount} onChange={e => setNewProvision({...newProvision, amount: e.target.value})} className="w-full p-3 border dark:border-gray-600 rounded-xl dark:bg-gray-900 bg-gray-50 outline-none"/></div><div><label className="text-xs font-bold text-gray-400 uppercase tracking-wider mb-1 block">Tipo</label><select value={newProvision.type} onChange={e => setNewProvision({...newProvision, type: e.target.value})} className="w-full p-3 border dark:border-gray-600 rounded-xl dark:bg-gray-900 bg-gray-50 outline-none"><option>Riscos e Encargos</option><option>Impostos</option><option>Garantias a Clientes</option><option>Processos Judiciais</option></select></div></div><div className="flex justify-end gap-3 mt-8 pt-4 border-t dark:border-gray-700"><button onClick={() => setShowProvisionModal(false)} className="px-6 py-3 text-gray-500 font-medium hover:bg-gray-100 dark:hover:bg-gray-700 rounded-xl transition-colors">Cancelar</button><button onClick={handleCreateProvision} className="px-6 py-3 bg-yellow-600 text-white rounded-xl font-bold hover:bg-yellow-700 shadow-lg transition-transform active:scale-95">Constituir Provisão</button></div></div></div>)}
       {showEntityModal && (<div className="fixed inset-0 z-[100] flex items-center justify-center bg-black/50 backdrop-blur-sm p-4"><div className="bg-white dark:bg-gray-800 rounded-2xl p-6 w-full max-w-lg shadow-xl border dark:border-gray-700"><div className="flex justify-between items-center mb-4"><h3 className="text-xl font-bold flex gap-2 items-center text-gray-700 dark:text-white">{entityType === 'client' ? <Briefcase size={20} className="text-blue-500"/> : <Truck size={20} className="text-orange-500"/>} Novo {entityType === 'client' ? 'Cliente' : 'Fornecedor'}</h3></div><div className="space-y-4"><div><label className="text-xs font-bold text-gray-400 uppercase tracking-wider mb-1 block">Nome / Empresa</label><input placeholder="Ex: Tech Solutions Lda" value={newEntity.name} onChange={e => setNewEntity({...newEntity, name: e.target.value})} className="w-full p-3 border dark:border-gray-600 rounded-xl dark:bg-gray-900 bg-gray-50 outline-none"/></div><div className="grid grid-cols-2 gap-4"><div><label className="text-xs font-bold text-gray-400 uppercase tracking-wider mb-1 block">NIF</label><input placeholder="999888777" value={newEntity.nif} onChange={e => setNewEntity({...newEntity, nif: e.target.value})} className="w-full p-3 border dark:border-gray-600 rounded-xl dark:bg-gray-900 bg-gray-50 outline-none"/></div><div><label className="text-xs font-bold text-gray-400 uppercase tracking-wider mb-1 block">Email</label><input placeholder="geral@cliente.com" value={newEntity.email} onChange={e => setNewEntity({...newEntity, email: e.target.value})} className="w-full p-3 border dark:border-gray-600 rounded-xl dark:bg-gray-900 bg-gray-50 outline-none"/></div></div><div><label className="text-xs font-bold text-gray-400 uppercase tracking-wider mb-1 block">Morada</label><input placeholder="Rua..." value={newEntity.address} onChange={e => setNewEntity({...newEntity, address: e.target.value})} className="w-full p-3 border dark:border-gray-600 rounded-xl dark:bg-gray-900 bg-gray-50 outline-none"/></div><div className="grid grid-cols-2 gap-4"><div><label className="text-xs font-bold text-gray-400 uppercase tracking-wider mb-1 block">Cidade</label><input placeholder="Lisboa" value={newEntity.city} onChange={e => setNewEntity({...newEntity, city: e.target.value})} className="w-full p-3 border dark:border-gray-600 rounded-xl dark:bg-gray-900 bg-gray-50 outline-none"/></div><div><label className="text-xs font-bold text-gray-400 uppercase tracking-wider mb-1 block">País</label><select value={newEntity.country} onChange={e => setNewEntity({...newEntity, country: e.target.value})} className="w-full p-3 border dark:border-gray-600 rounded-xl dark:bg-gray-900 bg-gray-50 outline-none">{countries.map(c => <option key={c} value={c}>{c}</option>)}</select></div></div></div><div className="flex justify-end gap-3 mt-8 pt-4 border-t dark:border-gray-700"><button onClick={() => setShowEntityModal(false)} className="px-6 py-3 text-gray-500 font-medium hover:bg-gray-100 dark:hover:bg-gray-700 rounded-xl transition-colors">Cancelar</button><button onClick={handleCreateEntity} className="px-6 py-3 bg-blue-600 text-white rounded-xl font-bold hover:bg-blue-700 shadow-lg transition-transform active:scale-95">Criar Ficha</button></div></div></div>)}
       {isProfileModalOpen && (<div className="fixed inset-0 z-[100] flex items-center justify-center bg-black/50 backdrop-blur-sm p-4"><div className="bg-white dark:bg-gray-800 rounded-2xl p-6 w-full max-w-lg shadow-2xl border dark:border-gray-700 max-h-[90vh] overflow-y-auto"><div className="flex justify-between items-center mb-6 pb-4 border-b dark:border-gray-700"><h3 className="text-xl font-bold flex items-center gap-2"><User className="text-blue-600"/> {t('profile.edit_title')}</h3><button onClick={() => setIsProfileModalOpen(false)}><X className="text-gray-400"/></button></div><div className="space-y-4"><div><label className="block text-sm mb-1">{t('form.email')}</label><input type="email" value={editForm.email} disabled className="w-full p-3 border rounded-xl bg-gray-50 cursor-not-allowed"/></div><div><label className="block text-sm mb-1">{t('form.fullname')}</label><input type="text" value={editForm.fullName} onChange={e => setEditForm({...editForm, fullName: e.target.value})} className="w-full p-3 border rounded-xl dark:bg-gray-900"/></div><div><label className="block text-sm mb-1">{t('form.jobtitle')}</label><input type="text" value={editForm.jobTitle} onChange={e => setEditForm({...editForm, jobTitle: e.target.value})} className="w-full p-3 border rounded-xl dark:bg-gray-900"/></div></div><div className="flex justify-end gap-3 mt-8 pt-4 border-t dark:border-gray-700"><button onClick={() => setIsProfileModalOpen(false)} className="px-5 py-2.5 border rounded-xl">{t('common.cancel')}</button><button onClick={handleSaveProfile} disabled={savingProfile} className="px-5 py-2.5 bg-blue-600 text-white rounded-xl font-bold">{savingProfile ? 'Guardando...' : t('common.save')}</button></div></div></div>)}
       {isDeleteModalOpen && (<div className="fixed inset-0 z-[100] flex items-center justify-center bg-black/50 backdrop-blur-sm p-4"><div className="bg-white dark:bg-gray-800 rounded-2xl p-6 w-full max-w-md shadow-2xl border dark:border-gray-700"><h3 className="text-xl font-bold text-red-600 mb-4 flex gap-2"><AlertTriangle/> {t('delete.title')}</h3><p className="text-gray-600 dark:text-gray-300 mb-4">{t('delete.text')}</p><input type="text" value={deleteConfirmation} onChange={(e) => setDeleteConfirmation(e.target.value)} className="w-full p-3 border rounded mb-4 uppercase dark:bg-gray-900"/><div className="flex justify-end gap-2"><button onClick={() => setIsDeleteModalOpen(false)} className="px-4 py-2 bg-gray-100 dark:bg-gray-700 rounded">{t('common.cancel')}</button><button onClick={handleDeleteAccount} className="px-4 py-2 bg-red-600 text-white rounded">{t('common.delete')}</button></div></div></div>)}
