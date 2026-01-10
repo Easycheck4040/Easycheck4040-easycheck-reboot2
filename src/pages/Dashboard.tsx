@@ -4,8 +4,7 @@ import { useTranslation } from 'react-i18next';
 import { supabase } from '../supabase/client';
 import jsPDF from 'jspdf';
 import autoTable from 'jspdf-autotable';
-// ✅ IMPORTAR RECHARTS PARA GRÁFICOS
-import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip as RechartsTooltip, Legend, ResponsiveContainer, AreaChart, Area } from 'recharts';
+import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip as RechartsTooltip, Legend, ResponsiveContainer } from 'recharts';
 import { 
   LayoutDashboard, MessageSquare, FileText, Users, BarChart3, Settings, LogOut, Menu, X, 
   Globe, Moon, Sun, ChevronDown, Eye, EyeOff, User, Trash2, AlertTriangle, Building2, 
@@ -107,7 +106,7 @@ export default function Dashboard() {
   
   const [accountingTab, setAccountingTab] = useState('overview'); 
   
-  // ESTADOS DE DADOS (Ligados à BD nova)
+  // ESTADOS DE DADOS
   const [journalEntries, setJournalEntries] = useState<any[]>([]); 
   const [realInvoices, setRealInvoices] = useState<any[]>([]); 
   const [purchases, setPurchases] = useState<any[]>([]); 
@@ -125,8 +124,8 @@ export default function Dashboard() {
   const [showTransactionModal, setShowTransactionModal] = useState(false);
   const [showAssetModal, setShowAssetModal] = useState(false);
   const [showEntityModal, setShowEntityModal] = useState(false); 
-  const [showInvoiceForm, setShowInvoiceForm] = useState(false);
-  const [showPurchaseForm, setShowPurchaseForm] = useState(false);
+  const [showInvoiceForm, setShowInvoiceForm] = useState(false); // ✅ AGORA É GLOBAL
+  const [showPurchaseForm, setShowPurchaseForm] = useState(false); // ✅ AGORA É GLOBAL
   const [showPreviewModal, setShowPreviewModal] = useState(false); 
   const [showProvisionModal, setShowProvisionModal] = useState(false);
   const [showDoubtfulModal, setShowDoubtfulModal] = useState(false);
@@ -177,7 +176,7 @@ export default function Dashboard() {
   const [savingCompany, setSavingCompany] = useState(false);
 
   // Chat
-  const [messages, setMessages] = useState([{ role: 'assistant', content: 'Olá! Sou o seu assistente EasyCheck IA. Posso criar faturas, clientes ou tirar relatórios por si. O que precisa?' }]);
+  const [messages, setMessages] = useState([{ role: 'assistant', content: 'Olá! Sou o seu assistente EasyCheck IA. Posso criar faturas, registar despesas, gerir clientes ou mostrar relatórios. Como posso ajudar?' }]);
   const [chatInput, setChatInput] = useState('');
   const [isChatLoading, setIsChatLoading] = useState(false);
   const scrollRef = useRef<HTMLDivElement>(null);
@@ -191,15 +190,10 @@ export default function Dashboard() {
   const conversionRate = exchangeRates[currentCurrency] || 1;
   const displaySymbol = getCurrencySymbol(currentCurrency);
 
-  // ✅ CÁLCULO DE DADOS PARA O GRÁFICO
   const getMonthlyFinancials = () => {
     const months = ['Jan', 'Fev', 'Mar', 'Abr', 'Mai', 'Jun', 'Jul', 'Ago', 'Set', 'Out', 'Nov', 'Dez'];
     const currentYear = new Date().getFullYear();
-    
-    // Inicializar array com 0
     const data = months.map(m => ({ name: m, receitas: 0, despesas: 0 }));
-
-    // Somar Receitas (Contas Classe 7)
     journalEntries.forEach(entry => {
         const date = new Date(entry.date);
         if (date.getFullYear() === currentYear) {
@@ -208,7 +202,6 @@ export default function Dashboard() {
                 if (item.company_accounts?.code.startsWith('7') || item.company_accounts?.type === 'rendimentos') {
                     data[monthIdx].receitas += item.credit;
                 }
-                // Somar Despesas (Contas Classe 6)
                 if (item.company_accounts?.code.startsWith('6') || item.company_accounts?.type === 'gastos') {
                     data[monthIdx].despesas += item.debit;
                 }
@@ -226,7 +219,6 @@ export default function Dashboard() {
 
   const getInitials = (name: string) => name ? (name.split(' ').length > 1 ? (name.split(' ')[0][0] + name.split(' ')[name.split(' ').length - 1][0]) : name.substring(0, 2)).toUpperCase() : 'EC';
 
-  // --- FUNÇÃO DE LOG (Auditoria) ---
   const logAction = async (action: string, description: string) => {
       const { data: { user } } = await supabase.auth.getUser();
       if (!user) return;
@@ -302,7 +294,7 @@ export default function Dashboard() {
       return { subtotal, taxTotal, total: subtotal + taxTotal };
   };
 
-  // --- EFEITOS (CARREGAMENTO DE DADOS) ---
+  // --- EFEITOS ---
   useEffect(() => {
     if (document.documentElement.classList.contains('dark')) setIsDark(true);
     const fetchData = async () => {
@@ -427,7 +419,7 @@ export default function Dashboard() {
           docNumber = `${prefix} ${new Date().getFullYear()}/${realInvoices.length + 1}`;
       }
       
-      let invoiceId, invoiceDataResult;
+      let invoiceId;
       
       if (invoiceData.id) {
           const res = await supabase.from('invoices').update({
@@ -437,7 +429,6 @@ export default function Dashboard() {
           }).eq('id', invoiceData.id).select().single();
           if (res.error) return alert("Erro ao atualizar: " + res.error.message);
           invoiceId = res.data.id;
-          invoiceDataResult = res.data;
           await supabase.from('invoice_items').delete().eq('invoice_id', invoiceData.id);
       } else {
           const res = await supabase.from('invoices').insert([{ 
@@ -448,7 +439,6 @@ export default function Dashboard() {
           }]).select().single();
           if (res.error) return alert("Erro ao criar: " + res.error.message);
           invoiceId = res.data.id;
-          invoiceDataResult = res.data;
       }
 
       const itemsToInsert = invoiceData.items.map(item => ({ invoice_id: invoiceId, description: item.description, quantity: item.quantity, unit_price: item.price, tax_rate: item.tax }));
@@ -794,45 +784,73 @@ export default function Dashboard() {
   
   const handleDeleteAccount = async () => { if (deleteConfirmation !== 'ELIMINAR') return alert(t('delete.confirm_text')); setIsDeleting(true); try { await supabase.rpc('delete_user'); await supabase.auth.signOut(); navigate('/'); } catch(e: any) { alert(e.message); } finally { setIsDeleting(false); } };
   
-  // ✅ AGENTE IA: INTERPRETADOR DE COMANDOS
+  // ✅ AGENTE IA: INTERPRETADOR DE COMANDOS INTELIGENTE
   const processAICommand = (input: string) => {
       const lower = input.toLowerCase();
-      // 1. Criar Fatura
-      if (lower.includes('fatura') && (lower.includes('cria') || lower.includes('nova') || lower.includes('emitir'))) {
-          resetInvoiceForm();
-          setShowInvoiceForm(true);
-          return "Com certeza! A abrir o formulário de faturação...";
+      
+      // 1. FATURAÇÃO
+      if (lower.includes('fatura') || lower.includes('recibo')) {
+          if(lower.includes('criar') || lower.includes('nova') || lower.includes('emitir')) {
+              resetInvoiceForm();
+              setShowInvoiceForm(true); // ✅ AGORA ABRE GLOBALMENTE
+              return "Com certeza! Abri o formulário de faturação para si.";
+          }
+          if(lower.includes('lista') || lower.includes('ver')) {
+              navigate('/dashboard/accounting'); setAccountingTab('invoices');
+              return "Aqui estão as suas faturas emitidas.";
+          }
       }
-      // 2. Novo Cliente
-      if (lower.includes('cliente') && (lower.includes('novo') || lower.includes('criar'))) {
-          setEditingEntityId(null);
-          setNewEntity({ name: '', nif: '', email: '', address: '', city: '', postal_code: '', country: 'Portugal' });
-          setEntityType('client');
-          setShowEntityModal(true);
-          return "A abrir ficha de novo cliente...";
+
+      // 2. CLIENTES E FORNECEDORES
+      if (lower.includes('cliente')) {
+          if(lower.includes('novo') || lower.includes('criar')) {
+              setEditingEntityId(null);
+              setNewEntity({ name: '', nif: '', email: '', address: '', city: '', postal_code: '', country: 'Portugal' });
+              setEntityType('client');
+              setShowEntityModal(true); // ✅ GLOBAL
+              return "A abrir a ficha de criação de cliente...";
+          }
       }
-      // 3. Relatórios
+      if (lower.includes('fornecedor')) {
+          if(lower.includes('novo') || lower.includes('criar')) {
+              setEditingEntityId(null);
+              setNewEntity({ name: '', nif: '', email: '', address: '', city: '', postal_code: '', country: 'Portugal' });
+              setEntityType('supplier');
+              setShowEntityModal(true); // ✅ GLOBAL
+              return "A abrir a ficha de novo fornecedor...";
+          }
+      }
+
+      // 3. DESPESAS
+      if (lower.includes('despesa') || lower.includes('compra')) {
+          if(lower.includes('nova') || lower.includes('criar') || lower.includes('registar')) {
+              setNewPurchase({ supplier_id: '', invoice_number: '', date: new Date().toISOString().split('T')[0], due_date: '', total: '', tax_total: '' }); 
+              setShowPurchaseForm(true); // ✅ GLOBAL
+              return "Vamos registar essa despesa. Abri o formulário.";
+          }
+      }
+
+      // 4. CONTABILIDADE & RELATÓRIOS
       if (lower.includes('balancete')) {
           generateFinancialReport('balancete');
-          return "A gerar o Balancete em PDF...";
+          return "A gerar o Balancete em PDF... (verifique os pop-ups)";
       }
-      if (lower.includes('resultados') || lower.includes('lucro')) {
+      if (lower.includes('resultados') || lower.includes('lucro') || lower.includes('prejuízo')) {
           generateFinancialReport('dre');
           return "A gerar a Demonstração de Resultados...";
       }
-      // 4. Reset
-      if (lower.includes('reset') || lower.includes('reiniciar')) {
-          handleResetFinancials();
-          return "A iniciar processo de limpeza...";
-      }
-      // 5. Navegação
-      if (lower.includes('definições') || lower.includes('configura')) {
-          navigate('/dashboard/settings');
-          return "A navegar para as Definições.";
+      if (lower.includes('diário') || lower.includes('lançamentos')) {
+          navigate('/dashboard/accounting'); setAccountingTab('overview');
+          return "A redirecionar para o Diário Geral.";
       }
 
-      // Fallback: Resposta Genérica
-      return "Desculpe, ainda estou a aprender. Tente 'Criar fatura', 'Novo cliente' ou 'Gerar balancete'.";
+      // 5. NAÇÕES UNIDAS (RESET E SETTINGS)
+      if (lower.includes('reset') || lower.includes('limpar dados')) {
+          handleResetFinancials();
+          return "Atenção: Iniciei o protocolo de limpeza de dados.";
+      }
+      
+      return "Posso ajudar a: 'Criar fatura', 'Registar despesa', 'Novo cliente' ou 'Tirar balancete'.";
   };
 
   const handleSendChatMessage = async (e: React.FormEvent) => { 
@@ -844,12 +862,12 @@ export default function Dashboard() {
       setChatInput(''); 
       setIsChatLoading(true); 
       
-      // Simulação de delay para parecer real
+      // Simulação de Inteligência (Delay + Processamento)
       setTimeout(() => {
           const aiResponse = processAICommand(userMessage.content);
           setMessages(prev => [...prev, { role: 'assistant', content: aiResponse }]);
           setIsChatLoading(false);
-      }, 800);
+      }, 600);
   };
 
   const selectLanguage = (code: string) => { i18n.changeLanguage(code); setIsLangMenuOpen(false); };
@@ -1071,75 +1089,16 @@ export default function Dashboard() {
                         )}
                         {accountingTab === 'invoices' && (
                             <div>
-                                {!showInvoiceForm ? (
-                                    <>
-                                        <div className="p-4 flex justify-between bg-gray-50 dark:bg-gray-800 border-b dark:border-gray-700"><h3 className="font-bold flex gap-2"><FileText/> Faturas Emitidas</h3><button onClick={()=>{resetInvoiceForm();setShowInvoiceForm(true)}} className="bg-blue-600 text-white px-3 py-1.5 rounded flex gap-2 items-center text-sm font-bold"><Plus size={16}/> Nova Fatura</button></div>
-                                        <table className="w-full text-xs text-left"><thead className="bg-gray-100 dark:bg-gray-700 uppercase"><tr><th className="p-3">Nº</th><th className="p-3">Cliente</th><th className="p-3">Data</th><th className="p-3 text-right">Total</th><th className="p-3 text-right">...</th></tr></thead>
-                                        <tbody>{realInvoices.map(i=>(<tr key={i.id} className="border-b dark:border-gray-700 hover:bg-gray-50 dark:hover:bg-gray-700"><td className="p-3 font-mono text-blue-600">{i.invoice_number}</td><td className="p-3">{i.clients?.name}</td><td className="p-3">{new Date(i.date).toLocaleDateString()}</td><td className="p-3 text-right font-bold">{displaySymbol} {i.total}</td><td className="p-3 text-right"><button onClick={()=>handleQuickPreview(i)} className="mr-2 text-gray-500 hover:text-blue-600"><Eye size={14}/></button><button onClick={()=>handleDeleteInvoice(i.id)} className="text-red-400 hover:text-red-600"><Trash2 size={14}/></button></td></tr>))}</tbody></table>
-                                    </>
-                                ) : (
-                                    /* --- FORMULÁRIO COM SCROLL --- */
-                                    <div className="fixed inset-0 z-[100] flex items-center justify-center bg-black/50 backdrop-blur-sm p-4">
-                                        <div className="bg-white dark:bg-gray-800 rounded-2xl w-full max-w-4xl shadow-2xl border dark:border-gray-700 h-[90vh] flex flex-col">
-                                            <div className="p-6 border-b dark:border-gray-700 flex justify-between items-center bg-gray-50 dark:bg-gray-900 rounded-t-2xl">
-                                                <h3 className="font-bold text-xl flex gap-2 items-center"><FileText className="text-blue-600"/> Editor de Fatura</h3>
-                                                <button onClick={()=>setShowInvoiceForm(false)} className="hover:bg-gray-200 p-2 rounded-full"><X/></button>
-                                            </div>
-                                            <div className="flex-1 overflow-y-auto p-8">
-                                                <div className="grid grid-cols-3 gap-6 mb-6">
-                                                    <div><label className="text-xs font-bold block mb-2 uppercase text-gray-500">Cliente</label><select className="w-full p-3 border rounded-xl dark:bg-gray-900 outline-none" value={invoiceData.client_id} onChange={e=>setInvoiceData({...invoiceData,client_id:e.target.value})}><option value="">Selecione...</option>{clients.map(c=><option key={c.id} value={c.id}>{c.name}</option>)}</select></div>
-                                                    <div><label className="text-xs font-bold block mb-2 uppercase text-gray-500">Tipo Doc.</label><select className="w-full p-3 border rounded-xl dark:bg-gray-900 outline-none" value={invoiceData.type} onChange={e=>setInvoiceData({...invoiceData,type:e.target.value})}>{invoiceTypes.map(t=><option key={t} value={t}>{t}</option>)}</select></div>
-                                                    <div><label className="text-xs font-bold block mb-2 uppercase text-gray-500">Data</label><input type="date" className="w-full p-3 border rounded-xl dark:bg-gray-900 outline-none" value={invoiceData.date} onChange={e=>setInvoiceData({...invoiceData,date:e.target.value})}/></div>
-                                                </div>
-                                                <table className="w-full text-sm mb-6 border-collapse">
-                                                    <thead><tr className="bg-gray-100 dark:bg-gray-700 text-left"><th className="p-3 rounded-l-lg">Descrição</th><th className="p-3 w-20 text-center">Qtd</th><th className="p-3 w-32 text-right">Preço</th><th className="p-3 w-24 text-right">IVA</th><th className="p-3 w-32 text-right rounded-r-lg">Total</th><th className="p-3 w-10"></th></tr></thead>
-                                                    <tbody>
-                                                        {invoiceData.items.map((it,ix)=>(
-                                                            <tr key={ix} className="border-b dark:border-gray-700 group">
-                                                                <td className="p-3"><input className="w-full bg-transparent outline-none font-medium" placeholder="Item" value={it.description} onChange={e=>updateInvoiceItem(ix,'description',e.target.value)}/></td>
-                                                                <td className="p-3"><input type="number" className="w-full bg-transparent text-center outline-none" value={it.quantity} onChange={e=>updateInvoiceItem(ix,'quantity',e.target.value)}/></td>
-                                                                <td className="p-3"><input type="number" className="w-full bg-transparent text-right outline-none" value={it.price} onChange={e=>updateInvoiceItem(ix,'price',e.target.value)}/></td>
-                                                                <td className="p-3"><select className="w-full bg-transparent outline-none text-right appearance-none cursor-pointer" value={it.tax} onChange={e=>updateInvoiceItem(ix,'tax',e.target.value)}>{getCurrentCountryVatRates().map(r=><option key={r} value={r}>{r}%</option>)}</select></td>
-                                                                <td className="p-3 text-right font-bold">{displaySymbol} {(it.quantity*it.price).toFixed(2)}</td>
-                                                                <td className="p-3 text-center"><button onClick={()=>handleRemoveInvoiceItem(ix)} className="text-gray-300 hover:text-red-500 opacity-0 group-hover:opacity-100"><Trash2 size={16}/></button></td>
-                                                            </tr>
-                                                        ))}
-                                                    </tbody>
-                                                </table>
-                                                <button onClick={handleAddInvoiceItem} className="text-blue-600 text-sm font-bold flex items-center gap-2 hover:underline"><Plus size={16}/> Adicionar Linha</button>
-                                            </div>
-                                            <div className="p-6 border-t dark:border-gray-700 bg-gray-50 dark:bg-gray-900 rounded-b-2xl flex justify-end gap-3">
-                                                <button onClick={()=>setShowInvoiceForm(false)} className="px-6 py-3 border rounded-xl font-bold text-gray-500 hover:bg-white transition-colors">Cancelar</button>
-                                                <button onClick={handleSaveInvoice} className="px-6 py-3 bg-blue-600 text-white rounded-xl font-bold shadow-lg hover:bg-blue-700 transition-colors flex items-center gap-2"><CheckCircle size={20}/> Emitir Documento</button>
-                                            </div>
-                                        </div>
-                                    </div>
-                                )}
+                                <div className="p-4 flex justify-between bg-gray-50 dark:bg-gray-800 border-b dark:border-gray-700"><h3 className="font-bold flex gap-2"><FileText/> Faturas Emitidas</h3><button onClick={()=>{resetInvoiceForm();setShowInvoiceForm(true)}} className="bg-blue-600 text-white px-3 py-1.5 rounded flex gap-2 items-center text-sm font-bold"><Plus size={16}/> Nova Fatura</button></div>
+                                <table className="w-full text-xs text-left"><thead className="bg-gray-100 dark:bg-gray-700 uppercase"><tr><th className="p-3">Nº</th><th className="p-3">Cliente</th><th className="p-3">Data</th><th className="p-3 text-right">Total</th><th className="p-3 text-right">...</th></tr></thead>
+                                <tbody>{realInvoices.map(i=>(<tr key={i.id} className="border-b dark:border-gray-700 hover:bg-gray-50 dark:hover:bg-gray-700"><td className="p-3 font-mono text-blue-600">{i.invoice_number}</td><td className="p-3">{i.clients?.name}</td><td className="p-3">{new Date(i.date).toLocaleDateString()}</td><td className="p-3 text-right font-bold">{displaySymbol} {i.total}</td><td className="p-3 text-right"><button onClick={()=>handleQuickPreview(i)} className="mr-2 text-gray-500 hover:text-blue-600"><Eye size={14}/></button><button onClick={()=>handleDeleteInvoice(i.id)} className="text-red-400 hover:text-red-600"><Trash2 size={14}/></button></td></tr>))}</tbody></table>
                             </div>
                         )}
                         {accountingTab === 'purchases' && (
                             <div>
-                                {!showPurchaseForm ? (
-                                    <>
-                                        <div className="p-4 flex justify-between bg-gray-50 dark:bg-gray-800 border-b dark:border-gray-700"><h3 className="font-bold flex gap-2"><TrendingDown/> Registo de Compras</h3><button onClick={()=>setShowPurchaseForm(true)} className="bg-blue-600 text-white px-3 py-1.5 rounded flex gap-2 items-center text-sm font-bold"><Plus size={16}/> Lançar Compra</button></div>
-                                        <table className="w-full text-xs text-left"><thead className="bg-gray-100 dark:bg-gray-700 uppercase"><tr><th className="p-3">Data</th><th className="p-3">Fornecedor</th><th className="p-3">Ref. Fatura</th><th className="p-3 text-right">Total</th></tr></thead>
-                                        <tbody>{purchases.map(p=>(<tr key={p.id} className="border-b dark:border-gray-700"><td className="p-3">{new Date(p.date).toLocaleDateString()}</td><td className="p-3">{p.suppliers?.name}</td><td className="p-3">{p.invoice_number}</td><td className="p-3 text-right font-bold text-red-500">{displaySymbol} {p.total}</td></tr>))}</tbody></table>
-                                    </>
-                                ) : (
-                                    <div className="p-6">
-                                        <h3 className="font-bold mb-4 text-lg">Registar Fatura de Fornecedor</h3>
-                                        <div className="grid grid-cols-2 gap-4 mb-4">
-                                            <div><label className="text-xs font-bold block uppercase text-gray-500 mb-1">Fornecedor</label><select className="w-full p-3 border rounded-xl dark:bg-gray-900 outline-none" onChange={e=>setNewPurchase({...newPurchase,supplier_id:e.target.value})}><option>Selecione...</option>{suppliers.map(s=><option key={s.id} value={s.id}>{s.name}</option>)}</select></div>
-                                            <div><label className="text-xs font-bold block uppercase text-gray-500 mb-1">Total Com IVA</label><input type="number" className="w-full p-3 border rounded-xl dark:bg-gray-900 outline-none" onChange={e=>setNewPurchase({...newPurchase,total:e.target.value})}/></div>
-                                            <div><label className="text-xs font-bold block uppercase text-gray-500 mb-1">Nº Fatura</label><input className="w-full p-3 border rounded-xl dark:bg-gray-900 outline-none" onChange={e=>setNewPurchase({...newPurchase,invoice_number:e.target.value})}/></div>
-                                            <div><label className="text-xs font-bold block uppercase text-gray-500 mb-1">Valor do IVA</label><input type="number" className="w-full p-3 border rounded-xl dark:bg-gray-900 outline-none" onChange={e=>setNewPurchase({...newPurchase,tax_total:e.target.value})}/></div>
-                                        </div>
-                                        <div className="flex justify-end gap-2 mt-6">
-                                            <button onClick={()=>setShowPurchaseForm(false)} className="px-4 py-2 border rounded-lg font-bold">Cancelar</button>
-                                            <button onClick={handleCreatePurchase} className="px-4 py-2 bg-blue-600 text-white rounded-lg font-bold">Gravar Despesa</button>
-                                        </div>
-                                    </div>
-                                )}
+                                <div className="p-4 flex justify-between bg-gray-50 dark:bg-gray-800 border-b dark:border-gray-700"><h3 className="font-bold flex gap-2"><TrendingDown/> Registo de Compras</h3><button onClick={()=>setShowPurchaseForm(true)} className="bg-blue-600 text-white px-3 py-1.5 rounded flex gap-2 items-center text-sm font-bold"><Plus size={16}/> Lançar Compra</button></div>
+                                <table className="w-full text-xs text-left"><thead className="bg-gray-100 dark:bg-gray-700 uppercase"><tr><th className="p-3">Data</th><th className="p-3">Fornecedor</th><th className="p-3">Ref. Fatura</th><th className="p-3 text-right">Total</th></tr></thead>
+                                <tbody>{purchases.map(p=>(<tr key={p.id} className="border-b dark:border-gray-700"><td className="p-3">{new Date(p.date).toLocaleDateString()}</td><td className="p-3">{p.suppliers?.name}</td><td className="p-3">{p.invoice_number}</td><td className="p-3 text-right font-bold text-red-500">{displaySymbol} {p.total}</td></tr>))}</tbody></table>
                             </div>
                         )}
                         {accountingTab === 'banking' && (
@@ -1224,6 +1183,62 @@ export default function Dashboard() {
       </main>
 
       {/* --- MODAIS GLOBAIS --- */}
+      {showInvoiceForm && (
+        <div className="fixed inset-0 z-[100] flex items-center justify-center bg-black/50 backdrop-blur-sm p-4">
+            <div className="bg-white dark:bg-gray-800 rounded-2xl w-full max-w-4xl shadow-2xl border dark:border-gray-700 h-[90vh] flex flex-col">
+                <div className="p-6 border-b dark:border-gray-700 flex justify-between items-center bg-gray-50 dark:bg-gray-900 rounded-t-2xl">
+                    <h3 className="font-bold text-xl flex gap-2 items-center"><FileText className="text-blue-600"/> Editor de Fatura</h3>
+                    <button onClick={()=>setShowInvoiceForm(false)} className="hover:bg-gray-200 p-2 rounded-full"><X/></button>
+                </div>
+                <div className="flex-1 overflow-y-auto p-8">
+                    <div className="grid grid-cols-3 gap-6 mb-6">
+                        <div><label className="text-xs font-bold block mb-2 uppercase text-gray-500">Cliente</label><select className="w-full p-3 border rounded-xl dark:bg-gray-900 outline-none" value={invoiceData.client_id} onChange={e=>setInvoiceData({...invoiceData,client_id:e.target.value})}><option value="">Selecione...</option>{clients.map(c=><option key={c.id} value={c.id}>{c.name}</option>)}</select></div>
+                        <div><label className="text-xs font-bold block mb-2 uppercase text-gray-500">Tipo Doc.</label><select className="w-full p-3 border rounded-xl dark:bg-gray-900 outline-none" value={invoiceData.type} onChange={e=>setInvoiceData({...invoiceData,type:e.target.value})}>{invoiceTypes.map(t=><option key={t} value={t}>{t}</option>)}</select></div>
+                        <div><label className="text-xs font-bold block mb-2 uppercase text-gray-500">Data</label><input type="date" className="w-full p-3 border rounded-xl dark:bg-gray-900 outline-none" value={invoiceData.date} onChange={e=>setInvoiceData({...invoiceData,date:e.target.value})}/></div>
+                    </div>
+                    <table className="w-full text-sm mb-6 border-collapse">
+                        <thead><tr className="bg-gray-100 dark:bg-gray-700 text-left"><th className="p-3 rounded-l-lg">Descrição</th><th className="p-3 w-20 text-center">Qtd</th><th className="p-3 w-32 text-right">Preço</th><th className="p-3 w-24 text-right">IVA</th><th className="p-3 w-32 text-right rounded-r-lg">Total</th><th className="p-3 w-10"></th></tr></thead>
+                        <tbody>
+                            {invoiceData.items.map((it,ix)=>(
+                                <tr key={ix} className="border-b dark:border-gray-700 group">
+                                    <td className="p-3"><input className="w-full bg-transparent outline-none font-medium" placeholder="Item" value={it.description} onChange={e=>updateInvoiceItem(ix,'description',e.target.value)}/></td>
+                                    <td className="p-3"><input type="number" className="w-full bg-transparent text-center outline-none" value={it.quantity} onChange={e=>updateInvoiceItem(ix,'quantity',e.target.value)}/></td>
+                                    <td className="p-3"><input type="number" className="w-full bg-transparent text-right outline-none" value={it.price} onChange={e=>updateInvoiceItem(ix,'price',e.target.value)}/></td>
+                                    <td className="p-3"><select className="w-full bg-transparent outline-none text-right appearance-none cursor-pointer" value={it.tax} onChange={e=>updateInvoiceItem(ix,'tax',e.target.value)}>{getCurrentCountryVatRates().map(r=><option key={r} value={r}>{r}%</option>)}</select></td>
+                                    <td className="p-3 text-right font-bold">{displaySymbol} {(it.quantity*it.price).toFixed(2)}</td>
+                                    <td className="p-3 text-center"><button onClick={()=>handleRemoveInvoiceItem(ix)} className="text-gray-300 hover:text-red-500 opacity-0 group-hover:opacity-100"><Trash2 size={16}/></button></td>
+                                </tr>
+                            ))}
+                        </tbody>
+                    </table>
+                    <button onClick={handleAddInvoiceItem} className="text-blue-600 text-sm font-bold flex items-center gap-2 hover:underline"><Plus size={16}/> Adicionar Linha</button>
+                </div>
+                <div className="p-6 border-t dark:border-gray-700 bg-gray-50 dark:bg-gray-900 rounded-b-2xl flex justify-end gap-3">
+                    <button onClick={()=>setShowInvoiceForm(false)} className="px-6 py-3 border rounded-xl font-bold text-gray-500 hover:bg-white transition-colors">Cancelar</button>
+                    <button onClick={handleSaveInvoice} className="px-6 py-3 bg-blue-600 text-white rounded-xl font-bold shadow-lg hover:bg-blue-700 transition-colors flex items-center gap-2"><CheckCircle size={20}/> Emitir Documento</button>
+                </div>
+            </div>
+        </div>
+      )}
+
+      {showPurchaseForm && (
+        <div className="fixed inset-0 z-[100] flex items-center justify-center bg-black/50 backdrop-blur-sm p-4">
+            <div className="bg-white dark:bg-gray-800 rounded-2xl p-6 w-full max-w-lg shadow-xl border dark:border-gray-700">
+                <h3 className="font-bold mb-4 text-lg">Registar Fatura de Fornecedor</h3>
+                <div className="grid grid-cols-2 gap-4 mb-4">
+                    <div><label className="text-xs font-bold block uppercase text-gray-500 mb-1">Fornecedor</label><select className="w-full p-3 border rounded-xl dark:bg-gray-900 outline-none" onChange={e=>setNewPurchase({...newPurchase,supplier_id:e.target.value})}><option>Selecione...</option>{suppliers.map(s=><option key={s.id} value={s.id}>{s.name}</option>)}</select></div>
+                    <div><label className="text-xs font-bold block uppercase text-gray-500 mb-1">Total Com IVA</label><input type="number" className="w-full p-3 border rounded-xl dark:bg-gray-900 outline-none" onChange={e=>setNewPurchase({...newPurchase,total:e.target.value})}/></div>
+                    <div><label className="text-xs font-bold block uppercase text-gray-500 mb-1">Nº Fatura</label><input className="w-full p-3 border rounded-xl dark:bg-gray-900 outline-none" onChange={e=>setNewPurchase({...newPurchase,invoice_number:e.target.value})}/></div>
+                    <div><label className="text-xs font-bold block uppercase text-gray-500 mb-1">Valor do IVA</label><input type="number" className="w-full p-3 border rounded-xl dark:bg-gray-900 outline-none" onChange={e=>setNewPurchase({...newPurchase,tax_total:e.target.value})}/></div>
+                </div>
+                <div className="flex justify-end gap-2 mt-6">
+                    <button onClick={()=>setShowPurchaseForm(false)} className="px-4 py-2 border rounded-lg font-bold">Cancelar</button>
+                    <button onClick={handleCreatePurchase} className="px-4 py-2 bg-blue-600 text-white rounded-lg font-bold">Gravar Despesa</button>
+                </div>
+            </div>
+        </div>
+      )}
+
       {showPreviewModal && pdfPreviewUrl && (<div className="fixed inset-0 z-[100] flex flex-col bg-gray-900 bg-opacity-90 backdrop-blur-sm p-4 animate-fade-in"><div className="flex justify-between items-center text-white mb-4"><h3 className="text-xl font-bold flex gap-2"><FileText/> Pré-visualização Profissional</h3><div className="flex gap-4"><button onClick={handleDownloadPDF} className="bg-blue-600 px-4 py-2 rounded-lg font-bold hover:bg-blue-500 flex items-center gap-2"><Download size={18}/> Baixar PDF</button><button onClick={() => setShowPreviewModal(false)} className="bg-gray-700 px-4 py-2 rounded-lg font-bold hover:bg-gray-600"><X size={18}/></button></div></div><div className="flex-1 bg-gray-800 rounded-xl overflow-hidden border border-gray-700 shadow-2xl"><iframe src={pdfPreviewUrl} className="w-full h-full" title="PDF Preview"></iframe></div></div>)}
       {showAmortSchedule && selectedAssetForSchedule && (<div className="fixed inset-0 z-[100] flex items-center justify-center bg-black/50 backdrop-blur-sm p-4"><div className="bg-white dark:bg-gray-800 rounded-2xl p-8 w-full max-w-4xl shadow-xl border dark:border-gray-700 max-h-[80vh] overflow-y-auto"><div className="flex justify-between items-center mb-6"><div><h3 className="text-xl font-bold flex gap-2 items-center"><TrendingUpIcon className="text-blue-500"/> Mapa de Amortização Financeira</h3><p className="text-sm text-gray-500 mt-1 uppercase font-bold">{selectedAssetForSchedule.name}</p></div><button onClick={() => setShowAmortSchedule(false)}><X className="text-gray-400 hover:text-red-500"/></button></div><table className="w-full text-xs text-left"><thead className="bg-gray-100 dark:bg-gray-700 text-gray-600 uppercase text-xs font-bold border-b border-gray-200 dark:border-gray-600"><tr><th className="px-4 py-3">Ano</th><th className="px-4 py-3 text-right">V. Inicial</th><th className="px-4 py-3 text-right">Quota</th><th className="px-4 py-3 text-right">Acumulado</th><th className="px-4 py-3 text-right">V. Final (VNC)</th></tr></thead><tbody>{calculateAmortizationSchedule(selectedAssetForSchedule).map((row: any, i) => (<tr key={row.year} className={`border-b dark:border-gray-700 ${i % 2 === 0 ? 'bg-white dark:bg-gray-800' : 'bg-gray-50 dark:bg-gray-900'}`}><td className="px-4 py-3 font-bold text-gray-700 dark:text-gray-300">{row.year}</td><td className="px-4 py-3 text-right text-gray-500 font-mono">{displaySymbol} {row.startValue.toFixed(2)}</td><td className="px-4 py-3 text-right font-bold text-blue-600 font-mono">{displaySymbol} {row.annuity.toFixed(2)}</td><td className="px-4 py-3 text-right text-gray-500 font-mono">{displaySymbol} {row.accumulated.toFixed(2)}</td><td className="px-4 py-3 text-right font-bold text-gray-800 dark:text-white font-mono">{displaySymbol} {row.endValue.toFixed(2)}</td></tr>))}</tbody></table></div></div>)}
       {showDoubtfulModal && selectedClientForDebt && (<div className="fixed inset-0 z-[100] flex items-center justify-center bg-black/50 backdrop-blur-sm p-4"><div className="bg-white dark:bg-gray-800 rounded-2xl p-6 w-full max-w-lg shadow-xl border dark:border-gray-700"><div className="flex justify-between items-center mb-4"><h3 className="text-xl font-bold flex gap-2 items-center text-red-600"><AlertTriangle size={20}/> Gerir Dívida Incobrável</h3></div><div className="space-y-4"><p className="text-sm text-gray-500">Ao marcar {selectedClientForDebt.name} como de risco, deve definir o valor em provisão.</p><div className="flex gap-4 mb-4 bg-gray-100 p-1 rounded-lg"><button onClick={() => setDebtMethod('manual')} className={`flex-1 py-2 rounded-md font-bold text-sm transition-all ${debtMethod === 'manual' ? 'bg-white shadow text-red-700' : 'text-gray-500'}`}>Valor Manual</button><button onClick={() => setDebtMethod('invoices')} className={`flex-1 py-2 rounded-md font-bold text-sm transition-all ${debtMethod === 'invoices' ? 'bg-white shadow text-red-700' : 'text-gray-500'}`}>Selecionar Faturas</button></div>{debtMethod === 'manual' ? (<div><label className="text-xs font-bold text-gray-400 uppercase tracking-wider mb-1 block">Valor em Dívida ({displaySymbol})</label><input type="number" value={manualDebtAmount} onChange={e => setManualDebtAmount(e.target.value)} className="w-full p-3 border dark:border-gray-600 rounded-xl dark:bg-gray-900 bg-gray-50 outline-none font-bold text-red-600 text-xl"/></div>) : (<div className="max-h-60 overflow-y-auto border rounded-xl p-2 bg-gray-50">{realInvoices.filter(i => i.client_id === selectedClientForDebt.id).map(inv => (<div key={inv.id} className="flex items-center gap-3 p-3 hover:bg-white border-b last:border-0 cursor-pointer" onClick={() => { if(selectedDebtInvoices.includes(inv.id)) setSelectedDebtInvoices(selectedDebtInvoices.filter(id => id !== inv.id)); else setSelectedDebtInvoices([...selectedDebtInvoices, inv.id]); }}><input type="checkbox" checked={selectedDebtInvoices.includes(inv.id)} readOnly className="w-5 h-5 text-red-600 rounded" /><div className="flex-1"><p className="font-bold text-sm text-gray-700">{inv.invoice_number}</p><p className="text-xs text-gray-500">{new Date(inv.date).toLocaleDateString()}</p></div><span className="font-bold text-red-600">{displaySymbol} {inv.total}</span></div>))}{realInvoices.filter(i => i.client_id === selectedClientForDebt.id).length === 0 && <p className="text-xs text-gray-400 text-center py-4">Sem faturas para este cliente.</p>}</div>)}</div><div className="flex justify-end gap-3 mt-6"><button onClick={() => setShowDoubtfulModal(false)} className="px-4 py-2 text-gray-500">Cancelar</button><button onClick={saveDoubtfulDebt} className="px-4 py-2 bg-red-600 text-white rounded-lg font-bold hover:bg-red-700 shadow-lg">Confirmar Risco</button></div></div></div>)}
