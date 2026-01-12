@@ -353,6 +353,128 @@ export default function Dashboard() {
                                 )}
                             </div>
                         )}
+                        {logic.accountingTab === 'taxes' && (
+                            <div className="h-[calc(100vh-140px)] flex flex-col p-2">
+                                {(() => {
+                                    const ivaLiquidado = logic.realInvoices.reduce((acc, inv) => acc + (inv.tax_total || 0), 0);
+                                    const ivaDedutivel = logic.purchases.reduce((acc, pur) => acc + (pur.tax_total || 0), 0);
+                                    const apuramento = ivaLiquidado - ivaDedutivel;
+
+                                    return (
+                                        <>
+                                            <div className={`mb-6 p-4 rounded-2xl border-2 flex justify-between items-center shadow-sm ${apuramento > 0 ? 'bg-red-50 border-red-100' : 'bg-green-50 border-green-100'}`}>
+                                                <div className="flex gap-4 items-center">
+                                                    <div className={`p-3 rounded-full ${apuramento > 0 ? 'bg-red-100 text-red-600' : 'bg-green-100 text-green-600'}`}>
+                                                        <FileCheck size={24} />
+                                                    </div>
+                                                    <div>
+                                                        <h3 className="font-bold text-lg text-gray-700 dark:text-gray-200">Apuramento de IVA</h3>
+                                                        <p className="text-xs text-gray-500">Diferença entre o cobrado e o pago</p>
+                                                    </div>
+                                                </div>
+                                                <div className="text-right">
+                                                    <p className={`text-xs font-bold uppercase tracking-wider ${apuramento > 0 ? 'text-red-600' : 'text-green-600'}`}>
+                                                        {apuramento > 0 ? 'A Entregar ao Estado' : 'Crédito a Receber'}
+                                                    </p>
+                                                    <p className={`text-3xl font-mono font-bold ${apuramento > 0 ? 'text-red-700' : 'text-green-700'}`}>
+                                                        {logic.displaySymbol} {Math.abs(apuramento).toFixed(2)}
+                                                    </p>
+                                                </div>
+                                            </div>
+
+                                            <div className="grid grid-cols-1 md:grid-cols-2 gap-6 flex-1 overflow-hidden">
+                                                <div className="bg-white dark:bg-gray-800 rounded-2xl border border-blue-100 dark:border-gray-700 flex flex-col shadow-sm overflow-hidden">
+                                                    <div className="p-6 bg-blue-50 dark:bg-blue-900/20 border-b border-blue-100 dark:border-blue-900/30">
+                                                        <div className="flex justify-between items-start">
+                                                            <div>
+                                                                <p className="text-xs font-bold text-blue-500 uppercase tracking-wider mb-1">A favor do Estado</p>
+                                                                <h3 className="text-xl font-bold text-blue-900 dark:text-blue-100 flex gap-2 items-center">
+                                                                    <TrendingUpIcon size={20}/> IVA Liquidado
+                                                                </h3>
+                                                            </div>
+                                                            <div className="text-right">
+                                                                <span className="text-2xl font-bold text-blue-600 font-mono block">
+                                                                    {logic.displaySymbol} {ivaLiquidado.toFixed(2)}
+                                                                </span>
+                                                                <span className="text-[10px] text-blue-400">Total em Vendas</span>
+                                                            </div>
+                                                        </div>
+                                                    </div>
+                                                    <div className="flex-1 overflow-y-auto p-0">
+                                                        <table className="w-full text-xs text-left">
+                                                            <thead className="bg-gray-50 dark:bg-gray-900 text-gray-500 border-b dark:border-gray-700 sticky top-0">
+                                                                <tr>
+                                                                    <th className="p-3 pl-6">Fatura</th>
+                                                                    <th className="p-3 text-right">Base Incidência</th>
+                                                                    <th className="p-3 text-right pr-6">Valor IVA</th>
+                                                                </tr>
+                                                            </thead>
+                                                            <tbody className="divide-y dark:divide-gray-700">
+                                                                {logic.realInvoices.filter(i => i.tax_total > 0).map(inv => (
+                                                                    <tr key={inv.id} className="hover:bg-blue-50/50 dark:hover:bg-gray-700 transition-colors">
+                                                                        <td className="p-3 pl-6 font-mono text-blue-600 font-bold">{inv.invoice_number}</td>
+                                                                        <td className="p-3 text-right text-gray-500">{logic.displaySymbol} {inv.subtotal.toFixed(2)}</td>
+                                                                        <td className="p-3 text-right pr-6 font-bold text-gray-700 dark:text-white">{logic.displaySymbol} {inv.tax_total.toFixed(2)}</td>
+                                                                    </tr>
+                                                                ))}
+                                                                {logic.realInvoices.filter(i => i.tax_total > 0).length === 0 && (
+                                                                    <tr><td colSpan={3} className="p-8 text-center text-gray-300">Sem vendas com IVA.</td></tr>
+                                                                )}
+                                                            </tbody>
+                                                        </table>
+                                                    </div>
+                                                </div>
+
+                                                <div className="bg-white dark:bg-gray-800 rounded-2xl border border-green-100 dark:border-gray-700 flex flex-col shadow-sm overflow-hidden">
+                                                    <div className="p-6 bg-green-50 dark:bg-green-900/20 border-b border-green-100 dark:border-green-900/30">
+                                                        <div className="flex justify-between items-start">
+                                                            <div>
+                                                                <p className="text-xs font-bold text-green-500 uppercase tracking-wider mb-1">A favor da Empresa</p>
+                                                                <h3 className="text-xl font-bold text-green-900 dark:text-green-100 flex gap-2 items-center">
+                                                                    <TrendingDown size={20}/> IVA Dedutível
+                                                                </h3>
+                                                            </div>
+                                                            <div className="text-right">
+                                                                <span className="text-2xl font-bold text-green-600 font-mono block">
+                                                                    {logic.displaySymbol} {ivaDedutivel.toFixed(2)}
+                                                                </span>
+                                                                <span className="text-[10px] text-green-400">Total em Compras</span>
+                                                            </div>
+                                                        </div>
+                                                    </div>
+                                                    <div className="flex-1 overflow-y-auto p-0">
+                                                        <table className="w-full text-xs text-left">
+                                                            <thead className="bg-gray-50 dark:bg-gray-900 text-gray-500 border-b dark:border-gray-700 sticky top-0">
+                                                                <tr>
+                                                                    <th className="p-3 pl-6">Fornecedor / Doc</th>
+                                                                    <th className="p-3 text-right">Base Incidência</th>
+                                                                    <th className="p-3 text-right pr-6">Valor IVA</th>
+                                                                </tr>
+                                                            </thead>
+                                                            <tbody className="divide-y dark:divide-gray-700">
+                                                                {logic.purchases.filter(p => p.tax_total > 0).map(pur => (
+                                                                    <tr key={pur.id} className="hover:bg-green-50/50 dark:hover:bg-gray-700 transition-colors">
+                                                                        <td className="p-3 pl-6">
+                                                                            <div className="font-bold text-gray-700 dark:text-white">{pur.suppliers?.name || 'Fornecedor'}</div>
+                                                                            <div className="text-[10px] text-gray-400 font-mono">{pur.invoice_number}</div>
+                                                                        </td>
+                                                                        <td className="p-3 text-right text-gray-500">{logic.displaySymbol} {(pur.total - (pur.tax_total || 0)).toFixed(2)}</td>
+                                                                        <td className="p-3 text-right pr-6 font-bold text-green-600">{logic.displaySymbol} {pur.tax_total.toFixed(2)}</td>
+                                                                    </tr>
+                                                                ))}
+                                                                {logic.purchases.filter(p => p.tax_total > 0).length === 0 && (
+                                                                    <tr><td colSpan={3} className="p-8 text-center text-gray-300">Sem compras dedutíveis.</td></tr>
+                                                                )}
+                                                            </tbody>
+                                                        </table>
+                                                    </div>
+                                                </div>
+                                            </div>
+                                        </>
+                                    );
+                                })()}
+                            </div>
+                        )}
                         {logic.accountingTab === 'reports' && (
                             <div className="p-6 text-center">
                                 <h3 className="font-bold text-lg mb-6 text-gray-700 dark:text-white">Relatórios Financeiros Oficiais</h3>
