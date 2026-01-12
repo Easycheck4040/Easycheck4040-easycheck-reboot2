@@ -6,7 +6,10 @@ import jsPDF from 'jspdf';
 import autoTable from 'jspdf-autotable';
 import { askGrok } from '../services/aiService'; 
 
-// --- CONSTANTES E DADOS ESTÁTICOS ---
+// ==========================================
+// DADOS ESTÁTICOS E CONSTANTES
+// ==========================================
+
 export const ACCOUNTING_TEMPLATES: Record<string, any[]> = {
     "Portugal": [
         { code: '11', name: 'Caixa', type: 'ativo' },
@@ -27,42 +30,8 @@ export const ACCOUNTING_TEMPLATES: Record<string, any[]> = {
         { code: '711', name: 'Vendas de Mercadorias', type: 'rendimentos' },
         { code: '721', name: 'Prestações de Serviços', type: 'rendimentos' }
     ],
-    "Brasil": [
-        { code: '1.01', name: 'Caixa Geral', type: 'ativo' },
-        { code: '1.02', name: 'Bancos Conta Movimento', type: 'ativo' },
-        { code: '1.03', name: 'Clientes a Receber', type: 'ativo' },
-        { code: '2.01', name: 'Fornecedores a Pagar', type: 'passivo' },
-        { code: '2.02', name: 'Impostos a Recolher', type: 'passivo' },
-        { code: '3.01', name: 'Receita Bruta de Vendas', type: 'rendimentos' },
-        { code: '3.02', name: 'Receita de Serviços', type: 'rendimentos' },
-        { code: '4.01', name: 'Custo das Mercadorias', type: 'gastos' },
-        { code: '4.02', name: 'Despesas Operacionais', type: 'gastos' },
-        { code: '4.03', name: 'Despesas com Pessoal', type: 'gastos' }
-    ],
-    "France": [
-        { code: '512', name: 'Banque', type: 'ativo' },
-        { code: '530', name: 'Caisse', type: 'ativo' },
-        { code: '411', name: 'Clients', type: 'ativo' },
-        { code: '401', name: 'Fournisseurs', type: 'passivo' },
-        { code: '44566', name: 'TVA Déductible', type: 'ativo' },
-        { code: '44571', name: 'TVA Collectée', type: 'passivo' },
-        { code: '601', name: 'Achats de matières premières', type: 'gastos' },
-        { code: '606', name: 'Achats non stockés', type: 'gastos' },
-        { code: '641', name: 'Rémunération du personnel', type: 'gastos' },
-        { code: '701', name: 'Ventes de produits finis', type: 'rendimentos' },
-        { code: '706', name: 'Prestations de services', type: 'rendimentos' }
-    ],
     "Default": [
-        { code: '1000', name: 'Cash', type: 'ativo' },
-        { code: '1100', name: 'Bank Accounts', type: 'ativo' },
-        { code: '1200', name: 'Accounts Receivable', type: 'ativo' },
-        { code: '2000', name: 'Accounts Payable', type: 'passivo' },
-        { code: '2100', name: 'Sales Tax Payable', type: 'passivo' },
-        { code: '4000', name: 'Sales Income', type: 'rendimentos' },
-        { code: '4100', name: 'Service Revenue', type: 'rendimentos' },
-        { code: '5000', name: 'Cost of Goods Sold', type: 'gastos' },
-        { code: '6000', name: 'Office Supplies', type: 'gastos' },
-        { code: '6100', name: 'Rent Expense', type: 'gastos' }
+        { code: '1000', name: 'Cash', type: 'ativo' }
     ]
 };
 
@@ -73,9 +42,10 @@ export const countries = [
 ];
 
 export const invoiceTypesMap: Record<string, string> = {
-    "Fatura": "FT", "Fatura-Recibo": "FR", "Fatura Simplificada": "FS", "Fatura Proforma": "FP",
-    "Nota de Crédito": "NC", "Nota de Débito": "ND", "Recibo": "RC",
-    "Fatura Intracomunitária": "FI", "Fatura Isenta / Autoliquidação": "FA"
+    "Fatura": "FT", "Fatura-Recibo": "FR", "Fatura Simplificada": "FS", 
+    "Fatura Proforma": "FP", "Nota de Crédito": "NC", "Nota de Débito": "ND", 
+    "Recibo": "RC", "Fatura Intracomunitária": "FI", 
+    "Fatura Isenta / Autoliquidação": "FA"
 };
 
 export const invoiceTypes = Object.keys(invoiceTypesMap);
@@ -114,30 +84,65 @@ export const vatRatesByCountry: Record<string, number[]> = {
     "United Kingdom": [20, 5, 0], "United States": [0, 5, 10]
 };
 
-export interface InvoiceItem { description: string; quantity: number; price: number; tax: number; }
-export interface InvoiceData { id: string; client_id: string; type: string; invoice_number?: string; date: string; due_date: string; exemption_reason: string; items: InvoiceItem[]; }
-export interface JournalGridLine { account_id: string; debit: number; credit: number; }
-export interface BankStatementLine { date: string; description: string; amount: number; matched_invoice_id?: string; suggested_match?: string; }
+// --- INTERFACES ---
+export interface InvoiceItem { 
+    description: string; 
+    quantity: number; 
+    price: number; 
+    tax: number; 
+}
 
-// --- O CUSTOM HOOK (LÓGICA PURA) ---
+export interface InvoiceData { 
+    id: string; 
+    client_id: string; 
+    type: string; 
+    invoice_number?: string; 
+    date: string; 
+    due_date: string; 
+    exemption_reason: string; 
+    items: InvoiceItem[]; 
+}
+
+export interface JournalGridLine { 
+    account_id: string; 
+    debit: number; 
+    credit: number; 
+}
+
+export interface BankStatementLine { 
+    date: string; 
+    description: string; 
+    amount: number; 
+    matched_invoice_id?: string; 
+    suggested_match?: string; 
+}
+
+// ==========================================
+// CUSTOM HOOK PRINCIPAL
+// ==========================================
+
 export const useDashboardLogic = () => {
     const { t, i18n } = useTranslation();
     const location = useLocation();
     const navigate = useNavigate();
 
-    // --- ESTADOS ---
+    // ----------------------------------
+    // ESTADOS DE UI (Menus e Tabs)
+    // ----------------------------------
     const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
     const [isProfileDropdownOpen, setIsProfileDropdownOpen] = useState(false);
     const [isLangMenuOpen, setIsLangMenuOpen] = useState(false);
     const [showFinancials, setShowFinancials] = useState(true);
     const [showPageCode, setShowPageCode] = useState(false);
     const [isDark, setIsDark] = useState(false);
-    const [userData, setUserData] = useState<any>(null);
-    const [profileData, setProfileData] = useState<any>(null);
     const [loadingUser, setLoadingUser] = useState(true);
     const [accountingTab, setAccountingTab] = useState('overview');
 
-    // ESTADOS DE DADOS
+    // ----------------------------------
+    // DADOS (Base de Dados)
+    // ----------------------------------
+    const [userData, setUserData] = useState<any>(null);
+    const [profileData, setProfileData] = useState<any>(null);
     const [journalEntries, setJournalEntries] = useState<any[]>([]);
     const [realInvoices, setRealInvoices] = useState<any[]>([]);
     const [purchases, setPurchases] = useState<any[]>([]);
@@ -149,34 +154,69 @@ export const useDashboardLogic = () => {
     const [actionLogs, setActionLogs] = useState<any[]>([]);
     const [exchangeRates, setExchangeRates] = useState<any>(defaultRates);
 
-    // Reconciliação e UI
-    const [bankStatement, setBankStatement] = useState<BankStatementLine[]>([]);
-    const [isUploadingCSV, setIsUploadingCSV] = useState(false);
-    const [manualTaxMode, setManualTaxMode] = useState(false);
-
-    // Modais
+    // ----------------------------------
+    // ESTADOS DE MODAIS
+    // ----------------------------------
     const [isDeleteModalOpen, setIsDeleteModalOpen] = useState(false);
     const [isProfileModalOpen, setIsProfileModalOpen] = useState(false);
     const [showTransactionModal, setShowTransactionModal] = useState(false);
     const [showAssetModal, setShowAssetModal] = useState(false);
     const [showEntityModal, setShowEntityModal] = useState(false);
-    const [showInvoiceForm, setShowInvoiceForm] = useState(false);
+    const [showInvoiceForm, setShowInvoiceForm] = useState(false); // O Modal da Fatura
     const [showPurchaseForm, setShowPurchaseForm] = useState(false);
     const [showPreviewModal, setShowPreviewModal] = useState(false);
     const [showProvisionModal, setShowProvisionModal] = useState(false);
     const [showDoubtfulModal, setShowDoubtfulModal] = useState(false);
     const [showAmortSchedule, setShowAmortSchedule] = useState(false);
 
-    // Forms & Edição
+    // ----------------------------------
+    // CORREÇÃO CRÍTICA DE NAVEGAÇÃO
+    // ----------------------------------
+    
+    // Efeito: Se o modal de fatura for ativado, garantir que estamos na página certa
+    useEffect(() => {
+        if (showInvoiceForm) {
+            // 1. Se não estamos na página de contabilidade, vai para lá
+            if (!location.pathname.includes('/accounting')) {
+                navigate('/dashboard/accounting');
+            }
+            // 2. Se a aba não for faturas, muda a aba
+            if (accountingTab !== 'invoices') {
+                setAccountingTab('invoices');
+            }
+        }
+    }, [showInvoiceForm, location.pathname, accountingTab, navigate]);
+
+    // Efeito: O mesmo para o modal de despesas
+    useEffect(() => {
+        if (showPurchaseForm) {
+            if (!location.pathname.includes('/accounting')) {
+                navigate('/dashboard/accounting');
+            }
+            if (accountingTab !== 'purchases') {
+                setAccountingTab('purchases');
+            }
+        }
+    }, [showPurchaseForm, location.pathname, accountingTab, navigate]);
+
+    // ----------------------------------
+    // ESTADOS DE FORMULÁRIOS
+    // ----------------------------------
+    const [bankStatement, setBankStatement] = useState<BankStatementLine[]>([]);
+    const [isUploadingCSV, setIsUploadingCSV] = useState(false);
+    const [manualTaxMode, setManualTaxMode] = useState(false);
+
     const [entityType, setEntityType] = useState<'client' | 'supplier'>('client');
     const [editingEntityId, setEditingEntityId] = useState<string | null>(null);
     const [editingProvisionId, setEditingProvisionId] = useState<string | null>(null);
     const [editingAssetId, setEditingAssetId] = useState<string | null>(null);
+    
     const [deleteConfirmation, setDeleteConfirmation] = useState('');
     const [isDeleting, setIsDeleting] = useState(false);
     const [uploadingLogo, setUploadingLogo] = useState(false);
     const [uploadingTemplate, setUploadingTemplate] = useState(false);
     const [pdfPreviewUrl, setPdfPreviewUrl] = useState<string | null>(null);
+    
     const [selectedClientForDebt, setSelectedClientForDebt] = useState<any>(null);
     const [debtMethod, setDebtMethod] = useState<'manual' | 'invoices'>('manual');
     const [manualDebtAmount, setManualDebtAmount] = useState('');
@@ -184,24 +224,38 @@ export const useDashboardLogic = () => {
     const [selectedAssetForSchedule, setSelectedAssetForSchedule] = useState<any>(null);
     const [editForm, setEditForm] = useState({ fullName: '', jobTitle: '', email: '' });
 
-    // Company Form
     const [companyForm, setCompanyForm] = useState({
-        name: '', country: 'Portugal', currency: 'EUR',
-        address: '', nif: '', logo_url: '', footer: '',
-        invoice_color: '#2563EB', header_text: '', template_url: '',
-        invoice_template_url: ''
+        name: '', country: 'Portugal', currency: 'EUR', address: '', nif: '', 
+        logo_url: '', footer: '', invoice_color: '#2563EB', header_text: '', 
+        template_url: '', invoice_template_url: ''
     });
 
-    // Grelha Contabilística
     const [journalGrid, setJournalGrid] = useState<JournalGridLine[]>([
-        { account_id: '', debit: 0, credit: 0 },
+        { account_id: '', debit: 0, credit: 0 }, 
         { account_id: '', debit: 0, credit: 0 }
     ]);
-    const [newTransaction, setNewTransaction] = useState({ description: '', date: new Date().toISOString().split('T')[0] });
-    const [newAsset, setNewAsset] = useState({ name: '', category: 'Equipamento', purchase_date: new Date().toISOString().split('T')[0], purchase_value: '', lifespan_years: 3, amortization_method: 'linear' });
-    const [newEntity, setNewEntity] = useState({ name: '', nif: '', email: '', address: '', city: '', postal_code: '', country: 'Portugal' });
-    const [newProvision, setNewProvision] = useState({ description: '', amount: '', type: 'Riscos e Encargos', date: new Date().toISOString().split('T')[0] });
-    const [newPurchase, setNewPurchase] = useState({ supplier_id: '', invoice_number: '', date: new Date().toISOString().split('T')[0], due_date: '', total: '', tax_total: '' });
+
+    const [newTransaction, setNewTransaction] = useState({ 
+        description: '', date: new Date().toISOString().split('T')[0] 
+    });
+    
+    const [newAsset, setNewAsset] = useState({ 
+        name: '', category: 'Equipamento', purchase_date: new Date().toISOString().split('T')[0], 
+        purchase_value: '', lifespan_years: 3, amortization_method: 'linear' 
+    });
+    
+    const [newEntity, setNewEntity] = useState({ 
+        name: '', nif: '', email: '', address: '', city: '', postal_code: '', country: 'Portugal' 
+    });
+    
+    const [newProvision, setNewProvision] = useState({ 
+        description: '', amount: '', type: 'Riscos e Encargos', date: new Date().toISOString().split('T')[0] 
+    });
+    
+    const [newPurchase, setNewPurchase] = useState({ 
+        supplier_id: '', invoice_number: '', date: new Date().toISOString().split('T')[0], 
+        due_date: '', total: '', tax_total: '' 
+    });
 
     const [invoiceData, setInvoiceData] = useState<InvoiceData>({
         id: '', client_id: '', type: 'Fatura', invoice_number: '',
@@ -213,17 +267,22 @@ export const useDashboardLogic = () => {
     const [savingProfile, setSavingProfile] = useState(false);
     const [savingCompany, setSavingCompany] = useState(false);
 
-    // Chat e IA
-    const [messages, setMessages] = useState([{ role: 'assistant', content: 'Olá! Sou o seu assistente EasyCheck IA. Posso criar faturas, registar despesas ou analisar o seu balancete. O que precisa?' }]);
+    // ----------------------------------
+    // ESTADOS CHAT & IA
+    // ----------------------------------
+    const [messages, setMessages] = useState([{ role: 'assistant', content: 'Olá! Sou o assistente EasyCheck. Posso ajudar a criar faturas ou gerir clientes.' }]);
     const [chatInput, setChatInput] = useState('');
     const [isChatLoading, setIsChatLoading] = useState(false);
     
-    // MEMÓRIA DA INTENÇÃO DA IA (Para sequências: Criar Cliente -> Criar Fatura)
+    // MEMÓRIA DE INTENÇÃO (Para o fluxo: Criar Cliente -> Depois Criar Fatura)
     const [aiIntentMemory, setAiIntentMemory] = useState<{ pendingAction?: string, pendingData?: any } | null>(null);
     
     const scrollRef = useRef<HTMLDivElement>(null);
 
-    // --- HELPERS ---
+    // ==========================================
+    // FUNÇÕES AUXILIARES E LÓGICA
+    // ==========================================
+
     const getCurrencyCode = (country: string) => countryCurrencyMap[country] || 'EUR';
     const getCurrencySymbol = (code: string) => currencySymbols[code] || '€';
     const getCurrentCountryVatRates = () => vatRatesByCountry[companyForm.country || "Portugal"] || [23, 0];
@@ -269,6 +328,7 @@ export const useDashboardLogic = () => {
         if (newLog) setActionLogs(prev => [newLog, ...prev]);
     };
 
+    // Funções de Grelha Diário
     const addGridLine = () => setJournalGrid([...journalGrid, { account_id: '', debit: 0, credit: 0 }]);
     const removeGridLine = (index: number) => setJournalGrid(journalGrid.filter((_, i) => i !== index));
     const updateGridLine = (index: number, field: keyof JournalGridLine, value: any) => {
@@ -281,6 +341,7 @@ export const useDashboardLogic = () => {
     const getGridTotals = () => journalGrid.reduce((acc, line) => ({ debit: acc.debit + (Number(line.debit) || 0), credit: acc.credit + (Number(line.credit) || 0) }), { debit: 0, credit: 0 });
     const isGridBalanced = () => { const t = getGridTotals(); return Math.abs(t.debit - t.credit) < 0.01 && t.debit > 0; };
 
+    // Funções de Ativos
     const calculateAmortizationSchedule = (asset: any) => {
         if (!asset) return [];
         const schedule = [];
@@ -334,7 +395,10 @@ export const useDashboardLogic = () => {
         return { subtotal, taxTotal, total: subtotal + taxTotal };
     };
 
-    // --- EFEITOS ---
+    // ==========================================
+    // EFFECTS (Inicialização)
+    // ==========================================
+
     useEffect(() => {
         if (document.documentElement.classList.contains('dark')) setIsDark(true);
         const fetchData = async () => {
@@ -395,7 +459,10 @@ export const useDashboardLogic = () => {
         setInvoiceData(prev => ({ ...prev, items: updatedItems, exemption_reason: exemption }));
     }, [invoiceData.type]);
 
-    // --- ACTIONS ---
+    // ==========================================
+    // ACTIONS & HANDLERS
+    // ==========================================
+
     const handleCSVUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
         const file = e.target.files?.[0];
         if (!file) return;
@@ -750,13 +817,15 @@ export const useDashboardLogic = () => {
     const handleDeleteAsset = async (id: string) => { if (!window.confirm("Apagar este ativo?")) return; const { error } = await supabase.from('accounting_assets').delete().eq('id', id); if (!error) setAssets(prev => prev.filter(a => a.id !== id)); };
     const handleShowAmortSchedule = (asset: any) => { setSelectedAssetForSchedule(asset); setShowAmortSchedule(true); };
 
-    // --- CRIAÇÃO DE ENTIDADE (CLIENTE/FORNECEDOR) COM SEQUÊNCIA DE IA ---
+    // ==========================================
+    // CRIAÇÃO DE ENTIDADE (Com Lógica Sequencial IA)
+    // ==========================================
+
     const handleCreateEntity = async () => {
         if (!newEntity.name) return alert("Nome obrigatório");
         const table = entityType === 'client' ? 'clients' : 'suppliers';
         let error = null, data = null;
 
-        // Lógica de Criar/Editar na Base de Dados
         if (editingEntityId) {
             const res = await supabase.from(table).update({ ...newEntity, updated_at: new Date() }).eq('id', editingEntityId).select();
             error = res.error; data = res.data;
@@ -774,40 +843,27 @@ export const useDashboardLogic = () => {
         }
 
         if (!error && data) {
-            // Fecha o modal de cliente
             setShowEntityModal(false); 
-            setEditingEntityId(null);
+            setEditingEntityId(null); 
             setNewEntity({ name: '', nif: '', email: '', address: '', city: '', postal_code: '', country: 'Portugal' });
 
-            // --- AQUI ESTÁ O TRUQUE SEQUENCIAL ---
-            // Verifica se tínhamos uma fatura pendente para este novo cliente
+            // --- SEQUÊNCIA IA: Se havia uma fatura pendente, abre agora ---
             if (entityType === 'client' && aiIntentMemory?.pendingAction === 'create_invoice') {
-                const newClientId = data[0].id; // O ID do cliente acabado de criar
+                const newClientId = data[0].id;
                 const amount = aiIntentMemory.pendingData?.amount || 0;
-
-                console.log("🔄 Fluxo contínuo: A abrir fatura para o novo cliente...");
                 
-                // Muda para a aba de faturas
-                setAccountingTab('invoices');
-                
-                // Abre o modal de fatura preenchido (com timeout para o React renderizar)
-                setTimeout(() => {
-                    resetInvoiceForm();
-                    setInvoiceData(prev => ({
-                        ...prev,
-                        client_id: newClientId, // Usa o novo ID
-                        items: [{ ...prev.items[0], price: amount }]
-                    }));
-                    setShowInvoiceForm(true);
-                }, 100);
-
-                // Limpa a memória
+                resetInvoiceForm();
+                setInvoiceData(prev => ({
+                    ...prev,
+                    client_id: newClientId,
+                    items: [{ ...prev.items[0], price: amount }]
+                }));
+                // O useEffect acima vai detetar que showInvoiceForm = true e mudar a página
+                setShowInvoiceForm(true); 
                 setAiIntentMemory(null);
             }
-            // -------------------------------------
-
         } else { 
-            alert("Erro: " + (error?.message || "Erro desconhecido")); 
+            alert("Erro: " + error?.message); 
         }
     };
 
@@ -861,7 +917,10 @@ export const useDashboardLogic = () => {
     const handleQuickPreview = async (inv: any) => { const blob = await generatePDFBlob(inv); setPdfPreviewUrl(URL.createObjectURL(blob)); setShowPreviewModal(true); };
     const handleDownloadPDF = () => { if (pdfPreviewUrl) { const link = document.createElement('a'); link.href = pdfPreviewUrl; link.download = `Documento_${Date.now()}.pdf`; link.click(); } };
 
-    // --- 🤖 CÉREBRO DA IA (Lógica Sequencial: Cliente -> Fatura) ---
+    // ==========================================
+    // CÉREBRO DA IA (Com Lógica Sequencial)
+    // ==========================================
+
     const handleSendChatMessage = async (e: React.FormEvent) => {
         e.preventDefault();
         if (!chatInput.trim() || isChatLoading) return;
@@ -881,54 +940,43 @@ export const useDashboardLogic = () => {
                 const clientName = aiResponse.client_name;
                 const clientId = aiResponse.client_id;
 
-                // CASO 1: CLIENTE JÁ EXISTE -> Abre logo a fatura
                 if (clientId) {
-                    setAccountingTab('invoices');
-                    setTimeout(() => {
-                        resetInvoiceForm();
-                        setInvoiceData(prev => ({
-                            ...prev,
-                            client_id: clientId,
-                            items: [{ ...prev.items[0], price: amount }]
-                        }));
-                        setShowInvoiceForm(true);
-                    }, 50);
+                    // Cliente existe -> Prepara e abre a fatura
+                    resetInvoiceForm();
+                    setInvoiceData(prev => ({
+                        ...prev,
+                        client_id: clientId,
+                        items: [{ ...prev.items[0], price: amount }]
+                    }));
+                    setShowInvoiceForm(true); // O Efeito trata da navegação
                     setMessages(prev => [...prev, { role: 'assistant', content: aiResponse.reply || `A abrir fatura para ${clientName}...` }]);
                 } 
-                // CASO 2: CLIENTE NOVO -> Abre formulário de Cliente PRIMEIRO
                 else if (clientName) {
-                    // Preenche o nome na ficha de cliente
+                    // Cliente novo -> Abre ficha de cliente e guarda intenção
                     setNewEntity(prev => ({ ...prev, name: clientName }));
                     setEntityType('client');
-                    
-                    // GUARDA A INTENÇÃO: "Depois de gravar o cliente, abre a fatura de X valor"
                     setAiIntentMemory({
                         pendingAction: 'create_invoice',
                         pendingData: { amount: amount }
                     });
-
-                    // Abre o modal de cliente
                     setShowEntityModal(true);
-                    
                     setMessages(prev => [...prev, { role: 'assistant', content: `O cliente "${clientName}" é novo. Por favor, complete a ficha do cliente (NIF, Morada) e depois abrirei a fatura automaticamente.` }]);
                 }
             } 
-            
-            // --- OUTRAS AÇÕES ---
             else if (aiResponse.action === 'create_client') {
                 setNewEntity(prev => ({ ...prev, name: aiResponse.client_name || '' }));
                 setEntityType('client');
-                setAccountingTab('clients');
-                setTimeout(() => setShowEntityModal(true), 50); 
+                setAccountingTab('clients'); // Prepara a aba (o efeito navega se necessário)
+                setShowEntityModal(true);
                 setMessages(prev => [...prev, { role: 'assistant', content: aiResponse.reply }]);
             }
             else if (aiResponse.action === 'create_expense') {
-                setAccountingTab('purchases');
-                setTimeout(() => setShowPurchaseForm(true), 50);
+                setShowPurchaseForm(true); // O Efeito trata da navegação
                 setMessages(prev => [...prev, { role: 'assistant', content: "A abrir registo de despesas..." }]);
             }
             else if (aiResponse.action === 'view_report') {
                 setAccountingTab('reports');
+                navigate('/dashboard/accounting');
                 setMessages(prev => [...prev, { role: 'assistant', content: "A abrir área de relatórios..." }]);
             }
             else {
@@ -949,35 +997,57 @@ export const useDashboardLogic = () => {
     const handleLogout = async () => { await supabase.auth.signOut(); navigate('/'); };
     const handleCountryChange = (e: React.ChangeEvent<HTMLSelectElement>) => { const selectedCountry = e.target.value; const newCurrency = getCurrencyCode(selectedCountry); setCompanyForm({ ...companyForm, country: selectedCountry, currency: newCurrency }); };
 
-    // --- RETORNAR TUDO QUE A VIEW PRECISA ---
+    // ==========================================
+    // RETORNO (API DO HOOK)
+    // ==========================================
     return {
         // States
-        isMobileMenuOpen, setIsMobileMenuOpen, isProfileDropdownOpen, setIsProfileDropdownOpen, isLangMenuOpen, setIsLangMenuOpen,
-        showFinancials, setShowFinancials, showPageCode, setShowPageCode, isDark, setIsDark, userData, profileData, loadingUser,
-        accountingTab, setAccountingTab, journalEntries, realInvoices, purchases, companyAccounts, assets, clients, suppliers,
-        provisions, actionLogs, exchangeRates, bankStatement, isUploadingCSV, manualTaxMode, setManualTaxMode,
-        isDeleteModalOpen, setIsDeleteModalOpen, isProfileModalOpen, setIsProfileModalOpen, showTransactionModal, setShowTransactionModal,
-        showAssetModal, setShowAssetModal, showEntityModal, setShowEntityModal, showInvoiceForm, setShowInvoiceForm,
-        showPurchaseForm, setShowPurchaseForm, showPreviewModal, setShowPreviewModal, showProvisionModal, setShowProvisionModal,
-        showDoubtfulModal, setShowDoubtfulModal, showAmortSchedule, setShowAmortSchedule,
-        entityType, setEntityType, editingEntityId, setEditingEntityId, editingProvisionId, setEditingProvisionId,
-        editingAssetId, setEditingAssetId, deleteConfirmation, setDeleteConfirmation, isDeleting, uploadingLogo, uploadingTemplate,
-        pdfPreviewUrl, selectedClientForDebt, setSelectedClientForDebt, debtMethod, setDebtMethod, manualDebtAmount, setManualDebtAmount,
-        selectedDebtInvoices, setSelectedDebtInvoices, selectedAssetForSchedule, setSelectedAssetForSchedule, editForm, setEditForm,
-        companyForm, setCompanyForm, journalGrid, setJournalGrid, newTransaction, setNewTransaction, newAsset, setNewAsset,
-        newEntity, setNewEntity, newProvision, setNewProvision, newPurchase, setNewPurchase, invoiceData, setInvoiceData,
-        savingProfile, savingCompany, messages, chatInput, setChatInput, isChatLoading, scrollRef,
+        isMobileMenuOpen, setIsMobileMenuOpen, isProfileDropdownOpen, setIsProfileDropdownOpen,
+        isLangMenuOpen, setIsLangMenuOpen, showFinancials, setShowFinancials,
+        showPageCode, setShowPageCode, isDark, setIsDark, userData, profileData,
+        loadingUser, accountingTab, setAccountingTab,
+        
+        // Data
+        journalEntries, realInvoices, purchases, companyAccounts, assets, clients, suppliers,
+        provisions, actionLogs, exchangeRates, bankStatement,
+        
+        // UI & Forms
+        isUploadingCSV, manualTaxMode, setManualTaxMode,
+        isDeleteModalOpen, setIsDeleteModalOpen, isProfileModalOpen, setIsProfileModalOpen,
+        showTransactionModal, setShowTransactionModal, showAssetModal, setShowAssetModal,
+        showEntityModal, setShowEntityModal, showInvoiceForm, setShowInvoiceForm,
+        showPurchaseForm, setShowPurchaseForm, showPreviewModal, setShowPreviewModal,
+        showProvisionModal, setShowProvisionModal, showDoubtfulModal, setShowDoubtfulModal,
+        showAmortSchedule, setShowAmortSchedule,
+        
+        entityType, setEntityType, editingEntityId, setEditingEntityId,
+        editingProvisionId, setEditingProvisionId, editingAssetId, setEditingAssetId,
+        deleteConfirmation, setDeleteConfirmation, isDeleting, uploadingLogo, uploadingTemplate,
+        pdfPreviewUrl, selectedClientForDebt, setSelectedClientForDebt, debtMethod, setDebtMethod,
+        manualDebtAmount, setManualDebtAmount, selectedDebtInvoices, setSelectedDebtInvoices,
+        selectedAssetForSchedule, setSelectedAssetForSchedule, editForm, setEditForm,
+        
+        companyForm, setCompanyForm, journalGrid, setJournalGrid, newTransaction, setNewTransaction,
+        newAsset, setNewAsset, newEntity, setNewEntity, newProvision, setNewProvision,
+        newPurchase, setNewPurchase, invoiceData, setInvoiceData, savingProfile, savingCompany,
+        
+        // Chat
+        messages, chatInput, setChatInput, isChatLoading, scrollRef,
         
         // Functions
-        getCurrencySymbol, displaySymbol, conversionRate, getCurrentCountryVatRates, getMonthlyFinancials, chartData,
-        totalRevenue, totalExpenses, currentBalance, totalInvoicesCount, getInitials, logAction,
-        addGridLine, removeGridLine, updateGridLine, getGridTotals, isGridBalanced,
-        calculateAmortizationSchedule, getCurrentAssetValue, calculateInvoiceTotals,
-        handleCSVUpload, copyCode, handleLogoUpload, handleTemplateUpload, handleAddInvoiceItem, handleRemoveInvoiceItem,
-        updateInvoiceItem, handleSaveInvoice, resetInvoiceForm, handleEditInvoice, handleDeleteAccount, handleDeleteInvoice,
-        handleCreatePurchase, generatePDFBlob, handleGenerateReminder, generateFinancialReport, handleSaveJournalEntry,
-        handleResetFinancials, handleOpenDoubtful, saveDoubtfulDebt, handleCreateAsset, handleDeleteAsset, handleShowAmortSchedule,
-        handleCreateEntity, handleEditEntity, handleDeleteEntity, handleCreateProvision, handleSaveProfile, handleSaveCompany,
-        handleQuickPreview, handleDownloadPDF, handleSendChatMessage, selectLanguage, toggleTheme, handleLogout, handleCountryChange
+        getCurrencySymbol, displaySymbol, conversionRate, getCurrentCountryVatRates,
+        getMonthlyFinancials, chartData, totalRevenue, totalExpenses, currentBalance,
+        totalInvoicesCount, getInitials, logAction, addGridLine, removeGridLine,
+        updateGridLine, getGridTotals, isGridBalanced, calculateAmortizationSchedule,
+        getCurrentAssetValue, calculateInvoiceTotals, handleCSVUpload, copyCode,
+        handleLogoUpload, handleTemplateUpload, handleAddInvoiceItem, handleRemoveInvoiceItem,
+        updateInvoiceItem, handleSaveInvoice, resetInvoiceForm, handleEditInvoice,
+        handleDeleteAccount, handleDeleteInvoice, handleCreatePurchase, generatePDFBlob,
+        handleGenerateReminder, generateFinancialReport, handleSaveJournalEntry,
+        handleResetFinancials, handleOpenDoubtful, saveDoubtfulDebt, handleCreateAsset,
+        handleDeleteAsset, handleShowAmortSchedule, handleCreateEntity, handleEditEntity,
+        handleDeleteEntity, handleCreateProvision, handleSaveProfile, handleSaveCompany,
+        handleQuickPreview, handleDownloadPDF, handleSendChatMessage, selectLanguage,
+        toggleTheme, handleLogout, handleCountryChange
     };
 };
