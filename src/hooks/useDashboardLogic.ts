@@ -4,7 +4,7 @@ import { useTranslation } from 'react-i18next';
 import { supabase } from '../supabase/client'; 
 import jsPDF from 'jspdf';
 import autoTable from 'jspdf-autotable';
-import { askGrok } from '../services/aiService'; // Garante que não tem .ts no import se estiveres a usar Vite/Webpack
+import { askGrok } from '../services/aiService'; 
 
 // --- CONSTANTES E DADOS ESTÁTICOS ---
 export const ACCOUNTING_TEMPLATES: Record<string, any[]> = {
@@ -217,6 +217,10 @@ export const useDashboardLogic = () => {
     const [messages, setMessages] = useState([{ role: 'assistant', content: 'Olá! Sou o seu assistente EasyCheck IA. Posso criar faturas, registar despesas ou analisar o seu balancete. O que precisa?' }]);
     const [chatInput, setChatInput] = useState('');
     const [isChatLoading, setIsChatLoading] = useState(false);
+    
+    // MEMÓRIA DA INTENÇÃO DA IA (Para sequências: Criar Cliente -> Criar Fatura)
+    const [aiIntentMemory, setAiIntentMemory] = useState<{ pendingAction?: string, pendingData?: any } | null>(null);
+    
     const scrollRef = useRef<HTMLDivElement>(null);
 
     // --- HELPERS ---
@@ -746,10 +750,13 @@ export const useDashboardLogic = () => {
     const handleDeleteAsset = async (id: string) => { if (!window.confirm("Apagar este ativo?")) return; const { error } = await supabase.from('accounting_assets').delete().eq('id', id); if (!error) setAssets(prev => prev.filter(a => a.id !== id)); };
     const handleShowAmortSchedule = (asset: any) => { setSelectedAssetForSchedule(asset); setShowAmortSchedule(true); };
 
+    // --- CRIAÇÃO DE ENTIDADE (CLIENTE/FORNECEDOR) COM SEQUÊNCIA DE IA ---
     const handleCreateEntity = async () => {
         if (!newEntity.name) return alert("Nome obrigatório");
         const table = entityType === 'client' ? 'clients' : 'suppliers';
         let error = null, data = null;
+
+        // Lógica de Criar/Editar na Base de Dados
         if (editingEntityId) {
             const res = await supabase.from(table).update({ ...newEntity, updated_at: new Date() }).eq('id', editingEntityId).select();
             error = res.error; data = res.data;
@@ -765,10 +772,43 @@ export const useDashboardLogic = () => {
                 else setSuppliers([data[0], ...suppliers]);
             }
         }
-        if (!error) {
-            setShowEntityModal(false); setEditingEntityId(null);
+
+        if (!error && data) {
+            // Fecha o modal de cliente
+            setShowEntityModal(false); 
+            setEditingEntityId(null);
             setNewEntity({ name: '', nif: '', email: '', address: '', city: '', postal_code: '', country: 'Portugal' });
-        } else { alert("Erro: " + error.message); }
+
+            // --- AQUI ESTÁ O TRUQUE SEQUENCIAL ---
+            // Verifica se tínhamos uma fatura pendente para este novo cliente
+            if (entityType === 'client' && aiIntentMemory?.pendingAction === 'create_invoice') {
+                const newClientId = data[0].id; // O ID do cliente acabado de criar
+                const amount = aiIntentMemory.pendingData?.amount || 0;
+
+                console.log("🔄 Fluxo contínuo: A abrir fatura para o novo cliente...");
+                
+                // Muda para a aba de faturas
+                setAccountingTab('invoices');
+                
+                // Abre o modal de fatura preenchido (com timeout para o React renderizar)
+                setTimeout(() => {
+                    resetInvoiceForm();
+                    setInvoiceData(prev => ({
+                        ...prev,
+                        client_id: newClientId, // Usa o novo ID
+                        items: [{ ...prev.items[0], price: amount }]
+                    }));
+                    setShowInvoiceForm(true);
+                }, 100);
+
+                // Limpa a memória
+                setAiIntentMemory(null);
+            }
+            // -------------------------------------
+
+        } else { 
+            alert("Erro: " + (error?.message || "Erro desconhecido")); 
+        }
     };
 
     const handleEditEntity = (entity: any, type: 'client' | 'supplier') => { setNewEntity({ name: entity.name, nif: entity.nif, email: entity.email, address: entity.address || '', city: entity.city || '', postal_code: entity.postal_code || '', country: entity.country || 'Portugal' }); setEntityType(type); setEditingEntityId(entity.id); setShowEntityModal(true); };
@@ -821,7 +861,7 @@ export const useDashboardLogic = () => {
     const handleQuickPreview = async (inv: any) => { const blob = await generatePDFBlob(inv); setPdfPreviewUrl(URL.createObjectURL(blob)); setShowPreviewModal(true); };
     const handleDownloadPDF = () => { if (pdfPreviewUrl) { const link = document.createElement('a'); link.href = pdfPreviewUrl; link.download = `Documento_${Date.now()}.pdf`; link.click(); } };
 
-    // --- 🤖 CÉREBRO DA IA (Versão Corrigida para Criar Clientes) ---
+    // --- 🤖 CÉREBRO DA IA (Lógica Sequencial: Cliente -> Fatura) ---
     const handleSendChatMessage = async (e: React.FormEvent) => {
         e.preventDefault();
         if (!chatInput.trim() || isChatLoading) return;
@@ -832,55 +872,46 @@ export const useDashboardLogic = () => {
         setIsChatLoading(true);
 
         try {
-            // 1. Pergunta ao Groq
             const contextData = { clients: clients };
             const aiResponse = await askGrok(userText, contextData);
 
-            // 2. AÇÃO: CRIAR FATURA
+            // AÇÃO: CRIAR FATURA
             if (aiResponse.action === 'create_invoice') {
-                let finalClientId = aiResponse.client_id;
-                const finalClientName = aiResponse.client_name;
                 const amount = parseFloat(aiResponse.amount) || 0;
+                const clientName = aiResponse.client_name;
+                const clientId = aiResponse.client_id;
 
-                // --- AUTO-CRIAÇÃO DE CLIENTE ---
-                if (!finalClientId && finalClientName) {
-                    try {
-                        console.log("🛠️ A criar cliente automático:", finalClientName);
-                        const { data: newClient, error } = await supabase
-                            .from('clients')
-                            .insert([{ 
-                                name: finalClientName, 
-                                user_id: userData?.id,
-                                country: companyForm.country || 'Portugal',
-                                status: 'active'
-                            }])
-                            .select()
-                            .single();
+                // CASO 1: CLIENTE JÁ EXISTE -> Abre logo a fatura
+                if (clientId) {
+                    setAccountingTab('invoices');
+                    setTimeout(() => {
+                        resetInvoiceForm();
+                        setInvoiceData(prev => ({
+                            ...prev,
+                            client_id: clientId,
+                            items: [{ ...prev.items[0], price: amount }]
+                        }));
+                        setShowInvoiceForm(true);
+                    }, 50);
+                    setMessages(prev => [...prev, { role: 'assistant', content: aiResponse.reply || `A abrir fatura para ${clientName}...` }]);
+                } 
+                // CASO 2: CLIENTE NOVO -> Abre formulário de Cliente PRIMEIRO
+                else if (clientName) {
+                    // Preenche o nome na ficha de cliente
+                    setNewEntity(prev => ({ ...prev, name: clientName }));
+                    setEntityType('client');
+                    
+                    // GUARDA A INTENÇÃO: "Depois de gravar o cliente, abre a fatura de X valor"
+                    setAiIntentMemory({
+                        pendingAction: 'create_invoice',
+                        pendingData: { amount: amount }
+                    });
 
-                        if (!error && newClient) {
-                            finalClientId = newClient.id;
-                            // Atualiza a lista local
-                            setClients(prev => [...prev, newClient]);
-                        }
-                    } catch (err) {
-                        console.error("Erro ao criar cliente automático:", err);
-                    }
+                    // Abre o modal de cliente
+                    setShowEntityModal(true);
+                    
+                    setMessages(prev => [...prev, { role: 'assistant', content: `O cliente "${clientName}" é novo. Por favor, complete a ficha do cliente (NIF, Morada) e depois abrirei a fatura automaticamente.` }]);
                 }
-
-                // Prepara o formulário
-                resetInvoiceForm();
-                setInvoiceData(prev => ({
-                    ...prev,
-                    client_id: finalClientId || '',
-                    items: [{ ...prev.items[0], price: amount }]
-                }));
-
-                // NAVEGAÇÃO
-                setAccountingTab('invoices'); // MUDA PARA A ABA CERTA
-                setShowInvoiceForm(true);     // ABRE O MODAL
-
-                const reply = aiResponse.reply || `A abrir fatura para ${finalClientName}...`;
-                setMessages(prev => [...prev, { role: 'assistant', content: reply }]);
             } 
             
             // --- OUTRAS AÇÕES ---
@@ -888,12 +919,12 @@ export const useDashboardLogic = () => {
                 setNewEntity(prev => ({ ...prev, name: aiResponse.client_name || '' }));
                 setEntityType('client');
                 setAccountingTab('clients');
-                setShowEntityModal(true);
+                setTimeout(() => setShowEntityModal(true), 50); 
                 setMessages(prev => [...prev, { role: 'assistant', content: aiResponse.reply }]);
             }
             else if (aiResponse.action === 'create_expense') {
                 setAccountingTab('purchases');
-                setShowPurchaseForm(true);
+                setTimeout(() => setShowPurchaseForm(true), 50);
                 setMessages(prev => [...prev, { role: 'assistant', content: "A abrir registo de despesas..." }]);
             }
             else if (aiResponse.action === 'view_report') {
