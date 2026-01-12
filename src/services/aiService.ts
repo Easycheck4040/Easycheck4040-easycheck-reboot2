@@ -1,87 +1,221 @@
-import Groq from "groq-sdk";
-
-// --- INICIO DO TESTE DE DEBUG ---
-const ENV_KEY = import.meta.env.VITE_GROQ_API_KEY;
-console.log("========================================");
-console.log("🔍 O QUE O CÓDIGO ESTÁ A LER:");
-console.log("CHAVE:", ENV_KEY);
-console.log("TIPO:", typeof ENV_KEY);
-console.log("========================================");
-// --- FIM DO TESTE DE DEBUG ---
-
-// ... o resto do código continua aqui ...
 // src/services/aiService.ts
-const key = import.meta.env.VITE_GROQ_API_KEY;
-console.log("TESTE DA CHAVE:", key); // Isto vai aparecer na Consola do Chrome
-// 1. Validar a Chave
-const GROQ_API_KEY = import.meta.env.VITE_GROQ_API_KEY || "";
 
-if (!GROQ_API_KEY) {
-  console.error("❌ ERRO CRÍTICO: Chave API não encontrada no .env");
-}
+/**
+ * IA SIMULADA MULTILÍNGUE (PT, EN, ES, FR, DE, IT)
+ * Funciona offline, sem API Keys, deteta a língua automaticamente.
+ */
 
-export const askGrok = async (userMessage: string, contextData: any) => {
-  // 2. Preparar a lista de clientes
-  const clientsList = contextData.clients.map((c: any) => `ID:${c.id} - Nome:${c.name}`).join(", ");
+// --- 1. DICIONÁRIO DE INTENÇÕES (CÉREBRO DA IA) ---
+const DICTIONARY: any = {
+    pt: {
+        invoice: ['fatura', 'recibo', 'faturar', 'emitir', 'cobrar'],
+        client: ['cliente', 'ficha', 'pessoa', 'comprador'],
+        expense: ['despesa', 'gasto', 'compra', 'pagar', 'saída'],
+        report: ['relatório', 'balancete', 'contas', 'análise', 'resultados'],
+        greetings: ['ola', 'olá', 'boas', 'oi', 'bom dia', 'boa tarde'],
+        prepositions: ['para', 'ao', 'a', 'do', 'da'], 
+        responses: {
+            greet: "Olá! Como posso ajudar o teu negócio hoje?",
+            unknown: "Não entendi bem. Tenta 'Criar fatura' ou 'Registar despesa'.",
+            invoice_created: "A abrir nova fatura...",
+            client_created: "A criar ficha de cliente..."
+        }
+    },
+    en: {
+        invoice: ['invoice', 'bill', 'receipt', 'charge', 'create'],
+        client: ['client', 'customer', 'user'],
+        expense: ['expense', 'cost', 'spending', 'payment', 'bought'],
+        report: ['report', 'balance', 'sheet', 'analysis', 'profit'],
+        greetings: ['hello', 'hi', 'hey', 'good morning'],
+        prepositions: ['for', 'to'],
+        responses: {
+            greet: "Hello! How can I help your business today?",
+            unknown: "I didn't catch that. Try 'Create invoice' or 'Add expense'.",
+            invoice_created: "Opening new invoice...",
+            client_created: "Creating client profile..."
+        }
+    },
+    es: {
+        invoice: ['factura', 'recibo', 'cobrar', 'cuenta'],
+        client: ['cliente', 'comprador', 'usuario'],
+        expense: ['gasto', 'compra', 'pagar', 'salida', 'costo'],
+        report: ['informe', 'reporte', 'balance', 'cuentas'],
+        greetings: ['hola', 'buenos dias', 'buenas'],
+        prepositions: ['para', 'a'],
+        responses: {
+            greet: "¡Hola! ¿Cómo puedo ayudar a tu negocio hoy?",
+            unknown: "No entendí bien. Intenta 'Crear factura' o 'Registrar gasto'.",
+            invoice_created: "Abriendo nueva factura...",
+            client_created: "Creando perfil de cliente..."
+        }
+    },
+    fr: {
+        invoice: ['facture', 'recu', 'addition', 'facturer', 'créer'],
+        client: ['client', 'acheteur', 'utilisateur'],
+        expense: ['depense', 'dépense', 'cout', 'achat', 'payer'],
+        report: ['rapport', 'bilan', 'compte', 'analyse'],
+        greetings: ['bonjour', 'salut', 'coucou', 'bonsoir'],
+        prepositions: ['pour', 'a', 'à'],
+        responses: {
+            greet: "Bonjour ! Comment puis-je aider votre entreprise ?",
+            unknown: "Je n'ai pas bien compris. Essayez 'Créer facture' ou 'Ajouter dépense'.",
+            invoice_created: "Ouverture de la nouvelle facture...",
+            client_created: "Création du profil client..."
+        }
+    },
+    de: { // Alemão
+        invoice: ['rechnung', 'beleg', 'erstellen'],
+        client: ['kunde', 'klient', 'käufer'],
+        expense: ['ausgabe', 'kosten', 'kauf', 'bezahlen'],
+        report: ['bericht', 'bilanz', 'analyse'],
+        greetings: ['hallo', 'guten tag', 'morgen', 'hi'],
+        prepositions: ['für', 'an'],
+        responses: {
+            greet: "Hallo! Wie kann ich Ihrem Unternehmen heute helfen?",
+            unknown: "Ich habe das nicht verstanden. Versuchen Sie 'Rechnung erstellen'.",
+            invoice_created: "Neue Rechnung wird geöffnet...",
+            client_created: "Kundenprofil wird erstellt..."
+        }
+    },
+    it: { // Italiano
+        invoice: ['fattura', 'ricevuta', 'conto', 'creare'],
+        client: ['cliente', 'acquirente', 'utente'],
+        expense: ['spesa', 'costo', 'pagamento', 'acquisto'],
+        report: ['rapporto', 'bilancio', 'analisi', 'report'],
+        greetings: ['ciao', 'buongiorno', 'salve'],
+        prepositions: ['per', 'a'],
+        responses: {
+            greet: "Ciao! Come posso aiutare la tua azienda oggi?",
+            unknown: "Non ho capito bene. Prova 'Crea fattura' o 'Registra spesa'.",
+            invoice_created: "Apertura nuova fattura...",
+            client_created: "Creazione profilo cliente..."
+        }
+    }
+};
 
-  // 3. O Prompt do Sistema (Cérebro)
-  const systemPrompt = `
-    Tu és um assistente de ERP (Software de Gestão).
-    O teu trabalho é analisar o pedido do utilizador e responder APENAS com um JSON.
-    NÃO escrevas texto introdutório. APENAS o bloco JSON.
+// --- HELPER: Detetar Língua Baseado no Texto ---
+const detectLanguage = (text: string) => {
+    const words = text.toLowerCase().split(' ');
+    // Pontuação para cada língua
+    let scores: any = { pt: 0, en: 0, es: 0, fr: 0, de: 0, it: 0 };
 
-    DADOS ATUAIS:
-    - Clientes: [${clientsList}]
-    - Data: ${new Date().toLocaleDateString()}
-
-    AÇÕES POSSÍVEIS (Usa exatamente este formato):
-    1. Para Faturas: { "action": "create_invoice", "client_name": "Nome", "amount": 100.50, "client_id": "ID_OU_NULL" }
-    2. Para Criar Cliente: { "action": "create_client", "client_name": "Nome" }
-    3. Para Despesas: { "action": "create_expense" }
-    4. Para Relatórios: { "action": "view_report", "type": "balancete" }
-    5. Conversa: { "action": "chat", "reply": "A tua resposta em PT" }
-  `;
-
-  try {
-    // 4. Pedido Direto à API (Sem SDK)
-    const response = await fetch("https://api.groq.com/openai/v1/chat/completions", {
-      method: "POST",
-      headers: {
-        "Authorization": `Bearer ${GROQ_API_KEY}`,
-        "Content-Type": "application/json"
-      },
-      body: JSON.stringify({
-        messages: [
-          { role: "system", content: systemPrompt },
-          { role: "user", content: userMessage }
-        ],
-        model: "llama-3.3-70b-versatile", // Modelo inteligente e rápido
-        temperature: 0,
-        response_format: { type: "json_object" }
-      })
+    words.forEach(word => {
+        Object.keys(DICTIONARY).forEach(lang => {
+            const allWords = [
+                ...DICTIONARY[lang].invoice,
+                ...DICTIONARY[lang].client,
+                ...DICTIONARY[lang].expense,
+                ...DICTIONARY[lang].report,
+                ...DICTIONARY[lang].greetings
+            ];
+            // Correspondência parcial (ex: "faturar" bate com "fatura")
+            if (allWords.some(w => word.includes(w))) scores[lang]++;
+        });
     });
 
-    if (!response.ok) {
-      const errorData = await response.json();
-      console.error("🔥 Erro da API Groq:", errorData);
-      throw new Error(`Erro HTTP: ${response.status}`);
+    // Retorna a língua com maior pontuação, ou 'en' (inglês) por defeito se empate
+    const winner = Object.keys(scores).reduce((a, b) => scores[a] > scores[b] ? a : b);
+    return scores[winner] > 0 ? winner : 'en'; // Se ninguém pontuar, usa inglês
+};
+
+export const askGrok = async (userMessage: string, contextData: any) => {
+    
+    // 1. Simular pensamento (delay aleatório para parecer real)
+    const delay = Math.floor(Math.random() * 800) + 400;
+    await new Promise(resolve => setTimeout(resolve, delay));
+
+    const text = userMessage.toLowerCase().trim();
+    const cleanText = text.normalize("NFD").replace(/[\u0300-\u036f]/g, ""); // Remove acentos
+
+    // 2. Detetar a língua
+    const langCode = detectLanguage(cleanText); 
+    const dict = DICTIONARY[langCode];
+
+    console.log(`🌍 Língua detetada: ${langCode.toUpperCase()}`); // Debug na consola
+
+    // --- AÇÕES ---
+
+    // A. CUMPRIMENTOS
+    if (dict.greetings.some((w: string) => cleanText.includes(w))) {
+        return { action: "chat", reply: dict.responses.greet };
     }
 
-    const data = await response.json();
-    const content = data.choices[0]?.message?.content;
+    // B. FATURAS (INVOICES)
+    // Verifica se alguma palavra-chave de fatura está na frase
+    if (dict.invoice.some((w: string) => cleanText.includes(w))) {
+        
+        // 1. Extrair Valor (ex: 50, 50.00, 50,00)
+        const amountMatch = text.match(/(\d+([.,]\d{1,2})?)/);
+        let amount = amountMatch ? parseFloat(amountMatch[0].replace(',', '.')) : 0;
 
-    // 5. Limpeza e Parse do JSON
-    // Às vezes a IA manda o json dentro de blocos de código markdown, vamos limpar
-    const jsonString = content.replace(/```json|```/g, '').trim();
-    
-    return JSON.parse(jsonString);
+        // 2. Extrair Cliente (Da Base de Dados)
+        let foundClient = null;
+        if (contextData && contextData.clients) {
+            foundClient = contextData.clients.find((c: any) => 
+                text.includes(c.name.toLowerCase())
+            );
+        }
 
-  } catch (error) {
-    console.error("❌ FALHA NO SERVIÇO DE IA:", error);
-    // Retornar um fallback para o chat não "morrer"
-    return { 
-      action: "chat", 
-      reply: "Desculpa, tive um erro de conexão. Podes verificar a consola (F12) para ver o detalhe?" 
+        // 3. Extrair Nome Desconhecido (após preposição: "para", "for", "für")
+        let extractedName = "";
+        if (!foundClient) {
+            // Cria regex dinâmica baseada nas preposições da língua
+            const prepString = dict.prepositions.join('|');
+            const regex = new RegExp(`(?:${prepString})\\s+(?:o|a|the|el|la|le|la|der|die|das\\s+)?([a-zA-ZáàâãéèêíïóôõöúçñÁÀÂÃÉÈÍÏÓÔÕÖÚÇÑ]+)`, 'i');
+            
+            const nameMatch = text.match(regex);
+            if (nameMatch && nameMatch[1]) {
+                extractedName = nameMatch[1].charAt(0).toUpperCase() + nameMatch[1].slice(1);
+            }
+        }
+
+        // Resposta
+        if (foundClient) {
+            return {
+                action: "create_invoice",
+                client_name: foundClient.name,
+                client_id: foundClient.id,
+                amount: amount
+            };
+        } else if (extractedName) {
+            return {
+                action: "create_invoice", // Dashboard deve lidar com criação de cliente on-the-fly
+                client_name: extractedName,
+                client_id: null,
+                amount: amount
+            };
+        } else {
+            return {
+                action: "create_invoice",
+                client_name: "",
+                client_id: null,
+                amount: amount
+            };
+        }
+    }
+
+    // C. CLIENTES (CLIENTS)
+    if (dict.client.some((w: string) => cleanText.includes(w))) {
+        return {
+            action: "create_client",
+            client_name: "Novo Cliente"
+        };
+    }
+
+    // D. DESPESAS (EXPENSES)
+    if (dict.expense.some((w: string) => cleanText.includes(w))) {
+        return { action: "create_expense" };
+    }
+
+    // E. RELATÓRIOS (REPORTS)
+    if (dict.report.some((w: string) => cleanText.includes(w))) {
+        const type = cleanText.includes('resultados') || cleanText.includes('profit') ? 'dre' : 'balancete';
+        return { action: "view_report", type: type };
+    }
+
+    // F. FALLBACK (NÃO ENTENDEU)
+    return {
+        action: "chat",
+        reply: dict.responses.unknown
     };
-  }
 };
