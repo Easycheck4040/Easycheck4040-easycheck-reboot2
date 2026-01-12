@@ -1,5 +1,6 @@
 // src/services/aiService.ts
-
+const key = import.meta.env.VITE_GROQ_API_KEY;
+console.log("TESTE DA CHAVE:", key); // Isto vai aparecer na Consola do Chrome
 // 1. Validar a Chave
 const GROQ_API_KEY = import.meta.env.VITE_GROQ_API_KEY || "";
 
