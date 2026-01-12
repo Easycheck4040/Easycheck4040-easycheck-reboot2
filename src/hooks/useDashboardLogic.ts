@@ -4,6 +4,7 @@ import { useTranslation } from 'react-i18next';
 import { supabase } from '../supabase/client'; // Confirma se o caminho está correto
 import jsPDF from 'jspdf';
 import autoTable from 'jspdf-autotable';
+import { askGrok } from '../services/aiService.ts'; // Importa o serviço de IA
 
 // --- CONSTANTES E DADOS ESTÁTICOS (Movidos para fora do componente) ---
 export const ACCOUNTING_TEMPLATES: Record<string, any[]> = {
@@ -835,57 +836,90 @@ export const useDashboardLogic = () => {
     const handleQuickPreview = async (inv: any) => { const blob = await generatePDFBlob(inv); setPdfPreviewUrl(URL.createObjectURL(blob)); setShowPreviewModal(true); };
     const handleDownloadPDF = () => { if (pdfPreviewUrl) { const link = document.createElement('a'); link.href = pdfPreviewUrl; link.download = `Documento_${Date.now()}.pdf`; link.click(); } };
 
-    const commandKeywords = {
-        invoice: ['fatura', 'recibo', 'invoice', 'facture', 'factura', 'rechnung', 'fattura'],
-        create: ['criar', 'nova', 'emitir', 'create', 'new', 'add', 'créer', 'nouvelle', 'crear', 'erstellen', 'creare', 'neuer', 'nuovo', 'nuova'],
-        client: ['cliente', 'client', 'kunde'],
-        supplier: ['fornecedor', 'supplier', 'fournisseur', 'proveedor', 'lieferant', 'fornitore'],
-        expense: ['despesa', 'compra', 'gasto', 'expense', 'purchase', 'dépense', 'achat', 'ausgabe', 'spesa'],
-        report: ['relatório', 'balancete', 'report', 'balance', 'bilan', 'bericht', 'rapporto'],
-        reset: ['reset', 'limpar', 'clear', 'reiniciar', 'löschen'],
-    };
+    // --- 🤖 CÉREBRO DA IA (Versão Groq Integrada) ---
 
-    const extractInvoiceDetails = (text: string) => {
-        const lower = text.toLowerCase();
-        const amountMatch = lower.match(/(\d+([.,]\d{1,2})?)\s*(euros|€|kz|reais|dólares|dollars|usd|\$)/i);
-        const amount = amountMatch ? parseFloat(amountMatch[1].replace(',', '.')) : 0;
-        let clientId = ''; let detectedName = '';
-        clients.forEach(c => { if (lower.includes(c.name.toLowerCase())) { clientId = c.id; detectedName = c.name; } });
-        if (!detectedName) { const clientNameMatch = lower.match(/(?:para|for|pour|zu|per)\s+([A-Z][a-z]+)/); if (clientNameMatch) detectedName = clientNameMatch[1]; }
-        const taxMatch = lower.match(/(?:iva|tva|vat|tax)\s*(\d+)/i);
-        const tax = taxMatch ? parseInt(taxMatch[1]) : null;
-        return { amount, clientId, detectedName, tax };
-    };
-
-    const processAICommand = (input: string) => {
-        const lower = input.toLowerCase();
-        const details = extractInvoiceDetails(input);
-        if (commandKeywords.invoice.some(k => lower.includes(k)) && commandKeywords.create.some(k => lower.includes(k))) {
-            if (details.detectedName && !details.clientId) {
-                setAiIntentMemory({ pendingAction: 'create_invoice', pendingData: details });
-                setNewEntity({ ...newEntity, name: details.detectedName }); setEntityType('client'); setShowEntityModal(true);
-                return `Não encontrei o cliente "${details.detectedName}". Abri a ficha para o criar primeiro. Assim que gravar, abrirei a fatura de ${details.amount || '...'} ${displaySymbol} automaticamente!`;
-            }
-            resetInvoiceForm();
-            if (details.clientId) { setInvoiceData(prev => ({ ...prev, client_id: details.clientId, items: [{ ...prev.items[0], price: details.amount || 0, tax: details.tax || prev.items[0].tax }] })); }
-            setShowInvoiceForm(true);
-            return details.clientId ? `Abri a fatura para ${details.detectedName}.` : "A abrir nova fatura. Qual é o cliente?";
-        }
-        if (commandKeywords.report.some(k => lower.includes(k))) { generateFinancialReport('balancete'); return "A gerar o Balancete..."; }
-        if (commandKeywords.expense.some(k => lower.includes(k))) { setShowPurchaseForm(true); return "Abri o formulário de despesas."; }
-        return "Não entendi. Tente: 'Criar fatura para [Cliente] de 100 euros'.";
-    };
-
+    // 1. Nova função de chat com IA Real (substitui a lógica de regex antiga)
     const handleSendChatMessage = async (e: React.FormEvent) => {
-        e.preventDefault(); if (!chatInput.trim() || isChatLoading) return;
-        const userMessage = { role: 'user', content: chatInput };
-        setMessages(prev => [...prev, userMessage]);
-        setChatInput(''); setIsChatLoading(true);
-        setTimeout(() => {
-            const aiResponse = processAICommand(userMessage.content);
-            setMessages(prev => [...prev, { role: 'assistant', content: aiResponse }]);
+        e.preventDefault();
+        if (!chatInput.trim() || isChatLoading) return;
+
+        const userText = chatInput;
+        
+        // 1. Adiciona msg do user à UI
+        setMessages(prev => [...prev, { role: 'user', content: userText }]);
+        setChatInput('');
+        setIsChatLoading(true);
+
+        try {
+            // 2. Pergunta ao Groq (Enviamos a lista de clientes para contexto)
+            const aiResponse = await askGrok(userText, { clients });
+
+            // 3. Executa a ação baseada na resposta da IA
+            let botReply = "";
+
+            switch (aiResponse.action) {
+                case 'create_invoice':
+                    resetInvoiceForm();
+                    // Se a IA encontrou um ID válido (o cliente já existe)
+                    if (aiResponse.client_id) {
+                        setInvoiceData(prev => ({
+                            ...prev,
+                            client_id: aiResponse.client_id,
+                            items: [{ ...prev.items[0], price: aiResponse.amount || 0 }]
+                        }));
+                        setShowInvoiceForm(true);
+                        botReply = `A abrir fatura para ${aiResponse.client_name} de ${aiResponse.amount || 0}€.`;
+                    } 
+                    // Se a IA detetou um nome mas não encontrou ID (Cliente Novo)
+                    else if (aiResponse.client_name) {
+                        setNewEntity({ ...newEntity, name: aiResponse.client_name });
+                        setEntityType('client');
+                        setShowEntityModal(true);
+                        // Guardar intenção: "Depois de criar o cliente, quero criar a fatura"
+                        setAiIntentMemory({ 
+                            pendingAction: 'create_invoice', 
+                            pendingData: { detectedName: aiResponse.client_name, amount: aiResponse.amount } 
+                        });
+                        botReply = `O cliente "${aiResponse.client_name}" não existe. Abri a ficha para o criares agora.`;
+                    } else {
+                        // Comando genérico sem nome
+                        setShowInvoiceForm(true);
+                        botReply = "A abrir nova fatura em branco.";
+                    }
+                    break;
+
+                case 'create_client':
+                    setNewEntity({ ...newEntity, name: aiResponse.client_name || '' });
+                    setEntityType('client');
+                    setShowEntityModal(true);
+                    botReply = `A abrir ficha para novo cliente${aiResponse.client_name ? ': ' + aiResponse.client_name : ''}.`;
+                    break;
+
+                case 'create_expense':
+                    setShowPurchaseForm(true);
+                    botReply = "Formulário de despesas aberto.";
+                    break;
+
+                case 'view_report':
+                    generateFinancialReport(aiResponse.type || 'balancete');
+                    botReply = `A gerar o ${aiResponse.type}...`;
+                    break;
+
+                case 'chat':
+                default:
+                    botReply = aiResponse.reply || "Não percebi, mas estou aqui para ajudar.";
+                    break;
+            }
+
+            // 4. Responde na UI
+            setMessages(prev => [...prev, { role: 'assistant', content: botReply }]);
+
+        } catch (error) {
+            console.error("Erro no chat:", error);
+            setMessages(prev => [...prev, { role: 'assistant', content: "Estou com dificuldades de conexão aos meus servidores neurais." }]);
+        } finally {
             setIsChatLoading(false);
-        }, 600);
+        }
     };
 
     const selectLanguage = (code: string) => { i18n.changeLanguage(code); setIsLangMenuOpen(false); };

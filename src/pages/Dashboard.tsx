@@ -11,7 +11,7 @@ import {
 import { Routes, Route } from 'react-router-dom';
 
 // IMPORTA A LÓGICA DO OUTRO FICHEIRO
-import { useDashboardLogic, countries, invoiceTypes, languages } from './useDashboardLogic';
+import { useDashboardLogic, countries, invoiceTypes, languages } from '../hooks/useDashboardLogic';
 
 export default function Dashboard() {
   const { t } = useTranslation();
