@@ -1,3 +1,15 @@
+import Groq from "groq-sdk";
+
+// --- INICIO DO TESTE DE DEBUG ---
+const ENV_KEY = import.meta.env.VITE_GROQ_API_KEY;
+console.log("========================================");
+console.log("🔍 O QUE O CÓDIGO ESTÁ A LER:");
+console.log("CHAVE:", ENV_KEY);
+console.log("TIPO:", typeof ENV_KEY);
+console.log("========================================");
+// --- FIM DO TESTE DE DEBUG ---
+
+// ... o resto do código continua aqui ...
 // src/services/aiService.ts
 const key = import.meta.env.VITE_GROQ_API_KEY;
 console.log("TESTE DA CHAVE:", key); // Isto vai aparecer na Consola do Chrome
