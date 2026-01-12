@@ -1,12 +1,12 @@
 import { useState, useEffect, useRef } from 'react';
 import { useLocation, useNavigate } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
-import { supabase } from '../supabase/client'; // Confirma se o caminho está correto
+import { supabase } from '../supabase/client'; 
 import jsPDF from 'jspdf';
 import autoTable from 'jspdf-autotable';
-import { askGrok } from '../services/aiService.ts'; // Importa o serviço de IA
+import { askGrok } from '../services/aiService'; // Garante que não tem .ts no import se estiveres a usar Vite/Webpack
 
-// --- CONSTANTES E DADOS ESTÁTICOS (Movidos para fora do componente) ---
+// --- CONSTANTES E DADOS ESTÁTICOS ---
 export const ACCOUNTING_TEMPLATES: Record<string, any[]> = {
     "Portugal": [
         { code: '11', name: 'Caixa', type: 'ativo' },
@@ -217,7 +217,6 @@ export const useDashboardLogic = () => {
     const [messages, setMessages] = useState([{ role: 'assistant', content: 'Olá! Sou o seu assistente EasyCheck IA. Posso criar faturas, registar despesas ou analisar o seu balancete. O que precisa?' }]);
     const [chatInput, setChatInput] = useState('');
     const [isChatLoading, setIsChatLoading] = useState(false);
-    const [aiIntentMemory, setAiIntentMemory] = useState<{ pendingAction?: string, pendingData?: any } | null>(null);
     const scrollRef = useRef<HTMLDivElement>(null);
 
     // --- HELPERS ---
@@ -391,20 +390,6 @@ export const useDashboardLogic = () => {
         }));
         setInvoiceData(prev => ({ ...prev, items: updatedItems, exemption_reason: exemption }));
     }, [invoiceData.type]);
-
-    useEffect(() => {
-        if (aiIntentMemory?.pendingAction === 'create_invoice' && aiIntentMemory.pendingData?.detectedName) {
-            const justCreated = clients.find(c => c.name.toLowerCase().includes(aiIntentMemory.pendingData.detectedName.toLowerCase()));
-            if (justCreated) {
-                setInvoiceData(prev => ({
-                    ...prev, client_id: justCreated.id, items: [{ ...prev.items[0], price: aiIntentMemory.pendingData.amount || 0 }]
-                }));
-                setShowInvoiceForm(true);
-                setMessages(prev => [...prev, { role: 'assistant', content: `Cliente ${justCreated.name} detetado. Abri a fatura como solicitado!` }]);
-                setAiIntentMemory(null);
-            }
-        }
-    }, [clients]);
 
     // --- ACTIONS ---
     const handleCSVUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -836,89 +821,95 @@ export const useDashboardLogic = () => {
     const handleQuickPreview = async (inv: any) => { const blob = await generatePDFBlob(inv); setPdfPreviewUrl(URL.createObjectURL(blob)); setShowPreviewModal(true); };
     const handleDownloadPDF = () => { if (pdfPreviewUrl) { const link = document.createElement('a'); link.href = pdfPreviewUrl; link.download = `Documento_${Date.now()}.pdf`; link.click(); } };
 
-    // --- 🤖 CÉREBRO DA IA (Versão Groq Integrada) ---
-
-    // 1. Nova função de chat com IA Real (substitui a lógica de regex antiga)
+    // --- 🤖 CÉREBRO DA IA (Versão Corrigida para Criar Clientes) ---
     const handleSendChatMessage = async (e: React.FormEvent) => {
         e.preventDefault();
         if (!chatInput.trim() || isChatLoading) return;
 
         const userText = chatInput;
-        
-        // 1. Adiciona msg do user à UI
-        setMessages(prev => [...prev, { role: 'user', content: userText }]);
         setChatInput('');
+        setMessages(prev => [...prev, { role: 'user', content: userText }]);
         setIsChatLoading(true);
 
         try {
-            // 2. Pergunta ao Groq (Enviamos a lista de clientes para contexto)
-            const aiResponse = await askGrok(userText, { clients });
+            // 1. Pergunta ao Groq
+            const contextData = { clients: clients };
+            const aiResponse = await askGrok(userText, contextData);
 
-            // 3. Executa a ação baseada na resposta da IA
-            let botReply = "";
+            // 2. AÇÃO: CRIAR FATURA
+            if (aiResponse.action === 'create_invoice') {
+                let finalClientId = aiResponse.client_id;
+                const finalClientName = aiResponse.client_name;
+                const amount = parseFloat(aiResponse.amount) || 0;
 
-            switch (aiResponse.action) {
-                case 'create_invoice':
-                    resetInvoiceForm();
-                    // Se a IA encontrou um ID válido (o cliente já existe)
-                    if (aiResponse.client_id) {
-                        setInvoiceData(prev => ({
-                            ...prev,
-                            client_id: aiResponse.client_id,
-                            items: [{ ...prev.items[0], price: aiResponse.amount || 0 }]
-                        }));
-                        setShowInvoiceForm(true);
-                        botReply = `A abrir fatura para ${aiResponse.client_name} de ${aiResponse.amount || 0}€.`;
-                    } 
-                    // Se a IA detetou um nome mas não encontrou ID (Cliente Novo)
-                    else if (aiResponse.client_name) {
-                        setNewEntity({ ...newEntity, name: aiResponse.client_name });
-                        setEntityType('client');
-                        setShowEntityModal(true);
-                        // Guardar intenção: "Depois de criar o cliente, quero criar a fatura"
-                        setAiIntentMemory({ 
-                            pendingAction: 'create_invoice', 
-                            pendingData: { detectedName: aiResponse.client_name, amount: aiResponse.amount } 
-                        });
-                        botReply = `O cliente "${aiResponse.client_name}" não existe. Abri a ficha para o criares agora.`;
-                    } else {
-                        // Comando genérico sem nome
-                        setShowInvoiceForm(true);
-                        botReply = "A abrir nova fatura em branco.";
+                // --- AUTO-CRIAÇÃO DE CLIENTE ---
+                if (!finalClientId && finalClientName) {
+                    try {
+                        console.log("🛠️ A criar cliente automático:", finalClientName);
+                        const { data: newClient, error } = await supabase
+                            .from('clients')
+                            .insert([{ 
+                                name: finalClientName, 
+                                user_id: userData?.id,
+                                country: companyForm.country || 'Portugal',
+                                status: 'active'
+                            }])
+                            .select()
+                            .single();
+
+                        if (!error && newClient) {
+                            finalClientId = newClient.id;
+                            // Atualiza a lista local
+                            setClients(prev => [...prev, newClient]);
+                        }
+                    } catch (err) {
+                        console.error("Erro ao criar cliente automático:", err);
                     }
-                    break;
+                }
 
-                case 'create_client':
-                    setNewEntity({ ...newEntity, name: aiResponse.client_name || '' });
-                    setEntityType('client');
-                    setShowEntityModal(true);
-                    botReply = `A abrir ficha para novo cliente${aiResponse.client_name ? ': ' + aiResponse.client_name : ''}.`;
-                    break;
+                // Prepara o formulário
+                resetInvoiceForm();
+                setInvoiceData(prev => ({
+                    ...prev,
+                    client_id: finalClientId || '',
+                    items: [{ ...prev.items[0], price: amount }]
+                }));
 
-                case 'create_expense':
-                    setShowPurchaseForm(true);
-                    botReply = "Formulário de despesas aberto.";
-                    break;
+                // NAVEGAÇÃO
+                setAccountingTab('invoices'); // MUDA PARA A ABA CERTA
+                setShowInvoiceForm(true);     // ABRE O MODAL
 
-                case 'view_report':
-                    generateFinancialReport(aiResponse.type || 'balancete');
-                    botReply = `A gerar o ${aiResponse.type}...`;
-                    break;
-
-                case 'chat':
-                default:
-                    botReply = aiResponse.reply || "Não percebi, mas estou aqui para ajudar.";
-                    break;
+                const reply = aiResponse.reply || `A abrir fatura para ${finalClientName}...`;
+                setMessages(prev => [...prev, { role: 'assistant', content: reply }]);
+            } 
+            
+            // --- OUTRAS AÇÕES ---
+            else if (aiResponse.action === 'create_client') {
+                setNewEntity(prev => ({ ...prev, name: aiResponse.client_name || '' }));
+                setEntityType('client');
+                setAccountingTab('clients');
+                setShowEntityModal(true);
+                setMessages(prev => [...prev, { role: 'assistant', content: aiResponse.reply }]);
             }
-
-            // 4. Responde na UI
-            setMessages(prev => [...prev, { role: 'assistant', content: botReply }]);
+            else if (aiResponse.action === 'create_expense') {
+                setAccountingTab('purchases');
+                setShowPurchaseForm(true);
+                setMessages(prev => [...prev, { role: 'assistant', content: "A abrir registo de despesas..." }]);
+            }
+            else if (aiResponse.action === 'view_report') {
+                setAccountingTab('reports');
+                setMessages(prev => [...prev, { role: 'assistant', content: "A abrir área de relatórios..." }]);
+            }
+            else {
+                setMessages(prev => [...prev, { role: 'assistant', content: aiResponse.reply || "Não entendi." }]);
+            }
 
         } catch (error) {
             console.error("Erro no chat:", error);
-            setMessages(prev => [...prev, { role: 'assistant', content: "Estou com dificuldades de conexão aos meus servidores neurais." }]);
+            setMessages(prev => [...prev, { role: 'assistant', content: "Erro de conexão com a IA." }]);
         } finally {
             setIsChatLoading(false);
+            setTimeout(() => scrollRef.current?.scrollTo({ top: 9999, behavior: 'smooth' }), 100);
         }
     };
 
