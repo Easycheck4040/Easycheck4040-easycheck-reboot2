@@ -304,4 +304,4 @@ export default function InvoiceForm({ onClose, onSuccess }: InvoiceFormProps) {
       </div>
     </div>
   );
-}x
+}
