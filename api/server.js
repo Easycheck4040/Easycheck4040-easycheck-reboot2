@@ -2,68 +2,75 @@ import "dotenv/config";
 import express from "express";
 import cors from "cors";
 import { Groq } from "groq-sdk";
-import { createClient } from "@supabase/supabase-js";
 
 const app = express();
-const port = process.env.PORT || 8000; // Koyeb gosta da porta 8000
+// O Koyeb/Render define a PORT automaticamente. Localmente usa 3000.
+const port = process.env.PORT || 3000;
 
-// --- CONFIGURAÇÃO DE SEGURANÇA (CORS) ---
-// Isto permite que o teu site fale com o servidor sem bloqueios
+// 1. SEGURANÇA (CORS) - Permite que o teu Frontend fale com este Backend
 app.use(cors({
-  origin: "*", // ⚠️ PERMISSIVO PARA TESTES (Depois podes restringir ao teu domínio)
+  origin: "*", // Permite todas as origens (ideal para evitar erros em testes)
   methods: ["GET", "POST", "OPTIONS"],
   allowedHeaders: ["Content-Type", "Authorization"]
 }));
 
 app.use(express.json());
 
-// Clientes (Se as chaves falharem, usa strings vazias para não crashar)
-const groq = new Groq({ apiKey: process.env.GROQ_API_KEY || "sem_chave" });
-// const supabase = createClient(...) // Podes manter se usares
+// 2. CONFIGURAÇÃO DA IA (GROQ)
+// A chave tem de estar nas "Environment Variables" do Render/Koyeb
+const groq = new Groq({ apiKey: process.env.GROQ_API_KEY });
 
-// Rota de Teste Simples (para veres se o servidor está vivo)
-app.get("/", (req, res) => {
-  res.send("✅ EasyCheck API está online! A rota /api/ask-ai está à espera.");
-});
+// Rota de Teste (Ping)
+app.get("/", (req, res) => res.send("✅ Backend EasyCheck está Online!"));
 
-// --- A ROTA QUE ESTÁ A DAR 404 ---
-app.post('/api/ask-ai', async (req, res) => {
-  console.log("📨 Pedido recebido em /api/ask-ai"); // Log para veres no painel do Koyeb
-  
+// ==================================================================
+// ROTA PRINCIPAL (Como descrito no relatório)
+// Endpoint: POST /api/chat
+// ==================================================================
+app.post('/api/chat', async (req, res) => {
   try {
-    const { userMessage, contextData } = req.body;
-    
-    // Validar se a chave existe antes de tentar
-    if (!process.env.GROQ_API_KEY) {
-        throw new Error("GROQ_API_KEY não configurada no servidor.");
-    }
+    console.log("📨 Pedido recebido do Frontend...");
 
+    // O Frontend envia: { message: "Contexto + Pergunta", contextData: {...} }
+    const { message, contextData } = req.body;
+
+    // Se quisermos manter a inteligência de criar faturas, injetamos este System Prompt
+    const clientsList = contextData?.clients?.map(c => `ID:${c.id}-${c.name}`).join(", ") || "Sem clientes";
+    
     const systemPrompt = `
-      Tu és um assistente de ERP. Responde APENAS JSON.
-      Contexto: ${JSON.stringify(contextData?.clients || [])}
-      Ações: create_invoice, create_client, create_expense, view_report, chat.
+      Tu és o assistente IA do EasyCheck (ERP).
+      O teu objetivo é responder em formato JSON para executar ações.
+      
+      DADOS: Clientes disponíveis: [${clientsList}].
+      
+      AÇÕES POSSÍVEIS (Responde APENAS o JSON):
+      - Criar Fatura: { "action": "create_invoice", "client_name": "Nome", "amount": 0, "client_id": "ID_ou_null" }
+      - Criar Cliente: { "action": "create_client", "client_name": "Nome" }
+      - Despesa: { "action": "create_expense" }
+      - Relatório: { "action": "view_report", "type": "balancete" }
+      - Chat Normal: { "action": "chat", "reply": "A tua resposta em texto aqui" }
     `;
 
     const chatCompletion = await groq.chat.completions.create({
       messages: [
         { role: "system", content: systemPrompt },
-        { role: "user", content: userMessage },
+        { role: "user", content: message } // A mensagem que vem do Dashboard.tsx
       ],
       model: "llama-3.3-70b-versatile",
       temperature: 0,
-      response_format: { type: "json_object" }
+      response_format: { type: "json_object" } // Força JSON
     });
 
     const responseContent = chatCompletion.choices[0]?.message?.content || "{}";
+    
+    // Devolvemos exatamente o formato que o Frontend espera
+    // Nota: O teu relatório dizia que devolvia { reply: ... }, aqui devolvemos o objeto completo
     res.json(JSON.parse(responseContent));
 
   } catch (error) {
-    console.error("🔥 Erro no servidor:", error.message);
-    // Retorna erro 500 mas com JSON válido para o frontend não crashar
-    res.status(500).json({ action: "chat", reply: "Erro técnico no servidor (Backend)." });
+    console.error("🔥 Erro no Backend:", error);
+    res.status(500).json({ action: "chat", reply: "Erro de conexão com o cérebro da IA." });
   }
 });
 
-app.listen(port, () => {
-  console.log(`🚀 Servidor a correr na porta ${port}`);
-});
+app.listen(port, () => console.log(`🚀 Servidor a correr na porta ${port}`));
