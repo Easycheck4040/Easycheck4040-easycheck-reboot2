@@ -574,7 +574,7 @@ export const useDashboardLogic = () => {
                 if (rpcError) {
                     console.error("RPC Error (usando fallback):", rpcError);
                     // Só usa o fallback se o SQL falhar
-                    const templateAccounts = ACCOUNTING_TEMPLATES[companyForm.country] || ACCOUNTING_TEMPLATES["Default"];
+                    const templateAccounts = ACCOUNTING_TEMPLATES["Default"];
                     if (templateAccounts) {
                         const accountsToInsert = templateAccounts.map(acc => ({ user_id: userData.id, code: acc.code, name: acc.name, type: acc.type }));
                         await supabase.from('company_accounts').upsert(accountsToInsert, { onConflict: 'user_id,code' });
@@ -595,64 +595,9 @@ export const useDashboardLogic = () => {
     const handleLogout = async () => { await supabase.auth.signOut(); navigate('/'); };
     const handleCountryChange = (e: React.ChangeEvent<HTMLSelectElement>) => { const c = e.target.value; setCompanyForm({ ...companyForm, country: c, currency: getCurrencyCode(c) }); };
     
-    // --- FUNÇÕES CORRIGIDAS (HANDLE CREATE PROVISION & SAVE PROFILE) ---
+    // --- FUNÇÕES ESTRUTURAIS ---
     
-    const handleCreateProvision = async () => {
-        if (!userData) return alert("Erro de autenticação.");
-        if (!newProvision.description || !newProvision.amount) return alert("Preencha a descrição e o valor.");
-        
-        // CORREÇÃO: Converter string para número de forma segura (lidar com vírgulas)
-        const amountValue = typeof newProvision.amount === 'string' 
-            ? parseFloat(newProvision.amount.replace(',', '.')) 
-            : newProvision.amount;
-            
-        if (isNaN(amountValue)) return alert("Valor inválido.");
-
-        const amountInEur = amountValue / conversionRate;
-        let error = null, data = null;
-
-        if (editingProvisionId) {
-            const res = await supabase.from('accounting_provisions').update({ ...newProvision, amount: amountInEur }).eq('id', editingProvisionId).select();
-            error = res.error; data = res.data;
-            if (!error && data) setProvisions(prev => prev.map(p => p.id === editingProvisionId ? data[0] : p));
-        } else {
-            const res = await supabase.from('accounting_provisions').insert([{ user_id: userData.id, ...newProvision, amount: amountInEur }]).select();
-            error = res.error; data = res.data;
-            if (!error && data) setProvisions([data[0], ...provisions]);
-        }
-
-        if (!error) {
-            setShowProvisionModal(false); 
-            setEditingProvisionId(null);
-            setNewProvision({ description: '', amount: '', type: 'Riscos e Encargos', date: new Date().toISOString().split('T')[0] });
-        } else {
-            alert("Erro ao criar provisão: " + error.message);
-        }
-    };
-
-    const handleSaveProfile = async () => {
-        if (!userData) return;
-        setSavingProfile(true);
-        try {
-            const { error } = await supabase.from('profiles').update({ 
-                full_name: editForm.fullName, 
-                job_title: editForm.jobTitle, 
-                updated_at: new Date() 
-            }).eq('id', userData.id);
-
-            if (error) throw error;
-
-            setProfileData({ ...profileData, full_name: editForm.fullName, job_title: editForm.jobTitle });
-            alert(`Perfil atualizado!`);
-            setIsProfileModalOpen(false);
-        } catch (e: any) {
-            alert("Erro ao guardar perfil: " + e.message);
-        } finally {
-            setSavingProfile(false);
-        }
-    };
-
-    // --- OUTRAS FUNÇÕES ---
+    // CORREÇÃO: handleEditInvoice agora exportado corretamente
     const handleEditInvoice = (invoice: any) => {
         setInvoiceData({ 
             id: invoice.id, client_id: invoice.client_id, type: invoice.type, invoice_number: invoice.invoice_number, 
@@ -661,12 +606,14 @@ export const useDashboardLogic = () => {
         setShowInvoiceForm(true);
     };
     
+    // CORREÇÃO: handleDeleteInvoice exportado
     const handleDeleteInvoice = async (id: string) => {
         if (!window.confirm("Anular fatura?")) return;
         const { error } = await supabase.from('invoices').delete().eq('id', id);
         if (!error) setRealInvoices(prev => prev.filter(i => i.id !== id));
     };
 
+    // CORREÇÃO: handleCreatePurchase exportado
     const handleCreatePurchase = async () => {
         if (!newPurchase.supplier_id || !newPurchase.total) return alert("Dados em falta");
         const { data, error } = await supabase.from('purchases').insert([{ user_id: userData.id, ...newPurchase, total: parseFloat(newPurchase.total), tax_total: parseFloat(newPurchase.tax_total || '0') }]).select('*, suppliers(name)').single();
@@ -683,14 +630,58 @@ export const useDashboardLogic = () => {
     const handleEditEntity = (e: any, type: any) => { setEditingEntityId(e.id); setShowEntityModal(true); };
     const handleDeleteAsset = async (id: string) => { setAssets(prev => prev.filter(a => a.id !== id)); };
     const handleShowAmortSchedule = (a: any) => { setSelectedAssetForSchedule(a); setShowAmortSchedule(true); };
-    const handleCreateAsset = async () => { 
-        if(!newAsset.name || !newAsset.purchase_value) return alert("Preencha os dados do ativo");
-        // Implementação básica de criação de ativo
+    const handlePayInvoice = async (i: any) => { alert("Pago!"); };
+
+    // CORREÇÃO: handleCreateAsset
+    const handleCreateAsset = async () => {
+        if (!newAsset.name || !newAsset.purchase_value) return alert("Preencha dados.");
         const val = typeof newAsset.purchase_value === 'string' ? parseFloat(newAsset.purchase_value) : newAsset.purchase_value;
         const { data, error } = await supabase.from('accounting_assets').insert([{ user_id: userData.id, ...newAsset, purchase_value: val }]).select();
-        if(!error && data) { setAssets([...assets, data[0]]); setShowAssetModal(false); }
-    }; 
-    const handlePayInvoice = async (i: any) => { alert("Pago!"); };
+        if (!error && data) { setAssets([...assets, data[0]]); setShowAssetModal(false); }
+    };
+
+    // CORREÇÃO: handleCreateProvision (Segura)
+    const handleCreateProvision = async () => {
+        if (!userData) return alert("Erro de autenticação.");
+        if (!newProvision.description || !newProvision.amount) return alert("Preencha a descrição e o valor.");
+        
+        const valString = newProvision.amount.toString().replace(',', '.');
+        const amountValue = parseFloat(valString);
+        if (isNaN(amountValue)) return alert("Valor inválido.");
+
+        const amountInEur = amountValue / conversionRate;
+        const { data, error } = await supabase.from('accounting_provisions').insert([{ user_id: userData.id, ...newProvision, amount: amountInEur }]).select();
+        
+        if (!error && data) {
+            setProvisions([...provisions, data[0]]);
+            setShowProvisionModal(false);
+            setNewProvision({ description: '', amount: '', type: 'Riscos e Encargos', date: new Date().toISOString().split('T')[0] });
+        } else {
+            alert("Erro: " + (error?.message || "Desconhecido"));
+        }
+    };
+
+    // CORREÇÃO: handleSaveProfile (Segura)
+    const handleSaveProfile = async () => {
+        if (!userData) return;
+        setSavingProfile(true);
+        try {
+            const { error } = await supabase.from('profiles').update({ 
+                full_name: editForm.fullName, 
+                job_title: editForm.jobTitle, 
+                updated_at: new Date() 
+            }).eq('id', userData.id);
+
+            if (error) throw error;
+            setProfileData({ ...profileData, full_name: editForm.fullName, job_title: editForm.jobTitle });
+            alert(`Perfil atualizado!`);
+            setIsProfileModalOpen(false);
+        } catch (e: any) {
+            alert("Erro ao guardar: " + e.message);
+        } finally {
+            setSavingProfile(false);
+        }
+    };
 
     return {
         isMobileMenuOpen, setIsMobileMenuOpen, isProfileDropdownOpen, setIsProfileDropdownOpen,
