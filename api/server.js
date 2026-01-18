@@ -11,66 +11,70 @@ app.use(express.json());
 
 const groq = new Groq({ apiKey: process.env.GROQ_API_KEY });
 
-app.post('/api/chat', async (req, res) => {
-  try {
-    const { message, contextData, previousMessages } = req.body;
+app.get("/", (req, res) => res.send("🌍 EasyCheck AI Brain is Live"));
 
-    // Resumo financeiro rápido para o contexto
-    const financialContext = `
-      Current Revenue: ${contextData?.revenue || 0}€
-      Expenses: ${contextData?.expenses || 0}€
-      Clients: ${JSON.stringify(contextData?.clients?.map(c => ({id: c.id, name: c.name})) || [])}
-    `;
+app.post('/api/chat', async (req, res) => {
+  console.log("📨 Pedido recebido no Cérebro...");
+
+  try {
+    const { message, contextData } = req.body;
+
+    // Extração de dados financeiros vindos do Frontend
+    const stats = {
+        revenue: contextData?.revenue || 0,
+        expenses: contextData?.expenses || 0,
+        profit: (contextData?.revenue || 0) - (contextData?.expenses || 0),
+        pending: contextData?.pending || 0,
+        clientsCount: contextData?.clients?.length || 0
+    };
 
     const systemPrompt = `
-      You are Jarvis, the CTO/AI Assistant of EasyCheck ERP. 
-      Your goal is to help the user manage their company via chat.
+      You are the Financial Expert AI for EasyCheck ERP. Output MUST be strictly JSON.
       
-      STATS: ${financialContext}
+      --- LANGUAGES & SLANG ---
+      Understand PT, EN, ES, FR, IT, DE. Reply in the user's language.
+      Convert these to numbers: "paus", "aéreos", "bucks", "pavos", "balles", "k".
+      Example: "300 paus" -> 300.00.
 
-      RULES:
-      1. If the user wants to create an INVOICE but is missing [Client Name] or [Amount], ask for it. Do NOT return action 'create_invoice' until you have both.
-      2. If the user provides a Client Name that roughly matches one in the list, use that Client ID.
-      3. If the user mentions "Create Client [Name]", return action 'create_client'.
-      4. Speak the user's language (PT/EN/FR).
+      --- REAL-TIME BUSINESS CONTEXT ---
+      - Total Invoiced: ${stats.revenue}€
+      - Total Expenses: ${stats.expenses}€
+      - Current Net Profit: ${stats.profit}€
+      - Unpaid Invoices (Pending): ${stats.pending}€
+      - Registered Clients: ${stats.clientsCount}
+      - Existing Clients List: ${JSON.stringify(contextData?.clients || [])}
 
-      RESPONSE FORMAT (JSON ONLY):
-      {
-        "action": "chat" | "create_invoice" | "create_client" | "create_expense",
-        "reply": "Text to show the user",
-        "data": {
-           "client_name": "Tesla",
-           "client_id": "uuid-if-found", 
-           "amount": 100.50,
-           "nif": "optional"
-        },
-        "missing_info": true (if you need to ask a follow-up question)
-      }
+      --- LOGIC RULES ---
+      1. If the user asks about profit, health, or "how is the company", use the stats above to give a professional analysis.
+      2. If money + name are mentioned -> action: "create_invoice".
+      3. If only a name is mentioned -> action: "create_client".
+
+      --- JSON FORMATS ---
+      A) { "action": "chat", "reply": "Your analysis or answer..." }
+      B) { "action": "create_invoice", "client_name": "Name", "amount": 0, "client_id": "UUID or null" }
+      C) { "action": "create_client", "client_name": "Name" }
+      D) { "action": "view_report", "type": "balancete" }
     `;
 
-    // Constrói o histórico para a IA ter memória de curto prazo
-    const conversation = [
-        { role: "system", content: systemPrompt },
-        ...(previousMessages || []).map(m => ({ role: m.role, content: m.content })),
-        { role: "user", content: message }
-    ];
-
     const chatCompletion = await groq.chat.completions.create({
-      messages: conversation,
+      messages: [
+        { role: "system", content: systemPrompt },
+        { role: "user", content: message }
+      ],
       model: "llama-3.3-70b-versatile",
-      temperature: 0.1, // Baixa temperatura para ser preciso nos dados
+      temperature: 0.2, // Um pouco de "calor" para a análise financeira soar natural
       response_format: { type: "json_object" }
     });
 
     const jsonResponse = JSON.parse(chatCompletion.choices[0]?.message?.content || "{}");
-    console.log("🤖 Jarvis Action:", jsonResponse);
+    console.log("🚀 Resposta IA:", jsonResponse);
 
     res.json(jsonResponse);
 
   } catch (error) {
-    console.error("🔥 Server Error:", error);
-    res.status(500).json({ action: "chat", reply: "Estou com dificuldades de conexão ao meu cérebro central." });
+    console.error("🔥 Erro:", error);
+    res.status(500).json({ action: "chat", reply: "Erro técnico ao processar inteligência." });
   }
 });
 
-app.listen(port, () => console.log(`🚀 Jarvis listening on ${port}`));
+app.listen(port, () => console.log(`🚀 Servidor na porta ${port}`));
