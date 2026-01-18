@@ -207,7 +207,8 @@ export default function Dashboard() {
                                 </div>
                             </div>
                         )}
-                        {/* --- LÓGICA DE PLANO DE CONTAS ATUALIZADA (VISUAL) --- */}
+                        
+                        {/* --- ABA ATUALIZADA: PLANO DE CONTAS (Visual Hierárquico) --- */}
                         {logic.accountingTab === 'coa' && (
                             <div className="p-4">
                                 <h3 className="font-bold flex gap-2 mb-4"><List/> Plano de Contas ({logic.companyForm.country})</h3>
@@ -217,21 +218,21 @@ export default function Dashboard() {
                                         <tbody className="divide-y dark:divide-gray-700">
                                             {logic.companyAccounts.map(acc => {
                                                 const isClass = acc.type === 'classe';
-                                                const rowClass = isClass ? 'bg-gray-100 dark:bg-gray-800 font-bold' : 'hover:bg-gray-50 dark:hover:bg-gray-700';
-                                                const textClass = isClass ? 'text-gray-800 dark:text-white' : 'text-gray-600 dark:text-gray-300';
-                                                const paddingClass = isClass ? '' : 'pl-8';
+                                                const rowBg = isClass ? 'bg-gray-100 dark:bg-gray-700/50 font-bold' : 'hover:bg-gray-50 dark:hover:bg-gray-800';
+                                                const textColor = isClass ? 'text-gray-900 dark:text-white' : 'text-gray-600 dark:text-gray-300';
+                                                const indent = isClass ? '' : 'pl-8';
 
                                                 return (
-                                                    <tr key={acc.id} className={`border-b dark:border-gray-700 ${rowClass}`}>
-                                                        <td className={`p-3 font-mono ${isClass ? 'text-gray-900 dark:text-white' : 'text-blue-600 font-medium'}`}>
+                                                    <tr key={acc.id} className={`border-b dark:border-gray-700 ${rowBg}`}>
+                                                        <td className={`p-3 font-mono ${isClass ? 'text-gray-800 dark:text-white' : 'text-blue-600 font-medium'} ${indent}`}>
                                                             {acc.code}
                                                         </td>
-                                                        <td className={`p-3 ${textClass} ${paddingClass}`}>
+                                                        <td className={`p-3 ${textColor}`}>
                                                             {acc.name}
                                                         </td>
                                                         <td className="p-3">
                                                             <span className={`px-2 py-1 rounded text-[10px] uppercase font-bold tracking-wider
-                                                                ${isClass ? 'bg-gray-200 text-gray-700 dark:bg-gray-600 dark:text-gray-200' : 
+                                                                ${isClass ? 'bg-gray-300 text-gray-800 dark:bg-gray-600 dark:text-white' : 
                                                                   acc.type === 'ativo' ? 'bg-blue-100 text-blue-700' :
                                                                   acc.type === 'passivo' ? 'bg-red-100 text-red-700' :
                                                                   acc.type === 'gastos' ? 'bg-orange-100 text-orange-700' :
@@ -250,6 +251,7 @@ export default function Dashboard() {
                                 </div>
                             </div>
                         )}
+
                         {logic.accountingTab === 'invoices' && (
                             <div>
                                 {!logic.showInvoiceForm ? (
@@ -526,6 +528,20 @@ export default function Dashboard() {
                                     </button>
                                 </div>
                                 {logic.journalEntries.length === 0 && <p className="mt-8 text-sm text-red-400 bg-red-50 p-2 rounded inline-block">⚠️ Gere movimentos (Faturas/Despesas) para desbloquear os relatórios.</p>}
+                            </div>
+                        )}
+                        {logic.accountingTab === 'suppliers' && (
+                            <div>
+                                <div className="p-4 flex justify-between bg-gray-50 dark:bg-gray-800 border-b dark:border-gray-700"><h3 className="font-bold flex gap-2"><Truck/> Fornecedores</h3><button onClick={()=>{logic.setEditingEntityId(null);logic.setNewEntity({name:'',nif:'',email:'',address:'',city:'',postal_code:'',country:'Portugal'});logic.setEntityType('supplier');logic.setShowEntityModal(true)}} className="bg-blue-600 text-white px-3 py-1.5 rounded text-sm font-bold flex gap-2"><Plus size={16}/> Novo</button></div>
+                                <table className="w-full text-xs text-left"><thead className="bg-gray-100 dark:bg-gray-700 uppercase"><tr><th className="p-3">Nome</th><th className="p-3">NIF</th><th className="p-3">Email</th><th className="p-3">Categoria</th><th className="p-3 text-right">Ações</th></tr></thead>
+                                <tbody>{logic.suppliers.map(s=>(<tr key={s.id} className="border-b dark:border-gray-700"><td className="p-3 font-bold">{s.name}</td><td className="p-3 font-mono">{s.nif}</td><td className="p-3">{s.email}</td><td className="p-3"><span className="bg-gray-100 px-2 py-1 rounded text-[10px] uppercase font-bold">Geral</span></td><td className="p-3 text-right flex justify-end gap-2"><button onClick={()=>logic.handleEditEntity(s,'supplier')} className="text-blue-500 hover:bg-blue-50 p-1 rounded"><Edit2 size={14}/></button><button onClick={()=>logic.handleDeleteEntity(s.id, 'supplier')} className="text-red-500 hover:bg-red-50 p-1 rounded"><Trash2 size={14}/></button></td></tr>))}</tbody></table>
+                            </div>
+                        )}
+                        {logic.accountingTab === 'clients' && (
+                            <div>
+                                <div className="p-4 border-b dark:border-gray-700 flex justify-between items-center bg-gray-50 dark:bg-gray-800"><h3 className="font-bold text-gray-700 dark:text-gray-200 flex items-center gap-2"><Users size={18}/> Gestão de Clientes</h3><button onClick={() => {logic.setEditingEntityId(null); logic.setNewEntity({ name: '', nif: '', email: '', address: '', city: '', postal_code: '', country: 'Portugal' }); logic.setEntityType('client'); logic.setShowEntityModal(true)}} className="bg-blue-600 text-white px-3 py-1.5 rounded-lg text-sm flex gap-2 items-center hover:bg-blue-700"><Plus size={16}/> Novo Cliente</button></div>
+                                <table className="w-full text-xs text-left"><thead className="bg-gray-100 dark:bg-gray-700 text-gray-600 dark:text-gray-300 uppercase font-bold"><tr><th className="px-6 py-3">Entidade</th><th className="px-6 py-3">NIF</th><th className="px-6 py-3">Localidade</th><th className="px-6 py-3 text-center">Estado</th><th className="px-6 py-3 text-right">Saldo Corrente</th><th className="px-6 py-3 text-right">Ações</th></tr></thead>
+                                <tbody className="divide-y dark:divide-gray-700">{logic.clients.map(c => (<tr key={c.id} className={`hover:bg-gray-50 dark:hover:bg-gray-700 ${c.status === 'doubtful' ? 'bg-red-50 dark:bg-red-900/10' : ''}`}><td className="px-6 py-3 font-bold text-gray-700 dark:text-gray-200">{c.name}</td><td className="px-6 py-3 font-mono">{c.nif || 'N/A'}</td><td className="px-6 py-3 text-gray-500">{c.city}</td><td className="px-6 py-3 text-center"><span className={`px-2 py-0.5 rounded-full text-[10px] font-bold uppercase tracking-wider ${c.status === 'doubtful' ? 'bg-red-100 text-red-600' : 'bg-green-100 text-green-600'}`}>{c.status === 'doubtful' ? 'Risco' : 'Ativo'}</span></td><td className={`px-6 py-3 text-right font-mono font-bold ${c.status === 'doubtful' ? 'text-red-600' : 'text-gray-700 dark:text-gray-300'}`}>{c.doubtful_debt ? `${logic.displaySymbol} ${c.doubtful_debt}` : '-'}</td><td className="px-6 py-3 text-right flex justify-end gap-2"><button onClick={() => logic.handleOpenDoubtful(c)} className={`p-1.5 rounded hover:bg-gray-200 dark:hover:bg-gray-600 ${c.status === 'doubtful' ? 'text-red-500' : 'text-gray-400'}`}><AlertTriangle size={14}/></button><button onClick={() => logic.handleEditEntity(c, 'client')} className="p-1.5 text-blue-500 hover:bg-blue-50 rounded"><Edit2 size={14}/></button><button onClick={() => logic.handleDeleteEntity(c.id, 'client')} className="p-1.5 text-red-500 hover:bg-red-50 rounded"><Trash2 size={14}/></button></td></tr>))}</tbody></table>
                             </div>
                         )}
                     </div>
