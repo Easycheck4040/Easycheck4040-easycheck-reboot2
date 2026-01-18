@@ -167,7 +167,6 @@ export default function Dashboard() {
             <Route path="accounting" element={
                 <div className="h-full flex flex-col">
                     <div className="flex gap-2 border-b dark:border-gray-700 pb-2 mb-6 overflow-x-auto">
-                        {/* ADICIONADO: Aba Ativos */}
                         {[{id:'overview',l:'Diário',i:PieChart},{id:'coa',l:'Plano de Contas',i:BookOpen},{id:'invoices',l:'Faturas',i:FileText},{id:'purchases',l:'Compras',i:TrendingDown},{id:'banking',l:'Bancos',i:Landmark},{id:'clients',l:'Clientes',i:Briefcase},{id:'suppliers',l:'Fornecedores',i:Truck},{id:'assets',l:'Ativos',i:Box},{id:'taxes',l:'Impostos',i:FileCheck},{id:'reports',l:'Relatórios',i:FileSpreadsheet}].map(t=>(<button key={t.id} onClick={()=>logic.setAccountingTab(t.id)} className={`flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-bold border ${logic.accountingTab===t.id?'bg-blue-50 text-blue-600 border-blue-200 dark:bg-blue-900/20 dark:border-blue-800':'bg-white dark:bg-gray-800 border-transparent'}`}><t.i size={16}/>{t.l}</button>))}
                     </div>
                     <div className="flex-1 bg-white dark:bg-gray-800 rounded-2xl shadow-sm border dark:border-gray-700 overflow-hidden">
@@ -208,20 +207,43 @@ export default function Dashboard() {
                                 </div>
                             </div>
                         )}
+                        {/* --- LÓGICA DE PLANO DE CONTAS ATUALIZADA (VISUAL) --- */}
                         {logic.accountingTab === 'coa' && (
                             <div className="p-4">
                                 <h3 className="font-bold flex gap-2 mb-4"><List/> Plano de Contas ({logic.companyForm.country})</h3>
                                 <div className="overflow-y-auto max-h-[60vh]">
                                     <table className="w-full text-xs text-left">
                                         <thead className="bg-gray-100 dark:bg-gray-700"><tr><th className="p-3">Conta</th><th className="p-3">Descrição</th><th className="p-3">Tipo</th></tr></thead>
-                                        <tbody>
-                                            {logic.companyAccounts.map(acc => (
-                                                <tr key={acc.id} className="border-b dark:border-gray-700 hover:bg-gray-50">
-                                                    <td className="p-3 font-mono font-bold text-blue-600">{acc.code}</td>
-                                                    <td className="p-3">{acc.name}</td>
-                                                    <td className="p-3 uppercase text-[10px]"><span className="bg-gray-100 px-2 py-1 rounded">{acc.type}</span></td>
-                                                </tr>
-                                            ))}
+                                        <tbody className="divide-y dark:divide-gray-700">
+                                            {logic.companyAccounts.map(acc => {
+                                                const isClass = acc.type === 'classe';
+                                                const rowClass = isClass ? 'bg-gray-100 dark:bg-gray-800 font-bold' : 'hover:bg-gray-50 dark:hover:bg-gray-700';
+                                                const textClass = isClass ? 'text-gray-800 dark:text-white' : 'text-gray-600 dark:text-gray-300';
+                                                const paddingClass = isClass ? '' : 'pl-8';
+
+                                                return (
+                                                    <tr key={acc.id} className={`border-b dark:border-gray-700 ${rowClass}`}>
+                                                        <td className={`p-3 font-mono ${isClass ? 'text-gray-900 dark:text-white' : 'text-blue-600 font-medium'}`}>
+                                                            {acc.code}
+                                                        </td>
+                                                        <td className={`p-3 ${textClass} ${paddingClass}`}>
+                                                            {acc.name}
+                                                        </td>
+                                                        <td className="p-3">
+                                                            <span className={`px-2 py-1 rounded text-[10px] uppercase font-bold tracking-wider
+                                                                ${isClass ? 'bg-gray-200 text-gray-700 dark:bg-gray-600 dark:text-gray-200' : 
+                                                                  acc.type === 'ativo' ? 'bg-blue-100 text-blue-700' :
+                                                                  acc.type === 'passivo' ? 'bg-red-100 text-red-700' :
+                                                                  acc.type === 'gastos' ? 'bg-orange-100 text-orange-700' :
+                                                                  acc.type === 'rendimentos' ? 'bg-green-100 text-green-700' : 'bg-gray-100'
+                                                                }
+                                                            `}>
+                                                                {acc.type}
+                                                            </span>
+                                                        </td>
+                                                    </tr>
+                                                );
+                                            })}
                                         </tbody>
                                     </table>
                                     {logic.companyAccounts.length === 0 && <p className="text-center py-8 text-gray-400">Vá a Definições e guarde o país para gerar o plano.</p>}
@@ -326,14 +348,6 @@ export default function Dashboard() {
                                 )}
                             </div>
                         )}
-                        {/* ADICIONADO: Aba Ativos (Conteúdo) */}
-                        {logic.accountingTab === 'assets' && (
-                            <div>
-                                <div className="p-4 border-b dark:border-gray-700 flex justify-between items-center bg-gray-50 dark:bg-gray-800"><h3 className="font-bold text-gray-700 dark:text-gray-200 flex items-center gap-2"><Box size={18}/> Mapa de Imobilizado</h3><button onClick={() => {logic.setEditingAssetId(null); logic.setNewAsset({ name: '', category: 'Equipamento', purchase_date: new Date().toISOString().split('T')[0], purchase_value: '', lifespan_years: 3, amortization_method: 'linear' }); logic.setShowAssetModal(true)}} className="bg-blue-600 text-white px-3 py-1.5 rounded-md text-sm font-bold flex gap-2 items-center hover:bg-blue-700"><Plus size={16}/> Novo Ativo</button></div>
-                                <table className="w-full text-xs text-left"><thead className="bg-gray-100 dark:bg-gray-700 text-gray-600 dark:text-gray-300 uppercase font-bold"><tr><th className="px-6 py-3">Ativo</th><th className="px-6 py-3">Data Aq.</th><th className="px-6 py-3 text-right">Valor Aq.</th><th className="px-6 py-3 text-right">Amort. Acumulada</th><th className="px-6 py-3 text-right">Valor Líquido (VNC)</th><th className="px-6 py-3 text-center">Método</th><th className="px-6 py-3 text-center">...</th></tr></thead>
-                                <tbody className="divide-y dark:divide-gray-700">{logic.assets.length === 0 ? <tr><td colSpan={7} className="text-center py-8 text-gray-400">Nenhum ativo registado.</td></tr> : logic.assets.map(a => { const currentVal = logic.getCurrentAssetValue(a); const accumulated = a.purchase_value - currentVal; return (<tr key={a.id} className="hover:bg-gray-50 dark:hover:bg-gray-700"><td className="px-6 py-3 font-bold text-gray-700 dark:text-gray-200">{a.name}</td><td className="px-6 py-3 font-mono text-gray-500">{new Date(a.purchase_date).toLocaleDateString()}</td><td className="px-6 py-3 text-right font-mono">{logic.displaySymbol} {(a.purchase_value * logic.conversionRate).toFixed(2)}</td><td className="px-6 py-3 text-right font-mono text-gray-500">{logic.displaySymbol} {(accumulated * logic.conversionRate).toFixed(2)}</td><td className="px-6 py-3 text-right font-mono font-bold text-blue-600">{logic.displaySymbol} {(currentVal * logic.conversionRate).toFixed(2)}</td><td className="px-6 py-3 text-center"><span className="bg-gray-100 dark:bg-gray-600 px-2 py-0.5 rounded text-[9px] font-bold uppercase">{a.amortization_method === 'linear' ? 'Linear' : 'Degress.'}</span></td><td className="px-6 py-3 text-center flex justify-center gap-2"><button onClick={() => logic.handleShowAmortSchedule(a)} className="text-blue-500 hover:text-blue-700" title="Ver Plano"><List size={14}/></button><button onClick={() => logic.handleDeleteAsset(a.id)} className="text-red-400 hover:text-red-600" title="Abater"><Trash2 size={14}/></button></td></tr>); })}</tbody></table>
-                            </div>
-                        )}
                         {logic.accountingTab === 'banking' && (
                             <div className="p-6">
                                 <div className="flex justify-between items-center mb-6">
@@ -360,6 +374,20 @@ export default function Dashboard() {
                                 ) : (
                                     <div className="py-20 text-center border-2 border-dashed rounded-3xl border-gray-200 dark:border-gray-700"><Landmark size={48} className="mx-auto text-gray-300 mb-4"/><p className="text-gray-500 font-medium">Nenhum extrato importado.</p><p className="text-xs text-gray-400 mt-1">Carregue um ficheiro CSV para iniciar a reconciliação automática.</p></div>
                                 )}
+                            </div>
+                        )}
+                        {logic.accountingTab === 'clients' && (
+                            <div>
+                                <div className="p-4 border-b dark:border-gray-700 flex justify-between items-center bg-gray-50 dark:bg-gray-800"><h3 className="font-bold text-gray-700 dark:text-gray-200 flex items-center gap-2"><Users size={18}/> Gestão de Clientes</h3><button onClick={() => {logic.setEditingEntityId(null); logic.setNewEntity({ name: '', nif: '', email: '', address: '', city: '', postal_code: '', country: 'Portugal' }); logic.setEntityType('client'); logic.setShowEntityModal(true)}} className="bg-blue-600 text-white px-3 py-1.5 rounded-lg text-sm flex gap-2 items-center hover:bg-blue-700"><Plus size={16}/> Novo Cliente</button></div>
+                                <table className="w-full text-xs text-left"><thead className="bg-gray-100 dark:bg-gray-700 text-gray-600 dark:text-gray-300 uppercase font-bold"><tr><th className="px-6 py-3">Entidade</th><th className="px-6 py-3">NIF</th><th className="px-6 py-3">Localidade</th><th className="px-6 py-3 text-center">Estado</th><th className="px-6 py-3 text-right">Saldo Corrente</th><th className="px-6 py-3 text-right">Ações</th></tr></thead>
+                                <tbody className="divide-y dark:divide-gray-700">{logic.clients.map(c => (<tr key={c.id} className={`hover:bg-gray-50 dark:hover:bg-gray-700 ${c.status === 'doubtful' ? 'bg-red-50 dark:bg-red-900/10' : ''}`}><td className="px-6 py-3 font-bold text-gray-700 dark:text-gray-200">{c.name}</td><td className="px-6 py-3 font-mono">{c.nif || 'N/A'}</td><td className="px-6 py-3 text-gray-500">{c.city}</td><td className="px-6 py-3 text-center"><span className={`px-2 py-0.5 rounded-full text-[10px] font-bold uppercase tracking-wider ${c.status === 'doubtful' ? 'bg-red-100 text-red-600' : 'bg-green-100 text-green-600'}`}>{c.status === 'doubtful' ? 'Risco' : 'Ativo'}</span></td><td className={`px-6 py-3 text-right font-mono font-bold ${c.status === 'doubtful' ? 'text-red-600' : 'text-gray-700 dark:text-gray-300'}`}>{c.doubtful_debt ? `${logic.displaySymbol} ${c.doubtful_debt}` : '-'}</td><td className="px-6 py-3 text-right flex justify-end gap-2"><button onClick={() => logic.handleOpenDoubtful(c)} className={`p-1.5 rounded hover:bg-gray-200 dark:hover:bg-gray-600 ${c.status === 'doubtful' ? 'text-red-500' : 'text-gray-400'}`}><AlertTriangle size={14}/></button><button onClick={() => logic.handleEditEntity(c, 'client')} className="p-1.5 text-blue-500 hover:bg-blue-50 rounded"><Edit2 size={14}/></button><button onClick={() => logic.handleDeleteEntity(c.id, 'client')} className="p-1.5 text-red-500 hover:bg-red-50 rounded"><Trash2 size={14}/></button></td></tr>))}</tbody></table>
+                            </div>
+                        )}
+                        {logic.accountingTab === 'assets' && (
+                            <div>
+                                <div className="p-4 border-b dark:border-gray-700 flex justify-between items-center bg-gray-50 dark:bg-gray-800"><h3 className="font-bold text-gray-700 dark:text-gray-200 flex items-center gap-2"><Box size={18}/> Mapa de Imobilizado</h3><button onClick={() => {logic.setEditingAssetId(null); logic.setNewAsset({ name: '', category: 'Equipamento', purchase_date: new Date().toISOString().split('T')[0], purchase_value: '', lifespan_years: 3, amortization_method: 'linear' }); logic.setShowAssetModal(true)}} className="bg-blue-600 text-white px-3 py-1.5 rounded-md text-sm font-bold flex gap-2 items-center hover:bg-blue-700"><Plus size={16}/> Novo Ativo</button></div>
+                                <table className="w-full text-xs text-left"><thead className="bg-gray-100 dark:bg-gray-700 text-gray-600 dark:text-gray-300 uppercase font-bold"><tr><th className="px-6 py-3">Ativo</th><th className="px-6 py-3">Data Aq.</th><th className="px-6 py-3 text-right">Valor Aq.</th><th className="px-6 py-3 text-right">Amort. Acumulada</th><th className="px-6 py-3 text-right">Valor Líquido (VNC)</th><th className="px-6 py-3 text-center">Método</th><th className="px-6 py-3 text-center">...</th></tr></thead>
+                                <tbody className="divide-y dark:divide-gray-700">{logic.assets.length === 0 ? <tr><td colSpan={7} className="text-center py-8 text-gray-400">Nenhum ativo registado.</td></tr> : logic.assets.map(a => { const currentVal = logic.getCurrentAssetValue(a); const accumulated = a.purchase_value - currentVal; return (<tr key={a.id} className="hover:bg-gray-50 dark:hover:bg-gray-700"><td className="px-6 py-3 font-bold text-gray-700 dark:text-gray-200">{a.name}</td><td className="px-6 py-3 font-mono text-gray-500">{new Date(a.purchase_date).toLocaleDateString()}</td><td className="px-6 py-3 text-right font-mono">{logic.displaySymbol} {(a.purchase_value * logic.conversionRate).toFixed(2)}</td><td className="px-6 py-3 text-right font-mono text-gray-500">{logic.displaySymbol} {(accumulated * logic.conversionRate).toFixed(2)}</td><td className="px-6 py-3 text-right font-mono font-bold text-blue-600">{logic.displaySymbol} {(currentVal * logic.conversionRate).toFixed(2)}</td><td className="px-6 py-3 text-center"><span className="bg-gray-100 dark:bg-gray-600 px-2 py-0.5 rounded text-[9px] font-bold uppercase">{a.amortization_method === 'linear' ? 'Linear' : 'Degress.'}</span></td><td className="px-6 py-3 text-center flex justify-center gap-2"><button onClick={() => logic.handleShowAmortSchedule(a)} className="text-blue-500 hover:text-blue-700" title="Ver Plano"><List size={14}/></button><button onClick={() => logic.handleDeleteAsset(a.id)} className="text-red-400 hover:text-red-600" title="Abater"><Trash2 size={14}/></button></td></tr>); })}</tbody></table>
                             </div>
                         )}
                         {logic.accountingTab === 'taxes' && (
@@ -498,20 +526,6 @@ export default function Dashboard() {
                                     </button>
                                 </div>
                                 {logic.journalEntries.length === 0 && <p className="mt-8 text-sm text-red-400 bg-red-50 p-2 rounded inline-block">⚠️ Gere movimentos (Faturas/Despesas) para desbloquear os relatórios.</p>}
-                            </div>
-                        )}
-                        {logic.accountingTab === 'suppliers' && (
-                            <div>
-                                <div className="p-4 flex justify-between bg-gray-50 dark:bg-gray-800 border-b dark:border-gray-700"><h3 className="font-bold flex gap-2"><Truck/> Fornecedores</h3><button onClick={()=>{logic.setEditingEntityId(null);logic.setNewEntity({name:'',nif:'',email:'',address:'',city:'',postal_code:'',country:'Portugal'});logic.setEntityType('supplier');logic.setShowEntityModal(true)}} className="bg-blue-600 text-white px-3 py-1.5 rounded text-sm font-bold flex gap-2"><Plus size={16}/> Novo</button></div>
-                                <table className="w-full text-xs text-left"><thead className="bg-gray-100 dark:bg-gray-700 uppercase"><tr><th className="p-3">Nome</th><th className="p-3">NIF</th><th className="p-3">Email</th><th className="p-3">Categoria</th><th className="p-3 text-right">Ações</th></tr></thead>
-                                <tbody>{logic.suppliers.map(s=>(<tr key={s.id} className="border-b dark:border-gray-700"><td className="p-3 font-bold">{s.name}</td><td className="p-3 font-mono">{s.nif}</td><td className="p-3">{s.email}</td><td className="p-3"><span className="bg-gray-100 px-2 py-1 rounded text-[10px] uppercase font-bold">Geral</span></td><td className="p-3 text-right flex justify-end gap-2"><button onClick={()=>logic.handleEditEntity(s,'supplier')} className="text-blue-500 hover:bg-blue-50 p-1 rounded"><Edit2 size={14}/></button><button onClick={()=>logic.handleDeleteEntity(s.id, 'supplier')} className="text-red-500 hover:bg-red-50 p-1 rounded"><Trash2 size={14}/></button></td></tr>))}</tbody></table>
-                            </div>
-                        )}
-                        {logic.accountingTab === 'clients' && (
-                            <div>
-                                <div className="p-4 border-b dark:border-gray-700 flex justify-between items-center bg-gray-50 dark:bg-gray-800"><h3 className="font-bold text-gray-700 dark:text-gray-200 flex items-center gap-2"><Users size={18}/> Gestão de Clientes</h3><button onClick={() => {logic.setEditingEntityId(null); logic.setNewEntity({ name: '', nif: '', email: '', address: '', city: '', postal_code: '', country: 'Portugal' }); logic.setEntityType('client'); logic.setShowEntityModal(true)}} className="bg-blue-600 text-white px-3 py-1.5 rounded-lg text-sm flex gap-2 items-center hover:bg-blue-700"><Plus size={16}/> Novo Cliente</button></div>
-                                <table className="w-full text-xs text-left"><thead className="bg-gray-100 dark:bg-gray-700 text-gray-600 dark:text-gray-300 uppercase font-bold"><tr><th className="px-6 py-3">Entidade</th><th className="px-6 py-3">NIF</th><th className="px-6 py-3">Localidade</th><th className="px-6 py-3 text-center">Estado</th><th className="px-6 py-3 text-right">Saldo Corrente</th><th className="px-6 py-3 text-right">Ações</th></tr></thead>
-                                <tbody className="divide-y dark:divide-gray-700">{logic.clients.map(c => (<tr key={c.id} className={`hover:bg-gray-50 dark:hover:bg-gray-700 ${c.status === 'doubtful' ? 'bg-red-50 dark:bg-red-900/10' : ''}`}><td className="px-6 py-3 font-bold text-gray-700 dark:text-gray-200">{c.name}</td><td className="px-6 py-3 font-mono">{c.nif || 'N/A'}</td><td className="px-6 py-3 text-gray-500">{c.city}</td><td className="px-6 py-3 text-center"><span className={`px-2 py-0.5 rounded-full text-[10px] font-bold uppercase tracking-wider ${c.status === 'doubtful' ? 'bg-red-100 text-red-600' : 'bg-green-100 text-green-600'}`}>{c.status === 'doubtful' ? 'Risco' : 'Ativo'}</span></td><td className={`px-6 py-3 text-right font-mono font-bold ${c.status === 'doubtful' ? 'text-red-600' : 'text-gray-700 dark:text-gray-300'}`}>{c.doubtful_debt ? `${logic.displaySymbol} ${c.doubtful_debt}` : '-'}</td><td className="px-6 py-3 text-right flex justify-end gap-2"><button onClick={() => logic.handleOpenDoubtful(c)} className={`p-1.5 rounded hover:bg-gray-200 dark:hover:bg-gray-600 ${c.status === 'doubtful' ? 'text-red-500' : 'text-gray-400'}`}><AlertTriangle size={14}/></button><button onClick={() => logic.handleEditEntity(c, 'client')} className="p-1.5 text-blue-500 hover:bg-blue-50 rounded"><Edit2 size={14}/></button><button onClick={() => logic.handleDeleteEntity(c.id, 'client')} className="p-1.5 text-red-500 hover:bg-red-50 rounded"><Trash2 size={14}/></button></td></tr>))}</tbody></table>
                             </div>
                         )}
                     </div>
