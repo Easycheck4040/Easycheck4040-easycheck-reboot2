@@ -1,18 +1,18 @@
-import { Link, useLocation, Routes, Route } from 'react-router-dom';
+import { Link, useLocation } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
-import { 
-    BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip as RechartsTooltip, Legend, ResponsiveContainer, LineChart, Line 
-} from 'recharts';
+import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip as RechartsTooltip, Legend, ResponsiveContainer } from 'recharts';
 import { 
     LayoutDashboard, MessageSquare, FileText, Users, BarChart3, Settings, LogOut, Menu, X, 
     Globe, Moon, Sun, Eye, EyeOff, User, Trash2, AlertTriangle, Building2, 
     Copy, Send, Shield, Mail, Plus, FileCheck, TrendingDown, Landmark, PieChart, FileSpreadsheet, 
     BookOpen, Box, Briefcase, Truck, RefreshCw, CheckCircle, AlertOctagon, TrendingUp as TrendingUpIcon, 
-    Palette, Edit2, Download, UploadCloud, Activity, Zap, AlertCircle, List, Calculator
+    Palette, Edit2, Download, UploadCloud, Activity, Zap, AlertCircle, List
 } from 'lucide-react';
+import { Routes, Route } from 'react-router-dom';
 
-// IMPORTANTE: Ajusta o caminho se o teu hook estiver noutra pasta
-import { useDashboardLogic, countries, invoiceTypes, languages, ACCOUNTING_TEMPLATES } from '../hooks/useDashboardLogic';
+// IMPORTA A LÓGICA DO OUTRO FICHEIRO
+// Certifica-te que o caminho '../hooks/useDashboardLogic' está correto para a tua estrutura de pastas
+import { useDashboardLogic, countries, invoiceTypes, languages } from '../hooks/useDashboardLogic';
 
 export default function Dashboard() {
   const { t } = useTranslation();
@@ -32,7 +32,7 @@ export default function Dashboard() {
   return (
     <div className="flex h-screen bg-gray-50 dark:bg-gray-900 text-gray-900 dark:text-gray-100 font-sans overflow-hidden">
       
-      {/* ================= SIDEBAR ================= */}
+      {/* ================= SIDEBAR (MANTIDA IGUAL) ================= */}
       <aside className={`
         fixed inset-y-0 left-0 z-50 w-64 bg-white dark:bg-gray-800 border-r border-gray-200 dark:border-gray-700 
         transform transition-transform duration-300 ease-in-out shadow-xl
@@ -174,7 +174,7 @@ export default function Dashboard() {
                         </div>
 
                         <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
-                            {/* AI CHAT MODULE */}
+                            {/* AI CHAT MODULE (ATUALIZADO) */}
                             <div className="lg:col-span-1 bg-white dark:bg-gray-800 rounded-2xl shadow-sm border border-gray-200 dark:border-gray-700 flex flex-col h-[500px]">
                                 <div className="p-4 border-b border-gray-100 dark:border-gray-700 bg-gray-50 dark:bg-gray-800/50 rounded-t-2xl flex items-center justify-between">
                                     <div className="flex items-center gap-2">
@@ -285,58 +285,59 @@ export default function Dashboard() {
 
                         {/* Accounting Content */}
                         <div className="p-6 flex-1">
-                            {/* ASSETS TAB (NOVO) */}
+                            {/* --- NOVA ABA: ATIVOS --- */}
                             {logic.accountingTab === 'assets' && (
-                                <div className="space-y-6">
+                                <div className="space-y-6 animate-in fade-in">
                                     <div className="flex justify-between items-center">
                                         <div>
-                                            <h3 className="text-lg font-bold text-gray-900 dark:text-white">Mapa de Imobilizado</h3>
-                                            <p className="text-sm text-gray-500">Gestão de ativos e amortizações automáticas.</p>
+                                            <h3 className="text-lg font-bold text-gray-800 dark:text-white">Imobilizado</h3>
+                                            <p className="text-sm text-gray-500">Gestão de ativos e depreciações.</p>
                                         </div>
-                                        <button onClick={() => logic.setShowAssetModal(true)} className="flex items-center gap-2 bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-lg font-medium transition-colors">
+                                        <button onClick={() => logic.setShowAssetModal(true)} className="flex items-center gap-2 bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700">
                                             <Plus className="w-4 h-4" /> Novo Ativo
                                         </button>
                                     </div>
-                                    <div className="overflow-hidden rounded-xl border border-gray-200 dark:border-gray-700">
+
+                                    <div className="bg-white dark:bg-gray-800 rounded-xl shadow-sm border border-gray-200 dark:border-gray-700 overflow-hidden">
                                         <table className="w-full text-sm text-left">
-                                            <thead className="bg-gray-50 dark:bg-gray-700/50 text-gray-600 dark:text-gray-300 uppercase text-xs font-semibold">
+                                            <thead className="bg-gray-50 dark:bg-gray-700 text-gray-600 dark:text-gray-300 font-semibold border-b dark:border-gray-600">
                                                 <tr>
-                                                    <th className="px-6 py-3">Ativo</th>
-                                                    <th className="px-6 py-3">Data Compra</th>
-                                                    <th className="px-6 py-3 text-right">Valor Aquisição</th>
+                                                    <th className="px-6 py-3">Bem</th>
+                                                    <th className="px-6 py-3">Compra</th>
+                                                    <th className="px-6 py-3 text-right">Valor Aquis.</th>
                                                     <th className="px-6 py-3 text-center">Vida Útil</th>
                                                     <th className="px-6 py-3 text-center">Método</th>
                                                     <th className="px-6 py-3 text-right">Valor Atual</th>
                                                     <th className="px-6 py-3 text-center">Ações</th>
                                                 </tr>
                                             </thead>
-                                            <tbody className="divide-y divide-gray-200 dark:divide-gray-700 bg-white dark:bg-gray-800">
+                                            <tbody className="divide-y divide-gray-100 dark:divide-gray-700">
                                                 {logic.assets.map(asset => (
-                                                    <tr key={asset.id} className="hover:bg-gray-50 dark:hover:bg-gray-700/50">
-                                                        <td className="px-6 py-4 font-medium text-gray-900 dark:text-white">{asset.name}</td>
+                                                    <tr key={asset.id} className="hover:bg-gray-50 dark:hover:bg-gray-700/50 transition-colors">
+                                                        <td className="px-6 py-4 font-medium dark:text-white">{asset.name}</td>
                                                         <td className="px-6 py-4 text-gray-500 dark:text-gray-400">{new Date(asset.purchase_date).toLocaleDateString()}</td>
-                                                        <td className="px-6 py-4 text-right font-mono">{logic.displaySymbol} {asset.purchase_value.toFixed(2)}</td>
-                                                        <td className="px-6 py-4 text-center">{asset.lifespan_years} Anos</td>
+                                                        <td className="px-6 py-4 text-right font-mono dark:text-gray-300">{logic.displaySymbol} {asset.purchase_value.toFixed(2)}</td>
+                                                        <td className="px-6 py-4 text-center dark:text-gray-300">{asset.lifespan_years} Anos</td>
                                                         <td className="px-6 py-4 text-center">
-                                                            <span className={`px-2 py-1 rounded text-xs font-bold ${asset.amortization_method === 'linear' ? 'bg-blue-100 text-blue-800' : 'bg-purple-100 text-purple-800'}`}>
+                                                            <span className="px-2 py-1 bg-blue-100 text-blue-800 text-xs rounded-full dark:bg-blue-900 dark:text-blue-200">
                                                                 {asset.amortization_method === 'linear' ? 'Linear' : 'Degressivo'}
                                                             </span>
                                                         </td>
-                                                        <td className="px-6 py-4 text-right font-mono font-bold text-gray-900 dark:text-white">
+                                                        <td className="px-6 py-4 text-right font-bold dark:text-white">
                                                             {logic.displaySymbol} {logic.getCurrentAssetValue(asset).toFixed(2)}
                                                         </td>
                                                         <td className="px-6 py-4 text-center flex justify-center gap-2">
-                                                            <button onClick={() => logic.handleShowAmortSchedule(asset)} className="p-1.5 hover:bg-gray-100 dark:hover:bg-gray-700 rounded text-blue-600" title="Ver Plano">
+                                                            <button onClick={() => logic.handleShowAmortSchedule(asset)} className="p-2 text-blue-600 hover:bg-blue-50 rounded-lg dark:hover:bg-gray-700" title="Ver Plano">
                                                                 <FileSpreadsheet className="w-4 h-4" />
                                                             </button>
-                                                            <button onClick={() => logic.handleDeleteAsset(asset.id)} className="p-1.5 hover:bg-gray-100 dark:hover:bg-gray-700 rounded text-red-600" title="Eliminar">
+                                                            <button onClick={() => logic.handleDeleteAsset(asset.id)} className="p-2 text-red-600 hover:bg-red-50 rounded-lg dark:hover:bg-gray-700" title="Apagar">
                                                                 <Trash2 className="w-4 h-4" />
                                                             </button>
                                                         </td>
                                                     </tr>
                                                 ))}
                                                 {logic.assets.length === 0 && (
-                                                    <tr><td colSpan={7} className="px-6 py-8 text-center text-gray-500">Nenhum ativo registado.</td></tr>
+                                                    <tr><td colSpan={7} className="p-8 text-center text-gray-500">Ainda não registou ativos.</td></tr>
                                                 )}
                                             </tbody>
                                         </table>
@@ -533,7 +534,7 @@ export default function Dashboard() {
         </div>
       )}
 
-      {/* 2. INVOICE MODAL (RESUMIDO PARA EXEMPLO) */}
+      {/* 2. INVOICE MODAL */}
       {logic.showInvoiceForm && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-sm p-4">
             <div className="bg-white dark:bg-gray-800 rounded-2xl w-full max-w-4xl max-h-[90vh] overflow-y-auto shadow-2xl">
