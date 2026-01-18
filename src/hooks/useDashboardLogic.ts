@@ -212,11 +212,12 @@ export const useDashboardLogic = () => {
     const [savingProfile, setSavingProfile] = useState(false);
     const [savingCompany, setSavingCompany] = useState(false);
 
-    // AI STATES
+    // AI STATES (UNIFICADO)
     const [messages, setMessages] = useState([{ role: 'assistant', content: 'Olá! Sou o assistente EasyCheck. Posso ajudar a criar faturas, registar despesas ou gerir clientes.' }]);
     const [chatInput, setChatInput] = useState('');
     const [isChatLoading, setIsChatLoading] = useState(false);
     const [aiMemory, setAiMemory] = useState<AIMemoryState>({ intent: null, step: 'idle', data: {} });
+    
     const scrollRef = useRef<HTMLDivElement>(null);
 
     // HELPERS
@@ -457,15 +458,22 @@ export const useDashboardLogic = () => {
         }
         await supabase.from('invoice_items').insert(invoiceData.items.map(item => ({ invoice_id: invoiceId, description: item.description, quantity: item.quantity, unit_price: item.price, tax_rate: item.tax })));
 
-        const clientAccount = companyAccounts.find(a => a.code.startsWith('211') || a.code.startsWith('411') || a.code.startsWith('1200'));
-        const salesAccount = companyAccounts.find(a => a.code.startsWith('71') || a.code.startsWith('701') || a.code.startsWith('4000'));
+        // CONTAS INTELIGENTES (IVA VENDAS)
+        const clientAccount = companyAccounts.find(a => ['211', '411', '1200'].some(c => a.code.startsWith(c)));
+        const salesAccount = companyAccounts.find(a => ['71', '70', '4000', '701'].some(c => a.code.startsWith(c)));
+        const taxAccount = companyAccounts.find(a => ['2433', '4457', '2100', '2434'].some(c => a.code.startsWith(c)));
+
         if (clientAccount && salesAccount) {
             const { data: entry } = await supabase.from('journal_entries').insert([{ user_id: userData.id, date: invoiceData.date, description: `Fatura ${docNumber}`, document_ref: docNumber }]).select().single();
             if (entry) {
-                await supabase.from('journal_items').insert([
+                const journalItems = [
                     { entry_id: entry.id, account_id: clientAccount.id, debit: totals.total, credit: 0 },
                     { entry_id: entry.id, account_id: salesAccount.id, debit: 0, credit: totals.subtotal }
-                ]);
+                ];
+                if (totals.taxTotal > 0 && taxAccount) { 
+                    journalItems.push({ entry_id: entry.id, account_id: taxAccount.id, debit: 0, credit: totals.taxTotal }); 
+                }
+                await supabase.from('journal_items').insert(journalItems);
             }
         }
         
@@ -568,21 +576,11 @@ export const useDashboardLogic = () => {
             setProfileData({ ...profileData, ...updates });
 
             if (companyForm.country) {
-                // CORREÇÃO CRÍTICA: Se o RPC funcionar, NÃO usamos o fallback do JS.
                 const { error: rpcError } = await supabase.rpc('init_company_accounting', { p_user_id: userData.id, p_country: companyForm.country });
-                
-                if (rpcError) {
-                    console.error("RPC Error (usando fallback):", rpcError);
-                    // Só usa o fallback se o SQL falhar
-                    const templateAccounts = ACCOUNTING_TEMPLATES["Default"];
-                    if (templateAccounts) {
-                        const accountsToInsert = templateAccounts.map(acc => ({ user_id: userData.id, code: acc.code, name: acc.name, type: acc.type }));
-                        await supabase.from('company_accounts').upsert(accountsToInsert, { onConflict: 'user_id,code' });
-                    }
+                if (!rpcError) {
+                    const { data: refreshedAccounts } = await supabase.from('company_accounts').select('*').order('code', { ascending: true });
+                    if (refreshedAccounts) setCompanyAccounts(refreshedAccounts);
                 }
-                
-                const { data: refreshedAccounts } = await supabase.from('company_accounts').select('*').order('code', { ascending: true });
-                if (refreshedAccounts) setCompanyAccounts(refreshedAccounts);
             }
             alert(`Configurações de ${companyForm.country} aplicadas!`);
         } catch (e: any) { alert("Erro: " + e.message); } finally { setSavingCompany(false); }
@@ -595,9 +593,7 @@ export const useDashboardLogic = () => {
     const handleLogout = async () => { await supabase.auth.signOut(); navigate('/'); };
     const handleCountryChange = (e: React.ChangeEvent<HTMLSelectElement>) => { const c = e.target.value; setCompanyForm({ ...companyForm, country: c, currency: getCurrencyCode(c) }); };
     
-    // --- FUNÇÕES ESTRUTURAIS ---
-    
-    // CORREÇÃO: handleEditInvoice agora exportado corretamente
+    // FUNÇÕES RESTAURADAS & CORRIGIDAS
     const handleEditInvoice = (invoice: any) => {
         setInvoiceData({ 
             id: invoice.id, client_id: invoice.client_id, type: invoice.type, invoice_number: invoice.invoice_number, 
@@ -606,24 +602,87 @@ export const useDashboardLogic = () => {
         setShowInvoiceForm(true);
     };
     
-    // CORREÇÃO: handleDeleteInvoice exportado
     const handleDeleteInvoice = async (id: string) => {
         if (!window.confirm("Anular fatura?")) return;
         const { error } = await supabase.from('invoices').delete().eq('id', id);
-        if (!error) setRealInvoices(prev => prev.filter(i => i.id !== id));
+        if (!error) {
+            setRealInvoices(prev => prev.filter(i => i.id !== id));
+            logAction('ANULAR', `Fatura ${id} apagada`);
+        }
     };
 
-    // CORREÇÃO: handleCreatePurchase exportado
     const handleCreatePurchase = async () => {
         if (!newPurchase.supplier_id || !newPurchase.total) return alert("Dados em falta");
-        const { data, error } = await supabase.from('purchases').insert([{ user_id: userData.id, ...newPurchase, total: parseFloat(newPurchase.total), tax_total: parseFloat(newPurchase.tax_total || '0') }]).select('*, suppliers(name)').single();
-        if (!error && data) { setPurchases([data, ...purchases]); setShowPurchaseForm(false); }
+        
+        const { data: purchaseData, error: purchaseError } = await supabase.from('purchases').insert([{ user_id: userData.id, ...newPurchase, total: parseFloat(newPurchase.total), tax_total: parseFloat(newPurchase.tax_total || '0') }]).select('*, suppliers(name)').single();
+        if (purchaseError || !purchaseData) return alert("Erro ao criar compra.");
+
+        const subtotal = purchaseData.total - purchaseData.tax_total;
+        const expenseAccount = companyAccounts.find(a => ['61', '60', '601', '31'].some(c => a.code.startsWith(c)));
+        const taxAccount = companyAccounts.find(a => ['2432', '4456', '1576', '2201'].some(c => a.code.startsWith(c)));
+        const supplierAccount = companyAccounts.find(a => ['22', '40', '401', '2100'].some(c => a.code.startsWith(c)));
+
+        if (expenseAccount && supplierAccount) {
+            const { data: entry } = await supabase.from('journal_entries').insert([{ 
+                user_id: userData.id, date: newPurchase.date, description: `Compra ${newPurchase.invoice_number}`, document_ref: newPurchase.invoice_number 
+            }]).select().single();
+            if (entry) {
+                const journalItems = [
+                    { entry_id: entry.id, account_id: expenseAccount.id, debit: subtotal, credit: 0 },
+                    { entry_id: entry.id, account_id: supplierAccount.id, debit: 0, credit: purchaseData.total }
+                ];
+                if (purchaseData.tax_total > 0 && taxAccount) {
+                     journalItems.push({ entry_id: entry.id, account_id: taxAccount.id, debit: purchaseData.tax_total, credit: 0 });
+                }
+                await supabase.from('journal_items').insert(journalItems);
+            }
+        }
+        setPurchases([purchaseData, ...purchases]); setShowPurchaseForm(false);
     };
 
-    const handleGenerateReminder = (inv: any, lvl: number) => { alert(`Lembrete nível ${lvl} gerado para ${inv.invoice_number}`); };
+    const handleCreateProvision = async () => {
+        if (!userData) return alert("Erro de autenticação.");
+        if (!newProvision.description || !newProvision.amount) return alert("Preencha dados.");
+        const valString = newProvision.amount.toString().replace(',', '.');
+        const amountValue = parseFloat(valString);
+        if (isNaN(amountValue)) return alert("Valor inválido.");
+        const { data, error } = await supabase.from('accounting_provisions').insert([{ user_id: userData.id, ...newProvision, amount: amountValue }]).select();
+        if (!error && data) { setProvisions([...provisions, data[0]]); setShowProvisionModal(false); }
+    };
+
+    const handleSaveProfile = async () => {
+        if (!userData) return;
+        setSavingProfile(true);
+        try {
+            const { error } = await supabase.from('profiles').update({ full_name: editForm.fullName, job_title: editForm.jobTitle, updated_at: new Date() }).eq('id', userData.id);
+            if (error) throw error;
+            setProfileData({ ...profileData, full_name: editForm.fullName, job_title: editForm.jobTitle });
+            setIsProfileModalOpen(false);
+        } catch (e: any) { alert("Erro: " + e.message); } finally { setSavingProfile(false); }
+    };
+
+    const handleCreateAsset = async () => { 
+        if(!newAsset.name || !newAsset.purchase_value) return alert("Preencha os dados do ativo");
+        const val = typeof newAsset.purchase_value === 'string' ? parseFloat(newAsset.purchase_value) : newAsset.purchase_value;
+        const { data, error } = await supabase.from('accounting_assets').insert([{ user_id: userData.id, ...newAsset, purchase_value: val }]).select();
+        if(!error && data) { setAssets([...assets, data[0]]); setShowAssetModal(false); }
+    }; 
+
+    const handleResetFinancials = async () => {
+        if (window.confirm("⚠️ APAGAR TUDO?")) {
+            if (window.prompt("Escreva 'APAGAR TUDO':") === 'APAGAR TUDO') {
+                const { error } = await supabase.rpc('reset_account_data', { p_user_id: userData.id });
+                if (!error) {
+                    setJournalEntries([]); setRealInvoices([]); setPurchases([]); setAssets([]); setProvisions([]);
+                    window.location.reload();
+                } else { alert(error.message); }
+            }
+        }
+    };
+
+    const handleGenerateReminder = (inv: any, lvl: number) => { alert(`Lembrete ${lvl} para ${inv.invoice_number}`); };
     const generateFinancialReport = (type: string) => { alert(`A gerar ${type}...`); };
     const handleSaveJournalEntry = async () => { alert("Guardado!"); setShowTransactionModal(false); };
-    const handleResetFinancials = async () => { if(confirm("Apagar tudo?")) alert("Reset feito."); };
     const handleOpenDoubtful = (c: any) => { setSelectedClientForDebt(c); setShowDoubtfulModal(true); };
     const saveDoubtfulDebt = async () => { alert("Guardado"); setShowDoubtfulModal(false); };
     const handleDeleteEntity = async (id: string, type: string) => { setClients(prev => prev.filter(c => c.id !== id)); };
@@ -631,57 +690,6 @@ export const useDashboardLogic = () => {
     const handleDeleteAsset = async (id: string) => { setAssets(prev => prev.filter(a => a.id !== id)); };
     const handleShowAmortSchedule = (a: any) => { setSelectedAssetForSchedule(a); setShowAmortSchedule(true); };
     const handlePayInvoice = async (i: any) => { alert("Pago!"); };
-
-    // CORREÇÃO: handleCreateAsset
-    const handleCreateAsset = async () => {
-        if (!newAsset.name || !newAsset.purchase_value) return alert("Preencha dados.");
-        const val = typeof newAsset.purchase_value === 'string' ? parseFloat(newAsset.purchase_value) : newAsset.purchase_value;
-        const { data, error } = await supabase.from('accounting_assets').insert([{ user_id: userData.id, ...newAsset, purchase_value: val }]).select();
-        if (!error && data) { setAssets([...assets, data[0]]); setShowAssetModal(false); }
-    };
-
-    // CORREÇÃO: handleCreateProvision (Segura)
-    const handleCreateProvision = async () => {
-        if (!userData) return alert("Erro de autenticação.");
-        if (!newProvision.description || !newProvision.amount) return alert("Preencha a descrição e o valor.");
-        
-        const valString = newProvision.amount.toString().replace(',', '.');
-        const amountValue = parseFloat(valString);
-        if (isNaN(amountValue)) return alert("Valor inválido.");
-
-        const amountInEur = amountValue / conversionRate;
-        const { data, error } = await supabase.from('accounting_provisions').insert([{ user_id: userData.id, ...newProvision, amount: amountInEur }]).select();
-        
-        if (!error && data) {
-            setProvisions([...provisions, data[0]]);
-            setShowProvisionModal(false);
-            setNewProvision({ description: '', amount: '', type: 'Riscos e Encargos', date: new Date().toISOString().split('T')[0] });
-        } else {
-            alert("Erro: " + (error?.message || "Desconhecido"));
-        }
-    };
-
-    // CORREÇÃO: handleSaveProfile (Segura)
-    const handleSaveProfile = async () => {
-        if (!userData) return;
-        setSavingProfile(true);
-        try {
-            const { error } = await supabase.from('profiles').update({ 
-                full_name: editForm.fullName, 
-                job_title: editForm.jobTitle, 
-                updated_at: new Date() 
-            }).eq('id', userData.id);
-
-            if (error) throw error;
-            setProfileData({ ...profileData, full_name: editForm.fullName, job_title: editForm.jobTitle });
-            alert(`Perfil atualizado!`);
-            setIsProfileModalOpen(false);
-        } catch (e: any) {
-            alert("Erro ao guardar: " + e.message);
-        } finally {
-            setSavingProfile(false);
-        }
-    };
 
     return {
         isMobileMenuOpen, setIsMobileMenuOpen, isProfileDropdownOpen, setIsProfileDropdownOpen,
