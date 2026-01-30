@@ -212,12 +212,11 @@ export const useDashboardLogic = () => {
     const [savingProfile, setSavingProfile] = useState(false);
     const [savingCompany, setSavingCompany] = useState(false);
 
-    // AI STATES (UNIFICADO)
+    // AI STATES
     const [messages, setMessages] = useState([{ role: 'assistant', content: 'Olá! Sou o assistente EasyCheck. Posso ajudar a criar faturas, registar despesas ou gerir clientes.' }]);
     const [chatInput, setChatInput] = useState('');
     const [isChatLoading, setIsChatLoading] = useState(false);
     const [aiMemory, setAiMemory] = useState<AIMemoryState>({ intent: null, step: 'idle', data: {} });
-    
     const scrollRef = useRef<HTMLDivElement>(null);
 
     // HELPERS
@@ -458,7 +457,6 @@ export const useDashboardLogic = () => {
         }
         await supabase.from('invoice_items').insert(invoiceData.items.map(item => ({ invoice_id: invoiceId, description: item.description, quantity: item.quantity, unit_price: item.price, tax_rate: item.tax })));
 
-        // CONTAS INTELIGENTES (IVA VENDAS)
         const clientAccount = companyAccounts.find(a => ['211', '411', '1200'].some(c => a.code.startsWith(c)));
         const salesAccount = companyAccounts.find(a => ['71', '70', '4000', '701'].some(c => a.code.startsWith(c)));
         const taxAccount = companyAccounts.find(a => ['2433', '4457', '2100', '2434'].some(c => a.code.startsWith(c)));
