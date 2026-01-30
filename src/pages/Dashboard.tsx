@@ -207,10 +207,17 @@ export default function Dashboard() {
                                 </div>
                             </div>
                         )}
-                        {/* --- ABA ATUALIZADA: PLANO DE CONTAS (Visual Hierárquico) --- */}
+                        
+                        {/* --- ABA ATUALIZADA: PLANO DE CONTAS (Com Botão "Criar Conta") --- */}
                         {logic.accountingTab === 'coa' && (
                             <div className="p-4">
-                                <h3 className="font-bold flex gap-2 mb-4"><List/> Plano de Contas ({logic.companyForm.country})</h3>
+                                <div className="flex justify-between items-center mb-4">
+                                    <h3 className="font-bold flex gap-2"><List/> Plano de Contas ({logic.companyForm.country})</h3>
+                                    {/* BOTÃO ADICIONADO AQUI */}
+                                    <button onClick={() => logic.setShowNewAccountModal(true)} className="flex items-center gap-2 bg-gray-800 text-white px-4 py-2 rounded-lg font-medium hover:bg-gray-900 transition-colors text-sm">
+                                        <Plus className="w-4 h-4"/> Criar Conta
+                                    </button>
+                                </div>
                                 <div className="overflow-y-auto max-h-[60vh]">
                                     <table className="w-full text-xs text-left">
                                         <thead className="bg-gray-100 dark:bg-gray-700"><tr><th className="p-3">Conta</th><th className="p-3">Descrição</th><th className="p-3">Tipo</th></tr></thead>
@@ -375,6 +382,151 @@ export default function Dashboard() {
                                 ) : (
                                     <div className="py-20 text-center border-2 border-dashed rounded-3xl border-gray-200 dark:border-gray-700"><Landmark size={48} className="mx-auto text-gray-300 mb-4"/><p className="text-gray-500 font-medium">Nenhum extrato importado.</p><p className="text-xs text-gray-400 mt-1">Carregue um ficheiro CSV para iniciar a reconciliação automática.</p></div>
                                 )}
+                            </div>
+                        )}
+                        {logic.accountingTab === 'taxes' && (
+                            <div className="h-[calc(100vh-140px)] flex flex-col p-2">
+                                {(() => {
+                                    const ivaLiquidado = logic.realInvoices.reduce((acc, inv) => acc + (inv.tax_total || 0), 0);
+                                    const ivaDedutivel = logic.purchases.reduce((acc, pur) => acc + (pur.tax_total || 0), 0);
+                                    const apuramento = ivaLiquidado - ivaDedutivel;
+
+                                    return (
+                                            <>
+                                                <div className={`mb-6 p-4 rounded-2xl border-2 flex justify-between items-center shadow-sm ${apuramento > 0 ? 'bg-red-50 border-red-100' : 'bg-green-50 border-green-100'}`}>
+                                                    <div className="flex gap-4 items-center">
+                                                        <div className={`p-3 rounded-full ${apuramento > 0 ? 'bg-red-100 text-red-600' : 'bg-green-100 text-green-600'}`}>
+                                                            <FileCheck size={24} />
+                                                        </div>
+                                                        <div>
+                                                            <h3 className="font-bold text-lg text-gray-700 dark:text-gray-200">Apuramento de IVA</h3>
+                                                            <p className="text-xs text-gray-500">Diferença entre o cobrado e o pago</p>
+                                                        </div>
+                                                    </div>
+                                                    <div className="text-right">
+                                                        <p className={`text-xs font-bold uppercase tracking-wider ${apuramento > 0 ? 'text-red-600' : 'text-green-600'}`}>
+                                                            {apuramento > 0 ? 'A Entregar ao Estado' : 'Crédito a Receber'}
+                                                        </p>
+                                                        <p className={`text-3xl font-mono font-bold ${apuramento > 0 ? 'text-red-700' : 'text-green-700'}`}>
+                                                            {logic.displaySymbol} {Math.abs(apuramento).toFixed(2)}
+                                                        </p>
+                                                    </div>
+                                                </div>
+
+                                                <div className="grid grid-cols-1 md:grid-cols-2 gap-6 flex-1 overflow-hidden">
+                                                    <div className="bg-white dark:bg-gray-800 rounded-2xl border border-blue-100 dark:border-gray-700 flex flex-col shadow-sm overflow-hidden">
+                                                        <div className="p-6 bg-blue-50 dark:bg-blue-900/20 border-b border-blue-100 dark:border-blue-900/30">
+                                                            <div className="flex justify-between items-start">
+                                                                <div>
+                                                                    <p className="text-xs font-bold text-blue-500 uppercase tracking-wider mb-1">A favor do Estado</p>
+                                                                    <h3 className="text-xl font-bold text-blue-900 dark:text-blue-100 flex gap-2 items-center">
+                                                                        <TrendingUpIcon size={20}/> IVA Liquidado
+                                                                    </h3>
+                                                                </div>
+                                                                <div className="text-right">
+                                                                    <span className="text-2xl font-bold text-blue-600 font-mono block">
+                                                                        {logic.displaySymbol} {ivaLiquidado.toFixed(2)}
+                                                                    </span>
+                                                                    <span className="text-[10px] text-blue-400">Total em Vendas</span>
+                                                                </div>
+                                                            </div>
+                                                        </div>
+                                                        <div className="flex-1 overflow-y-auto p-0">
+                                                            <table className="w-full text-xs text-left">
+                                                                <thead className="bg-gray-50 dark:bg-gray-900 text-gray-500 border-b dark:border-gray-700 sticky top-0">
+                                                                    <tr>
+                                                                        <th className="p-3 pl-6">Fatura</th>
+                                                                        <th className="p-3 text-right">Base Incidência</th>
+                                                                        <th className="p-3 text-right pr-6">Valor IVA</th>
+                                                                    </tr>
+                                                                </thead>
+                                                                <tbody className="divide-y dark:divide-gray-700">
+                                                                    {logic.realInvoices.filter(i => i.tax_total > 0).map(inv => (
+                                                                        <tr key={inv.id} className="hover:bg-blue-50/50 dark:hover:bg-gray-700 transition-colors">
+                                                                            <td className="p-3 pl-6 font-mono text-blue-600 font-bold">{inv.invoice_number}</td>
+                                                                            <td className="p-3 text-right text-gray-500">{logic.displaySymbol} {inv.subtotal.toFixed(2)}</td>
+                                                                            <td className="p-3 text-right pr-6 font-bold text-gray-700 dark:text-white">{logic.displaySymbol} {inv.tax_total.toFixed(2)}</td>
+                                                                        </tr>
+                                                                    ))}
+                                                                    {logic.realInvoices.filter(i => i.tax_total > 0).length === 0 && (
+                                                                        <tr><td colSpan={3} className="p-8 text-center text-gray-300">Sem vendas com IVA.</td></tr>
+                                                                    )}
+                                                                </tbody>
+                                                            </table>
+                                                        </div>
+                                                    </div>
+
+                                                    <div className="bg-white dark:bg-gray-800 rounded-2xl border border-green-100 dark:border-gray-700 flex flex-col shadow-sm overflow-hidden">
+                                                        <div className="p-6 bg-green-50 dark:bg-green-900/20 border-b border-green-100 dark:border-green-900/30">
+                                                            <div className="flex justify-between items-start">
+                                                                <div>
+                                                                    <p className="text-xs font-bold text-green-500 uppercase tracking-wider mb-1">A favor da Empresa</p>
+                                                                    <h3 className="text-xl font-bold text-green-900 dark:text-green-100 flex gap-2 items-center">
+                                                                        <TrendingDown size={20}/> IVA Dedutível
+                                                                    </h3>
+                                                                </div>
+                                                                <div className="text-right">
+                                                                    <span className="text-2xl font-bold text-green-600 font-mono block">
+                                                                        {logic.displaySymbol} {ivaDedutivel.toFixed(2)}
+                                                                    </span>
+                                                                    <span className="text-[10px] text-green-400">Total em Compras</span>
+                                                                </div>
+                                                            </div>
+                                                        </div>
+                                                        <div className="flex-1 overflow-y-auto p-0">
+                                                            <table className="w-full text-xs text-left">
+                                                                <thead className="bg-gray-50 dark:bg-gray-900 text-gray-500 border-b dark:border-gray-700 sticky top-0">
+                                                                    <tr>
+                                                                        <th className="p-3 pl-6">Fornecedor / Doc</th>
+                                                                        <th className="p-3 text-right">Base Incidência</th>
+                                                                        <th className="p-3 text-right pr-6">Valor IVA</th>
+                                                                    </tr>
+                                                                </thead>
+                                                                <tbody className="divide-y dark:divide-gray-700">
+                                                                    {logic.purchases.filter(p => p.tax_total > 0).map(pur => (
+                                                                        <tr key={pur.id} className="hover:bg-green-50/50 dark:hover:bg-gray-700 transition-colors">
+                                                                            <td className="p-3 pl-6">
+                                                                                <div className="font-bold text-gray-700 dark:text-white">{pur.suppliers?.name || 'Fornecedor'}</div>
+                                                                                <div className="text-[10px] text-gray-400 font-mono">{pur.invoice_number}</div>
+                                                                            </td>
+                                                                            <td className="p-3 text-right text-gray-500">{logic.displaySymbol} {(pur.total - (pur.tax_total || 0)).toFixed(2)}</td>
+                                                                            <td className="p-3 text-right pr-6 font-bold text-green-600">{logic.displaySymbol} {pur.tax_total.toFixed(2)}</td>
+                                                                        </tr>
+                                                                    ))}
+                                                                    {logic.purchases.filter(p => p.tax_total > 0).length === 0 && (
+                                                                        <tr><td colSpan={3} className="p-8 text-center text-gray-300">Sem compras dedutíveis.</td></tr>
+                                                                    )}
+                                                                </tbody>
+                                                            </table>
+                                                        </div>
+                                                    </div>
+                                                </div>
+                                            </>
+                                    );
+                                })()}
+                            </div>
+                        )}
+                        {logic.accountingTab === 'reports' && (
+                            <div className="p-6 text-center">
+                                <h3 className="font-bold text-lg mb-6 text-gray-700 dark:text-white">Relatórios Financeiros Oficiais</h3>
+                                <div className="grid grid-cols-1 md:grid-cols-2 gap-6 max-w-2xl mx-auto">
+                                    <button onClick={() => logic.generateFinancialReport('balancete')} className="p-8 border rounded-2xl hover:bg-blue-50 dark:hover:bg-blue-900/20 border-gray-200 dark:border-gray-700 flex flex-col items-center gap-4 transition-all hover:scale-105 shadow-sm group">
+                                            <div className="bg-blue-100 p-4 rounded-full group-hover:bg-blue-200"><List size={32} className="text-blue-600"/></div>
+                                            <div><h4 className="font-bold text-xl text-gray-800 dark:text-white">Balancete</h4><p className="text-sm text-gray-500">Resumo de todas as contas e verificação de equilíbrio.</p></div>
+                                    </button>
+                                    <button onClick={() => logic.generateFinancialReport('dre')} className="p-8 border rounded-2xl hover:bg-green-50 dark:hover:bg-green-900/20 border-gray-200 dark:border-gray-700 flex flex-col items-center gap-4 transition-all hover:scale-105 shadow-sm group">
+                                            <div className="bg-green-100 p-4 rounded-full group-hover:bg-green-200"><TrendingUpIcon size={32} className="text-green-600"/></div>
+                                            <div><h4 className="font-bold text-xl text-gray-800 dark:text-white">Demonstração de Resultados</h4><p className="text-sm text-gray-500">Análise de Proveitos (Vendas) vs Custos.</p></div>
+                                    </button>
+                                </div>
+                                {logic.journalEntries.length === 0 && <p className="mt-8 text-sm text-red-400 bg-red-50 p-2 rounded inline-block">⚠️ Gere movimentos (Faturas/Despesas) para desbloquear os relatórios.</p>}
+                            </div>
+                        )}
+                        {logic.accountingTab === 'suppliers' && (
+                            <div>
+                                <div className="p-4 flex justify-between bg-gray-50 dark:bg-gray-800 border-b dark:border-gray-700"><h3 className="font-bold flex gap-2"><Truck/> Fornecedores</h3><button onClick={()=>{logic.setEditingEntityId(null);logic.setNewEntity({name:'',nif:'',email:'',address:'',city:'',postal_code:'',country:'Portugal'});logic.setEntityType('supplier');logic.setShowEntityModal(true)}} className="bg-blue-600 text-white px-3 py-1.5 rounded text-sm font-bold flex gap-2"><Plus size={16}/> Novo</button></div>
+                                <table className="w-full text-xs text-left"><thead className="bg-gray-100 dark:bg-gray-700 uppercase"><tr><th className="p-3">Nome</th><th className="p-3">NIF</th><th className="p-3">Email</th><th className="p-3">Categoria</th><th className="p-3 text-right">Ações</th></tr></thead>
+                                <tbody>{logic.suppliers.map(s=>(<tr key={s.id} className="border-b dark:border-gray-700"><td className="p-3 font-bold">{s.name}</td><td className="p-3 font-mono">{s.nif}</td><td className="p-3">{s.email}</td><td className="p-3"><span className="bg-gray-100 px-2 py-1 rounded text-[10px] uppercase font-bold">Geral</span></td><td className="p-3 text-right flex justify-end gap-2"><button onClick={()=>logic.handleEditEntity(s,'supplier')} className="text-blue-500 hover:bg-blue-50 p-1 rounded"><Edit2 size={14}/></button><button onClick={()=>logic.handleDeleteEntity(s.id, 'supplier')} className="text-red-500 hover:bg-red-50 p-1 rounded"><Trash2 size={14}/></button></td></tr>))}</tbody></table>
                             </div>
                         )}
                         {logic.accountingTab === 'clients' && (
@@ -642,6 +794,7 @@ export default function Dashboard() {
                               <option value="passivo">Passivo</option>
                               <option value="gastos">Gastos</option>
                               <option value="rendimentos">Rendimentos</option>
+                              <option value="rubrica">Rubrica (Agregador)</option>
                           </select>
                       </div>
                   </div>

@@ -9,6 +9,13 @@ import { askGrok } from '../services/aiService';
 // ==========================================
 // DADOS ESTÁTICOS
 // ==========================================
+export const ACCOUNTING_TEMPLATES: Record<string, any[]> = {
+    "Default": [
+        { code: '1000', name: 'Caixa (Fallback)', type: 'ativo' },
+        { code: '4000', name: 'Vendas (Fallback)', type: 'rendimentos' }
+    ]
+};
+
 export const countries = [
     "Portugal", "Brasil", "Angola", "Moçambique", "Cabo Verde",
     "France", "Deutschland", "United Kingdom", "España", "United States",
@@ -129,7 +136,7 @@ export const useDashboardLogic = () => {
     const [showAmortSchedule, setShowAmortSchedule] = useState(false);
     const [showNewAccountModal, setShowNewAccountModal] = useState(false);
 
-    // NAVIGATION FIX
+    // NAVIGATION
     useEffect(() => {
         if (showInvoiceForm) {
             if (!location.pathname.includes('/accounting')) navigate('/dashboard/accounting');
@@ -192,14 +199,12 @@ export const useDashboardLogic = () => {
     const [savingProfile, setSavingProfile] = useState(false);
     const [savingCompany, setSavingCompany] = useState(false);
 
-    // AI STATES
     const [messages, setMessages] = useState([{ role: 'assistant', content: 'Olá! Sou o assistente EasyCheck. Posso ajudar a criar faturas, registar despesas ou gerir clientes.' }]);
     const [chatInput, setChatInput] = useState('');
     const [isChatLoading, setIsChatLoading] = useState(false);
     const [aiMemory, setAiMemory] = useState<AIMemoryState>({ intent: null, step: 'idle', data: {} });
     const scrollRef = useRef<HTMLDivElement>(null);
 
-    // HELPERS
     const getCurrencyCode = (country: string) => countryCurrencyMap[country] || 'EUR';
     const getCurrencySymbol = (code: string) => currencySymbols[code] || '€';
     const getCurrentCountryVatRates = () => vatRatesByCountry[companyForm.country || "Portugal"] || [23, 0];
@@ -419,7 +424,7 @@ export const useDashboardLogic = () => {
     const handleRemoveInvoiceItem = (index: number) => { const newItems = [...invoiceData.items]; newItems.splice(index, 1); setInvoiceData({ ...invoiceData, items: newItems }); };
     const updateInvoiceItem = (index: number, field: string, value: string) => { const newItems: any = [...invoiceData.items]; newItems[index][field] = field === 'description' ? value : parseFloat(value) || 0; setInvoiceData({ ...invoiceData, items: newItems }); };
     
-    // --- CORREÇÃO BUG FATURA: IVA AUTOMÁTICO ---
+    // --- CORREÇÃO BUG FATURA: Inicializa IVA com valor do país ---
     const resetInvoiceForm = () => { 
         const defaultTax = getCurrentCountryVatRates()[0] || 23;
         setInvoiceData({ 
