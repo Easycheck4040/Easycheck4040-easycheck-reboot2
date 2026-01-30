@@ -7,15 +7,8 @@ import autoTable from 'jspdf-autotable';
 import { askGrok } from '../services/aiService'; 
 
 // ==========================================
-// DADOS ESTÁTICOS (FALLBACK)
+// DADOS ESTÁTICOS
 // ==========================================
-export const ACCOUNTING_TEMPLATES: Record<string, any[]> = {
-    "Default": [
-        { code: '1000', name: 'Caixa (Fallback)', type: 'ativo' },
-        { code: '4000', name: 'Vendas (Fallback)', type: 'rendimentos' }
-    ]
-};
-
 export const countries = [
     "Portugal", "Brasil", "Angola", "Moçambique", "Cabo Verde",
     "France", "Deutschland", "United Kingdom", "España", "United States",
@@ -67,21 +60,12 @@ export const vatRatesByCountry: Record<string, number[]> = {
 
 // --- INTERFACES ---
 export interface InvoiceItem { 
-    description: string; 
-    quantity: number; 
-    price: number; 
-    tax: number; 
+    description: string; quantity: number; price: number; tax: number; 
 }
 
 export interface InvoiceData { 
-    id: string; 
-    client_id: string; 
-    type: string; 
-    invoice_number?: string; 
-    date: string; 
-    due_date: string; 
-    exemption_reason: string; 
-    items: InvoiceItem[]; 
+    id: string; client_id: string; type: string; invoice_number?: string; 
+    date: string; due_date: string; exemption_reason: string; items: InvoiceItem[]; 
 }
 
 export interface AIMemoryState {
@@ -91,17 +75,11 @@ export interface AIMemoryState {
 }
 
 export interface JournalGridLine { 
-    account_id: string; 
-    debit: number; 
-    credit: number; 
+    account_id: string; debit: number; credit: number; 
 }
 
 export interface BankStatementLine { 
-    date: string; 
-    description: string; 
-    amount: number; 
-    matched_invoice_id?: string; 
-    suggested_match?: string; 
+    date: string; description: string; amount: number; matched_invoice_id?: string; suggested_match?: string; 
 }
 
 // ==========================================
@@ -149,7 +127,7 @@ export const useDashboardLogic = () => {
     const [showProvisionModal, setShowProvisionModal] = useState(false);
     const [showDoubtfulModal, setShowDoubtfulModal] = useState(false);
     const [showAmortSchedule, setShowAmortSchedule] = useState(false);
-    const [showNewAccountModal, setShowNewAccountModal] = useState(false); // NOVO MODAL PARA CONTA
+    const [showNewAccountModal, setShowNewAccountModal] = useState(false);
 
     // NAVIGATION FIX
     useEffect(() => {
@@ -198,7 +176,7 @@ export const useDashboardLogic = () => {
     ]);
 
     const [newTransaction, setNewTransaction] = useState({ description: '', date: new Date().toISOString().split('T')[0] });
-    const [newAccount, setNewAccount] = useState({ code: '', name: '', type: 'ativo' }); // ESTADO NOVA CONTA
+    const [newAccount, setNewAccount] = useState({ code: '', name: '', type: 'ativo' });
     const [newAsset, setNewAsset] = useState({ name: '', category: 'Equipamento', purchase_date: new Date().toISOString().split('T')[0], purchase_value: '', lifespan_years: 3, amortization_method: 'linear' });
     const [newEntity, setNewEntity] = useState({ name: '', nif: '', email: '', address: '', city: '', postal_code: '', country: 'Portugal' });
     const [newProvision, setNewProvision] = useState({ description: '', amount: '', type: 'Riscos e Encargos', date: new Date().toISOString().split('T')[0] });
@@ -441,7 +419,7 @@ export const useDashboardLogic = () => {
     const handleRemoveInvoiceItem = (index: number) => { const newItems = [...invoiceData.items]; newItems.splice(index, 1); setInvoiceData({ ...invoiceData, items: newItems }); };
     const updateInvoiceItem = (index: number, field: string, value: string) => { const newItems: any = [...invoiceData.items]; newItems[index][field] = field === 'description' ? value : parseFloat(value) || 0; setInvoiceData({ ...invoiceData, items: newItems }); };
     
-    // --- CORREÇÃO BUG FATURA: Inicializa IVA com valor do país ---
+    // --- CORREÇÃO BUG FATURA: IVA AUTOMÁTICO ---
     const resetInvoiceForm = () => { 
         const defaultTax = getCurrentCountryVatRates()[0] || 23;
         setInvoiceData({ 
@@ -449,7 +427,7 @@ export const useDashboardLogic = () => {
             date: new Date().toISOString().split('T')[0], 
             due_date: new Date(new Date().setDate(new Date().getDate() + 30)).toISOString().split('T')[0], 
             exemption_reason: '', 
-            items: [{ description: '', quantity: 1, price: 0, tax: defaultTax }] // AQUI
+            items: [{ description: '', quantity: 1, price: 0, tax: defaultTax }]
         }); 
         setManualTaxMode(false); 
     };
@@ -531,17 +509,31 @@ export const useDashboardLogic = () => {
         } else { alert("Erro: " + error?.message); }
     };
 
-    // --- NOVA FUNÇÃO: CRIAR CONTA NO DIÁRIO ---
+    // --- FUNÇÃO CORRIGIDA: CRIAR CONTA E ATUALIZAR LISTAS IMEDIATAMENTE ---
     const handleSaveNewAccount = async () => {
-        if (!newAccount.code || !newAccount.name) return alert("Preencha código e nome.");
-        const { data, error } = await supabase.from('company_accounts').insert([{ user_id: userData.id, ...newAccount }]).select().single();
-        if (!error && data) {
-            setCompanyAccounts(prev => [...prev, data].sort((a, b) => a.code.localeCompare(b.code)));
+        if (!newAccount.code || !newAccount.name) return alert("Preencha o Código e o Nome da conta.");
+        const exists = companyAccounts.find(a => a.code === newAccount.code);
+        if (exists) return alert("Já existe uma conta com este código.");
+
+        const { data, error } = await supabase.from('company_accounts').insert([{ 
+            user_id: userData.id, 
+            code: newAccount.code, 
+            name: newAccount.name, 
+            type: newAccount.type 
+        }]).select().single();
+
+        if (error) {
+            return alert("Erro ao criar conta: " + error.message);
+        }
+
+        if (data) {
+            setCompanyAccounts(prevAccounts => {
+                const updatedList = [...prevAccounts, data];
+                return updatedList.sort((a, b) => a.code.localeCompare(b.code, undefined, { numeric: true }));
+            });
             setShowNewAccountModal(false);
             setNewAccount({ code: '', name: '', type: 'ativo' });
-            alert("Conta criada!");
-        } else {
-            alert("Erro: " + error?.message);
+            alert(`Conta ${data.code} criada com sucesso!`);
         }
     };
 
@@ -700,7 +692,7 @@ export const useDashboardLogic = () => {
                 const { error } = await supabase.rpc('reset_account_data', { p_user_id: userData.id });
                 if (!error) {
                     setJournalEntries([]); setRealInvoices([]); setPurchases([]); setAssets([]); setProvisions([]);
-                    navigate('/dashboard'); // Redireciona em vez de reload
+                    navigate('/dashboard'); 
                 } else { alert(error.message); }
             }
         }
