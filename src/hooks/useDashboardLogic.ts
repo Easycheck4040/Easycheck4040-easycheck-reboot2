@@ -457,6 +457,7 @@ export const useDashboardLogic = () => {
         }
         await supabase.from('invoice_items').insert(invoiceData.items.map(item => ({ invoice_id: invoiceId, description: item.description, quantity: item.quantity, unit_price: item.price, tax_rate: item.tax })));
 
+        // CONTAS INTELIGENTES (IVA VENDAS)
         const clientAccount = companyAccounts.find(a => ['211', '411', '1200'].some(c => a.code.startsWith(c)));
         const salesAccount = companyAccounts.find(a => ['71', '70', '4000', '701'].some(c => a.code.startsWith(c)));
         const taxAccount = companyAccounts.find(a => ['2433', '4457', '2100', '2434'].some(c => a.code.startsWith(c)));
@@ -672,7 +673,7 @@ export const useDashboardLogic = () => {
                 const { error } = await supabase.rpc('reset_account_data', { p_user_id: userData.id });
                 if (!error) {
                     setJournalEntries([]); setRealInvoices([]); setPurchases([]); setAssets([]); setProvisions([]);
-                    window.location.reload();
+                    navigate('/dashboard');
                 } else { alert(error.message); }
             }
         }
