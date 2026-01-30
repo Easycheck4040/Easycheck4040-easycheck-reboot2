@@ -149,6 +149,7 @@ export const useDashboardLogic = () => {
     const [showProvisionModal, setShowProvisionModal] = useState(false);
     const [showDoubtfulModal, setShowDoubtfulModal] = useState(false);
     const [showAmortSchedule, setShowAmortSchedule] = useState(false);
+    const [showNewAccountModal, setShowNewAccountModal] = useState(false); // NOVO MODAL PARA CONTA
 
     // NAVIGATION FIX
     useEffect(() => {
@@ -197,6 +198,7 @@ export const useDashboardLogic = () => {
     ]);
 
     const [newTransaction, setNewTransaction] = useState({ description: '', date: new Date().toISOString().split('T')[0] });
+    const [newAccount, setNewAccount] = useState({ code: '', name: '', type: 'ativo' }); // ESTADO NOVA CONTA
     const [newAsset, setNewAsset] = useState({ name: '', category: 'Equipamento', purchase_date: new Date().toISOString().split('T')[0], purchase_value: '', lifespan_years: 3, amortization_method: 'linear' });
     const [newEntity, setNewEntity] = useState({ name: '', nif: '', email: '', address: '', city: '', postal_code: '', country: 'Portugal' });
     const [newProvision, setNewProvision] = useState({ description: '', amount: '', type: 'Riscos e Encargos', date: new Date().toISOString().split('T')[0] });
@@ -438,7 +440,19 @@ export const useDashboardLogic = () => {
     const handleAddInvoiceItem = () => { setInvoiceData({ ...invoiceData, items: [...invoiceData.items, { description: '', quantity: 1, price: 0, tax: getCurrentCountryVatRates()[0] }] }); };
     const handleRemoveInvoiceItem = (index: number) => { const newItems = [...invoiceData.items]; newItems.splice(index, 1); setInvoiceData({ ...invoiceData, items: newItems }); };
     const updateInvoiceItem = (index: number, field: string, value: string) => { const newItems: any = [...invoiceData.items]; newItems[index][field] = field === 'description' ? value : parseFloat(value) || 0; setInvoiceData({ ...invoiceData, items: newItems }); };
-    const resetInvoiceForm = () => { setInvoiceData({ id: '', client_id: '', type: 'Fatura', invoice_number: '', date: new Date().toISOString().split('T')[0], due_date: new Date(new Date().setDate(new Date().getDate() + 30)).toISOString().split('T')[0], exemption_reason: '', items: [{ description: '', quantity: 1, price: 0, tax: 0 }] }); setManualTaxMode(false); };
+    
+    // --- CORREÇÃO BUG FATURA: Inicializa IVA com valor do país ---
+    const resetInvoiceForm = () => { 
+        const defaultTax = getCurrentCountryVatRates()[0] || 23;
+        setInvoiceData({ 
+            id: '', client_id: '', type: 'Fatura', invoice_number: '', 
+            date: new Date().toISOString().split('T')[0], 
+            due_date: new Date(new Date().setDate(new Date().getDate() + 30)).toISOString().split('T')[0], 
+            exemption_reason: '', 
+            items: [{ description: '', quantity: 1, price: 0, tax: defaultTax }] // AQUI
+        }); 
+        setManualTaxMode(false); 
+    };
 
     const handleSaveInvoice = async () => {
         const totals = calculateInvoiceTotals();
@@ -457,7 +471,6 @@ export const useDashboardLogic = () => {
         }
         await supabase.from('invoice_items').insert(invoiceData.items.map(item => ({ invoice_id: invoiceId, description: item.description, quantity: item.quantity, unit_price: item.price, tax_rate: item.tax })));
 
-        // CONTAS INTELIGENTES (IVA VENDAS)
         const clientAccount = companyAccounts.find(a => ['211', '411', '1200'].some(c => a.code.startsWith(c)));
         const salesAccount = companyAccounts.find(a => ['71', '70', '4000', '701'].some(c => a.code.startsWith(c)));
         const taxAccount = companyAccounts.find(a => ['2433', '4457', '2100', '2434'].some(c => a.code.startsWith(c)));
@@ -516,6 +529,20 @@ export const useDashboardLogic = () => {
                 setMessages(prev => [...prev, { role: 'assistant', content: `Cliente criado! Abri a fatura.` }]);
             }
         } else { alert("Erro: " + error?.message); }
+    };
+
+    // --- NOVA FUNÇÃO: CRIAR CONTA NO DIÁRIO ---
+    const handleSaveNewAccount = async () => {
+        if (!newAccount.code || !newAccount.name) return alert("Preencha código e nome.");
+        const { data, error } = await supabase.from('company_accounts').insert([{ user_id: userData.id, ...newAccount }]).select().single();
+        if (!error && data) {
+            setCompanyAccounts(prev => [...prev, data].sort((a, b) => a.code.localeCompare(b.code)));
+            setShowNewAccountModal(false);
+            setNewAccount({ code: '', name: '', type: 'ativo' });
+            alert("Conta criada!");
+        } else {
+            alert("Erro: " + error?.message);
+        }
     };
 
     const handleDeleteAccount = async () => {
@@ -673,7 +700,7 @@ export const useDashboardLogic = () => {
                 const { error } = await supabase.rpc('reset_account_data', { p_user_id: userData.id });
                 if (!error) {
                     setJournalEntries([]); setRealInvoices([]); setPurchases([]); setAssets([]); setProvisions([]);
-                    navigate('/dashboard');
+                    navigate('/dashboard'); // Redireciona em vez de reload
                 } else { alert(error.message); }
             }
         }
@@ -703,7 +730,7 @@ export const useDashboardLogic = () => {
         showEntityModal, setShowEntityModal, showInvoiceForm, setShowInvoiceForm,
         showPurchaseForm, setShowPurchaseForm, showPreviewModal, setShowPreviewModal,
         showProvisionModal, setShowProvisionModal, showDoubtfulModal, setShowDoubtfulModal,
-        showAmortSchedule, setShowAmortSchedule,
+        showAmortSchedule, setShowAmortSchedule, showNewAccountModal, setShowNewAccountModal,
         entityType, setEntityType, editingEntityId, setEditingEntityId,
         editingProvisionId, setEditingProvisionId, editingAssetId, setEditingAssetId,
         deleteConfirmation, setDeleteConfirmation, isDeleting, uploadingLogo, uploadingTemplate,
@@ -711,7 +738,7 @@ export const useDashboardLogic = () => {
         manualDebtAmount, setManualDebtAmount, selectedDebtInvoices, setSelectedDebtInvoices,
         selectedAssetForSchedule, setSelectedAssetForSchedule, editForm, setEditForm,
         companyForm, setCompanyForm, journalGrid, setJournalGrid, newTransaction, setNewTransaction,
-        newAsset, setNewAsset, newEntity, setNewEntity, newProvision, setNewProvision,
+        newAccount, setNewAccount, newAsset, setNewAsset, newEntity, setNewEntity, newProvision, setNewProvision,
         newPurchase, setNewPurchase, invoiceData, setInvoiceData, savingProfile, savingCompany,
         messages, chatInput, setChatInput, isChatLoading, scrollRef,
         getCurrencySymbol, displaySymbol, conversionRate, getCurrentCountryVatRates,
@@ -727,6 +754,6 @@ export const useDashboardLogic = () => {
         handleDeleteAsset, handleShowAmortSchedule, handleCreateEntity, handleEditEntity,
         handleDeleteEntity, handleCreateProvision, handleSaveProfile, handleSaveCompany,
         handleQuickPreview, handleDownloadPDF, handleSendChatMessage, selectLanguage,
-        toggleTheme, handleLogout, handleCountryChange, handlePayInvoice
+        toggleTheme, handleLogout, handleCountryChange, handlePayInvoice, handleSaveNewAccount
     };
 };

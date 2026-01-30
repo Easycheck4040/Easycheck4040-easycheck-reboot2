@@ -207,7 +207,6 @@ export default function Dashboard() {
                                 </div>
                             </div>
                         )}
-                        
                         {/* --- ABA ATUALIZADA: PLANO DE CONTAS (Visual Hierárquico) --- */}
                         {logic.accountingTab === 'coa' && (
                             <div className="p-4">
@@ -611,12 +610,47 @@ export default function Dashboard() {
                         <tfoot className="bg-gray-50 dark:bg-gray-900 font-bold text-xs uppercase"><tr><td className="p-3 text-right">Totais:</td><td className={`p-3 text-right ${logic.isGridBalanced() ? 'text-green-600' : 'text-red-600'}`}>{logic.displaySymbol} {logic.getGridTotals().debit.toFixed(2)}</td><td className={`p-3 text-right ${logic.isGridBalanced() ? 'text-green-600' : 'text-red-600'}`}>{logic.displaySymbol} {logic.getGridTotals().credit.toFixed(2)}</td><td></td></tr></tfoot>
                         </table>
                     </div>
-                    <button onClick={logic.addGridLine} className="mt-2 text-blue-600 font-bold text-sm flex items-center gap-2 hover:underline"><Plus size={16}/> Adicionar Linha</button>
+                    <div className="flex gap-4 mt-2">
+                        <button onClick={logic.addGridLine} className="text-blue-600 font-bold text-sm flex items-center gap-2 hover:underline"><Plus size={16}/> Adicionar Linha</button>
+                        <button onClick={() => logic.setShowNewAccountModal(true)} className="text-green-600 font-bold text-sm flex items-center gap-2 hover:underline ml-auto"><Plus size={16}/> Nova Conta Contabilística</button>
+                    </div>
                     {!logic.isGridBalanced() && (<div className="mt-4 p-3 bg-red-50 dark:bg-red-900/20 text-red-600 dark:text-red-400 text-sm rounded-lg flex items-center gap-2 border border-red-100 dark:border-red-800"><AlertOctagon size={16}/> O lançamento não está balanceado.</div>)}
                 </div>
                 <div className="p-6 border-t dark:border-gray-700 bg-gray-50 dark:bg-gray-900 rounded-b-2xl flex justify-end gap-3"><button onClick={()=>logic.setShowTransactionModal(false)} className="px-6 py-3 border rounded-xl font-bold text-gray-500">Cancelar</button><button onClick={logic.handleSaveJournalEntry} disabled={!logic.isGridBalanced()} className="px-6 py-3 bg-blue-600 text-white rounded-xl font-bold disabled:opacity-50"><CheckCircle size={20}/> Lançar no Diário</button></div>
             </div>
         </div>
+      )}
+
+      {/* NOVO MODAL: CRIAR CONTA RÁPIDA */}
+      {logic.showNewAccountModal && (
+          <div className="fixed inset-0 z-[150] flex items-center justify-center bg-black/60 backdrop-blur-sm p-4">
+              <div className="bg-white dark:bg-gray-800 rounded-2xl w-full max-w-sm shadow-2xl border dark:border-gray-700 p-6 animate-in zoom-in-95">
+                  <h3 className="text-lg font-bold mb-4 dark:text-white">Nova Conta</h3>
+                  <div className="space-y-3">
+                      <div>
+                          <label className="text-xs font-bold uppercase text-gray-500">Código</label>
+                          <input className="w-full p-2 border rounded-lg dark:bg-gray-900 dark:border-gray-600 dark:text-white" value={logic.newAccount.code} onChange={e => logic.setNewAccount({...logic.newAccount, code: e.target.value})} placeholder="Ex: 6228"/>
+                      </div>
+                      <div>
+                          <label className="text-xs font-bold uppercase text-gray-500">Nome</label>
+                          <input className="w-full p-2 border rounded-lg dark:bg-gray-900 dark:border-gray-600 dark:text-white" value={logic.newAccount.name} onChange={e => logic.setNewAccount({...logic.newAccount, name: e.target.value})} placeholder="Ex: Consultoria Informática"/>
+                      </div>
+                      <div>
+                          <label className="text-xs font-bold uppercase text-gray-500">Tipo</label>
+                          <select className="w-full p-2 border rounded-lg dark:bg-gray-900 dark:border-gray-600 dark:text-white" value={logic.newAccount.type} onChange={e => logic.setNewAccount({...logic.newAccount, type: e.target.value})}>
+                              <option value="ativo">Ativo</option>
+                              <option value="passivo">Passivo</option>
+                              <option value="gastos">Gastos</option>
+                              <option value="rendimentos">Rendimentos</option>
+                          </select>
+                      </div>
+                  </div>
+                  <div className="flex justify-end gap-2 mt-6">
+                      <button onClick={() => logic.setShowNewAccountModal(false)} className="px-4 py-2 text-gray-500 font-bold hover:bg-gray-100 rounded-lg">Cancelar</button>
+                      <button onClick={logic.handleSaveNewAccount} className="px-4 py-2 bg-green-600 text-white rounded-lg font-bold hover:bg-green-700">Criar</button>
+                  </div>
+              </div>
+          </div>
       )}
 
       {/* ADICIONADO: Modal de Ativos */}
